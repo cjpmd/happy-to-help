@@ -25,3 +25,8 @@ export function creditBalance(ledger: LedgerEntry[], companyId: string) {
 export function isLowBalance(balance: number, plan: Plan) {
   return balance < PLANS[plan].credits * LOW_BALANCE_THRESHOLD;
 }
+
+// Mock work estimates; replace with the agent service's quotes before live work.
+export const ACTION_COSTS = { chat: 10, image: 120, video: 400, document: 120, email: 30, social: 40, ads: 90, autoHour: 150 } as const;
+export function actionQuote(balance: number, credits: number) { return { credits, after: balance - credits, affordable: credits >= 0 && balance >= credits }; }
+export function autoModeCost(hours: number) { if (!Number.isInteger(hours) || hours < 1 || hours > 8) throw new Error('Choose 1–8 hours'); return hours * ACTION_COSTS.autoHour; }
