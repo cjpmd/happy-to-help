@@ -9,7 +9,7 @@ export const STAGES: { id: Stage; label: string }[] = [
   { id: "launch", label: "Launch" }, { id: "grow", label: "Grow" },
 ];
 
-export function StageBar({ companyId, canApprove }: { companyId: string; canApprove?: boolean }) {
+export function StageBar({ companyId, canApprove }: { companyId: string; canApprove?: boolean | undefined }) {
   const { db, approveGate } = useStore();
   const gates = db.stage_gates.filter((g) => g.company_id === companyId);
   const byStage = (s: Stage) => gates.find((g) => g.stage === s) as StageGate | undefined;

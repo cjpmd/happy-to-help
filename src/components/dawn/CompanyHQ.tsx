@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 
 const activityIcon: Record<string, typeof Hammer> = { build: Hammer, grow: Megaphone, run: Inbox, legal: Scale, refund: RotateCcw, evidence: Lightbulb, approval: CheckCircle2, raise: Coins };
 
-function Metric({ label, value, delta }: { label: string; value: string; delta?: string }) {
+function Metric({ label, value, delta }: { label: string; value: string; delta?: string | undefined }) {
   return (
     <div className="min-w-0 px-4 py-3">
       <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
@@ -77,7 +77,7 @@ function SitePreview({ companyId }: { companyId: string }) {
   );
 }
 
-export function CompanyHQ({ companyId, readOnly }: { companyId: string; readOnly?: boolean }) {
+export function CompanyHQ({ companyId, readOnly }: { companyId: string; readOnly?: boolean | undefined }) {
   const { db, user, solTyping, saveLayout, stopAuto } = useStore();
   const c = useCompany(companyId);
   const balance = useBalance(companyId);

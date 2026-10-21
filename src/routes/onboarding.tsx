@@ -43,7 +43,7 @@ function Onboarding() {
     { title: "Main goal for the next 90 days?", hint: "One measurable outcome works best.", ok: f.goal.trim(), body: <Input className="h-11" placeholder="500 weekly active students" value={f.goal} onChange={(e) => set("goal")(e.target.value)} /> },
     { title: "A couple of optional extras", hint: "Skip if you don't have them.", ok: true, body: <div className="space-y-3"><Input className="h-11" placeholder="Existing website (https://…)" value={f.url} onChange={(e) => set("url")(e.target.value)} /><Input className="h-11" placeholder="Cohort invite code" value={f.code} onChange={(e) => set("code")(e.target.value)} /></div> },
   ];
-  const s = steps[step];
+  const s = steps[step] ?? steps[0]!;
   const last = step === steps.length - 1;
 
   const finish = () => {

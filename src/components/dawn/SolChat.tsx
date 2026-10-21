@@ -9,7 +9,7 @@ import { ACTION_COSTS, actionQuote } from '@/lib/credits';
 import { Why } from './WorkControls';
 import { cn } from "@/lib/utils";
 
-export function SolChat({ companyId, readOnly }: { companyId: string; readOnly?: boolean }) {
+export function SolChat({ companyId, readOnly }: { companyId: string; readOnly?: boolean | undefined }) {
   const { db, sendChat, solTyping } = useStore();
   const balance = useBalance(companyId);
   const quote = actionQuote(balance,ACTION_COSTS.chat);

@@ -6,7 +6,7 @@ export interface LayoutItem { id: Widget; visible: boolean }
 export const defaultLayout = (): LayoutItem[] => WIDGETS.map(id => ({id, visible: ['Sol','Stage & gates','Live preview','Approvals','Overnight','Metrics'].includes(id)}));
 export interface Routine { id: string; company_id: string; title: string; cadence: 'daily'|'weekdays'|'weekly'; credits: number; enabled: boolean }
 export interface CompanyDocument { id: string; company_id: string; title: string; versions: {version: number; content: string; date: string}[]; outcomes?: {title: string; complete: boolean}[] }
-export interface MediaAsset { id: string; company_id: string; kind: 'image'|'video'; title: string; status: 'generating'|'ready'|'failed'; url?: string; reason?: string }
+export interface MediaAsset { id: string; company_id: string; kind: 'image'|'video'; title: string; status: 'generating'|'ready'|'failed'; url?: string|undefined; reason?: string|undefined }
 export interface EmailThread { id: string; company_id: string; subject: string; name: string; address: string; mode: 'support'|'outreach'; messages: {direction:'received'|'sent'; text:string; date:string}[] }
 export interface AdAccount { company_id:string; status:'not_connected'|'demo'; daily_budget:number; hard_cap:number; spend:number; clicks:number; signups:number }
 export interface Preferences { explanation:'brief'|'more'; adThreshold:number; outreachThreshold:number; publishing:boolean; signupDrop:number; whatsapp:boolean; slack:boolean }

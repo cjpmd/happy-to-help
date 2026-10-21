@@ -5,7 +5,7 @@ import { useStore } from "@/lib/store";
 
 // Stand-in for each company's generated website, shown in the HQ preview frame.
 export const Route = createFileRoute("/site/$slug")({
-  validateSearch: (s: Record<string, unknown>) => ({ preview: s.preview ? 1 : undefined }),
+  validateSearch: (s: Record<string, unknown>) => ({ preview: s["preview"] ? 1 : undefined }),
   head: ({params}) => pageHead(`${params.slug} website`, "A company beta website preview from Dawn."),
   component: Site,
 });
