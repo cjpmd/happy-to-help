@@ -10,33 +10,215 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as AppActivityRouteImport } from './routes/_app/activity'
+import { Route as AppApprovalsRouteImport } from './routes/_app/approvals'
+import { Route as AppBillingRouteImport } from './routes/_app/billing'
+import { Route as AppBuildRouteImport } from './routes/_app/build'
+import { Route as AppCohortRouteImport } from './routes/_app/cohort'
+import { Route as AppEvidenceRouteImport } from './routes/_app/evidence'
+import { Route as AppGrowRouteImport } from './routes/_app/grow'
+import { Route as AppHqRouteImport } from './routes/_app/hq'
+import { Route as AppLegalRouteImport } from './routes/_app/legal'
+import { Route as AppRaiseRouteImport } from './routes/_app/raise'
+import { Route as AppRunRouteImport } from './routes/_app/run'
+import { Route as SiteSlugRouteImport } from './routes/site.$slug'
+import { Route as AppCohortCompanyIdRouteImport } from './routes/_app/cohort.$companyId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppActivityRoute = AppActivityRouteImport.update({
+  id: '/activity',
+  path: '/activity',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppApprovalsRoute = AppApprovalsRouteImport.update({
+  id: '/approvals',
+  path: '/approvals',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBillingRoute = AppBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBuildRoute = AppBuildRouteImport.update({
+  id: '/build',
+  path: '/build',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCohortRoute = AppCohortRouteImport.update({
+  id: '/cohort',
+  path: '/cohort',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEvidenceRoute = AppEvidenceRouteImport.update({
+  id: '/evidence',
+  path: '/evidence',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGrowRoute = AppGrowRouteImport.update({
+  id: '/grow',
+  path: '/grow',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHqRoute = AppHqRouteImport.update({
+  id: '/hq',
+  path: '/hq',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLegalRoute = AppLegalRouteImport.update({
+  id: '/legal',
+  path: '/legal',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRaiseRoute = AppRaiseRouteImport.update({
+  id: '/raise',
+  path: '/raise',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRunRoute = AppRunRouteImport.update({
+  id: '/run',
+  path: '/run',
+  getParentRoute: () => AppRoute,
+} as any)
+const SiteSlugRoute = SiteSlugRouteImport.update({
+  id: '/site/$slug',
+  path: '/site/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppCohortCompanyIdRoute = AppCohortCompanyIdRouteImport.update({
+  id: '/$companyId',
+  path: '/$companyId',
+  getParentRoute: () => AppCohortRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/onboarding': typeof OnboardingRoute
+  '/activity': typeof AppActivityRoute
+  '/approvals': typeof AppApprovalsRoute
+  '/billing': typeof AppBillingRoute
+  '/build': typeof AppBuildRoute
+  '/cohort': typeof AppCohortRouteWithChildren
+  '/evidence': typeof AppEvidenceRoute
+  '/grow': typeof AppGrowRoute
+  '/hq': typeof AppHqRoute
+  '/legal': typeof AppLegalRoute
+  '/raise': typeof AppRaiseRoute
+  '/run': typeof AppRunRoute
+  '/site/$slug': typeof SiteSlugRoute
+  '/cohort/$companyId': typeof AppCohortCompanyIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/onboarding': typeof OnboardingRoute
+  '/activity': typeof AppActivityRoute
+  '/approvals': typeof AppApprovalsRoute
+  '/billing': typeof AppBillingRoute
+  '/build': typeof AppBuildRoute
+  '/cohort': typeof AppCohortRouteWithChildren
+  '/evidence': typeof AppEvidenceRoute
+  '/grow': typeof AppGrowRoute
+  '/hq': typeof AppHqRoute
+  '/legal': typeof AppLegalRoute
+  '/raise': typeof AppRaiseRoute
+  '/run': typeof AppRunRoute
+  '/site/$slug': typeof SiteSlugRoute
+  '/cohort/$companyId': typeof AppCohortCompanyIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/onboarding': typeof OnboardingRoute
+  '/_app/activity': typeof AppActivityRoute
+  '/_app/approvals': typeof AppApprovalsRoute
+  '/_app/billing': typeof AppBillingRoute
+  '/_app/build': typeof AppBuildRoute
+  '/_app/cohort': typeof AppCohortRouteWithChildren
+  '/_app/evidence': typeof AppEvidenceRoute
+  '/_app/grow': typeof AppGrowRoute
+  '/_app/hq': typeof AppHqRoute
+  '/_app/legal': typeof AppLegalRoute
+  '/_app/raise': typeof AppRaiseRoute
+  '/_app/run': typeof AppRunRoute
+  '/site/$slug': typeof SiteSlugRoute
+  '/_app/cohort/$companyId': typeof AppCohortCompanyIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/onboarding'
+    | '/activity'
+    | '/approvals'
+    | '/billing'
+    | '/build'
+    | '/cohort'
+    | '/evidence'
+    | '/grow'
+    | '/hq'
+    | '/legal'
+    | '/raise'
+    | '/run'
+    | '/site/$slug'
+    | '/cohort/$companyId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/onboarding'
+    | '/activity'
+    | '/approvals'
+    | '/billing'
+    | '/build'
+    | '/cohort'
+    | '/evidence'
+    | '/grow'
+    | '/hq'
+    | '/legal'
+    | '/raise'
+    | '/run'
+    | '/site/$slug'
+    | '/cohort/$companyId'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/onboarding'
+    | '/_app/activity'
+    | '/_app/approvals'
+    | '/_app/billing'
+    | '/_app/build'
+    | '/_app/cohort'
+    | '/_app/evidence'
+    | '/_app/grow'
+    | '/_app/hq'
+    | '/_app/legal'
+    | '/_app/raise'
+    | '/_app/run'
+    | '/site/$slug'
+    | '/_app/cohort/$companyId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  OnboardingRoute: typeof OnboardingRoute
+  SiteSlugRoute: typeof SiteSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +230,161 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/activity': {
+      id: '/_app/activity'
+      path: '/activity'
+      fullPath: '/activity'
+      preLoaderRoute: typeof AppActivityRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/approvals': {
+      id: '/_app/approvals'
+      path: '/approvals'
+      fullPath: '/approvals'
+      preLoaderRoute: typeof AppApprovalsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/billing': {
+      id: '/_app/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof AppBillingRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/build': {
+      id: '/_app/build'
+      path: '/build'
+      fullPath: '/build'
+      preLoaderRoute: typeof AppBuildRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/cohort': {
+      id: '/_app/cohort'
+      path: '/cohort'
+      fullPath: '/cohort'
+      preLoaderRoute: typeof AppCohortRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/evidence': {
+      id: '/_app/evidence'
+      path: '/evidence'
+      fullPath: '/evidence'
+      preLoaderRoute: typeof AppEvidenceRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/grow': {
+      id: '/_app/grow'
+      path: '/grow'
+      fullPath: '/grow'
+      preLoaderRoute: typeof AppGrowRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/hq': {
+      id: '/_app/hq'
+      path: '/hq'
+      fullPath: '/hq'
+      preLoaderRoute: typeof AppHqRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/legal': {
+      id: '/_app/legal'
+      path: '/legal'
+      fullPath: '/legal'
+      preLoaderRoute: typeof AppLegalRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/raise': {
+      id: '/_app/raise'
+      path: '/raise'
+      fullPath: '/raise'
+      preLoaderRoute: typeof AppRaiseRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/run': {
+      id: '/_app/run'
+      path: '/run'
+      fullPath: '/run'
+      preLoaderRoute: typeof AppRunRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/site/$slug': {
+      id: '/site/$slug'
+      path: '/site/$slug'
+      fullPath: '/site/$slug'
+      preLoaderRoute: typeof SiteSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/cohort/$companyId': {
+      id: '/_app/cohort/$companyId'
+      path: '/$companyId'
+      fullPath: '/cohort/$companyId'
+      preLoaderRoute: typeof AppCohortCompanyIdRouteImport
+      parentRoute: typeof AppCohortRoute
+    }
   }
 }
 
+interface AppCohortRouteChildren {
+  AppCohortCompanyIdRoute: typeof AppCohortCompanyIdRoute
+}
+
+const AppCohortRouteChildren: AppCohortRouteChildren = {
+  AppCohortCompanyIdRoute: AppCohortCompanyIdRoute,
+}
+
+const AppCohortRouteWithChildren = AppCohortRoute._addFileChildren(
+  AppCohortRouteChildren,
+)
+
+interface AppRouteChildren {
+  AppActivityRoute: typeof AppActivityRoute
+  AppApprovalsRoute: typeof AppApprovalsRoute
+  AppBillingRoute: typeof AppBillingRoute
+  AppBuildRoute: typeof AppBuildRoute
+  AppCohortRoute: typeof AppCohortRouteWithChildren
+  AppEvidenceRoute: typeof AppEvidenceRoute
+  AppGrowRoute: typeof AppGrowRoute
+  AppHqRoute: typeof AppHqRoute
+  AppLegalRoute: typeof AppLegalRoute
+  AppRaiseRoute: typeof AppRaiseRoute
+  AppRunRoute: typeof AppRunRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppActivityRoute: AppActivityRoute,
+  AppApprovalsRoute: AppApprovalsRoute,
+  AppBillingRoute: AppBillingRoute,
+  AppBuildRoute: AppBuildRoute,
+  AppCohortRoute: AppCohortRouteWithChildren,
+  AppEvidenceRoute: AppEvidenceRoute,
+  AppGrowRoute: AppGrowRoute,
+  AppHqRoute: AppHqRoute,
+  AppLegalRoute: AppLegalRoute,
+  AppRaiseRoute: AppRaiseRoute,
+  AppRunRoute: AppRunRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  OnboardingRoute: OnboardingRoute,
+  SiteSlugRoute: SiteSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
