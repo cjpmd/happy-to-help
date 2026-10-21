@@ -6,11 +6,12 @@ export type Pillar = "build" | "grow" | "run" | "legal" | "raise";
 
 export interface Profile { id: string; full_name: string; role: Role; email: string }
 export interface Company {
+  sector?: import("./workspace").Sector; channels?: string[];
   id: string; slug: string; name: string; description: string; customer_type: "B2B" | "B2C";
   stage: Stage; website_live_url: string; website_preview_url: string; plan: Plan; created_by: string;
   target_customer?: string; goal_90d?: string;
 }
-export interface CompanyMember { company_id: string; user_id: string; role: "founder" | "mentor" | "viewer" }
+export interface CompanyMember { company_id: string; user_id: string; role: "founder" | "teammate" | "mentor" | "viewer" }
 export interface Cohort { id: string; name: string; institution: string; credit_pool: number }
 export interface CohortCompany { cohort_id: string; company_id: string; credit_cap: number }
 export interface GateCriterion { label: string; current: number; target: number }

@@ -33,3 +33,9 @@ export async function runTask(companyId: string, taskId: string): Promise<{ runI
 export function estimateTaskCredits(taskType: string): number {
   return TASK_CREDITS[taskType] ?? 100;
 }
+
+export async function simulateWork(kind: string, title: string): Promise<{success:boolean;url?:string;reason?:string}> {
+ await wait(1800);
+ if (title.toLowerCase().includes('fail')) return {success:false,reason:'Demo provider timeout. Try again with a new prompt.'};
+ return {success:true, ...(kind === 'image' ? {url: '/media/revision.svg'} : kind === 'video' ? {url: '/media/revision.svg'} : {})};
+}
