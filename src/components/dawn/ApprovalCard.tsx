@@ -31,7 +31,7 @@ function Preview({ a }: { a: Approval }) {
   }
 }
 
-export function ApprovalCard({ a, compact, readOnly }: { a: Approval; compact?: boolean; readOnly?: boolean }) {
+export function ApprovalCard({ a, compact, readOnly }: { a: Approval; compact?: boolean | undefined; readOnly?: boolean }) {
   const { decideApproval, askWhy } = useStore();
   const c = useCompany(a.company_id);
   const text = [a.payload.text,a.payload.body].filter(Boolean).join(' ');

@@ -203,7 +203,9 @@ export function useStore() {
 export function useCompany(id?: string) {
   const { db, companyId } = useStore();
   const cid = id ?? companyId;
-  return db.companies.find((c) => c.id === cid) ?? db.companies[0];
+  const c = db.companies.find((c) => c.id === cid) ?? db.companies[0];
+  if (!c) throw new Error("No companies");
+  return c;
 }
 
 export function useMyCompanies() {

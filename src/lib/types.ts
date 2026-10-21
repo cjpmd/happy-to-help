@@ -31,10 +31,11 @@ export interface AgentRun {
   started_at: string | null; finished_at: string | null; cost_usd: number; credits_charged: number;
   usage: { input_tokens: number; output_tokens: number }; steps: RunStep[];
 }
+export interface ApprovalPayload { channel?: any; scheduled_for?: any; text?: any; to?: any; subject?: any; body?: any; platform?: any; amount_gbp?: any; duration?: any; audience?: any; creative?: any; document?: any; destination?: any; change?: any; url?: any; reason?: any; daily_budget?: any; hard_cap?: any; outreach?: any; media_id?: any }
 export type ApprovalAction = "publish_post" | "send_email" | "ad_spend" | "file_document" | "publish_site";
 export interface Approval {
   id: string; company_id: string; run_id: string | null; action_type: ApprovalAction;
-  payload: Record<string, any>; estimated_credits: number; status: "pending" | "approved" | "declined";
+  payload: ApprovalPayload; estimated_credits: number; status: "pending" | "approved" | "declined";
   decided_by?: string | null; decided_at?: string | null; created_at: string;
 }
 export interface ActivityEvent { id: string; company_id: string; type: string; summary: string; created_at: string }
