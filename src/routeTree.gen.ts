@@ -13,16 +13,25 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AppActivityRouteImport } from './routes/_app/activity'
+import { Route as AppAdsRouteImport } from './routes/_app/ads'
 import { Route as AppApprovalsRouteImport } from './routes/_app/approvals'
 import { Route as AppBillingRouteImport } from './routes/_app/billing'
 import { Route as AppBuildRouteImport } from './routes/_app/build'
 import { Route as AppCohortRouteImport } from './routes/_app/cohort'
+import { Route as AppDocumentsRouteImport } from './routes/_app/documents'
+import { Route as AppEmailRouteImport } from './routes/_app/email'
 import { Route as AppEvidenceRouteImport } from './routes/_app/evidence'
 import { Route as AppGrowRouteImport } from './routes/_app/grow'
 import { Route as AppHqRouteImport } from './routes/_app/hq'
 import { Route as AppLegalRouteImport } from './routes/_app/legal'
+import { Route as AppMediaRouteImport } from './routes/_app/media'
+import { Route as AppOwnershipRouteImport } from './routes/_app/ownership'
 import { Route as AppRaiseRouteImport } from './routes/_app/raise'
+import { Route as AppRoutinesRouteImport } from './routes/_app/routines'
 import { Route as AppRunRouteImport } from './routes/_app/run'
+import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as AppTeamRouteImport } from './routes/_app/team'
+import { Route as ProgressSlugRouteImport } from './routes/progress.$slug'
 import { Route as SiteSlugRouteImport } from './routes/site.$slug'
 import { Route as AppCohortCompanyIdRouteImport } from './routes/_app/cohort.$companyId'
 
@@ -45,6 +54,11 @@ const AppActivityRoute = AppActivityRouteImport.update({
   path: '/activity',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdsRoute = AppAdsRouteImport.update({
+  id: '/ads',
+  path: '/ads',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppApprovalsRoute = AppApprovalsRouteImport.update({
   id: '/approvals',
   path: '/approvals',
@@ -63,6 +77,16 @@ const AppBuildRoute = AppBuildRouteImport.update({
 const AppCohortRoute = AppCohortRouteImport.update({
   id: '/cohort',
   path: '/cohort',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDocumentsRoute = AppDocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEmailRoute = AppEmailRouteImport.update({
+  id: '/email',
+  path: '/email',
   getParentRoute: () => AppRoute,
 } as any)
 const AppEvidenceRoute = AppEvidenceRouteImport.update({
@@ -85,15 +109,45 @@ const AppLegalRoute = AppLegalRouteImport.update({
   path: '/legal',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMediaRoute = AppMediaRouteImport.update({
+  id: '/media',
+  path: '/media',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOwnershipRoute = AppOwnershipRouteImport.update({
+  id: '/ownership',
+  path: '/ownership',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppRaiseRoute = AppRaiseRouteImport.update({
   id: '/raise',
   path: '/raise',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRoutinesRoute = AppRoutinesRouteImport.update({
+  id: '/routines',
+  path: '/routines',
   getParentRoute: () => AppRoute,
 } as any)
 const AppRunRoute = AppRunRouteImport.update({
   id: '/run',
   path: '/run',
   getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTeamRoute = AppTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => AppRoute,
+} as any)
+const ProgressSlugRoute = ProgressSlugRouteImport.update({
+  id: '/progress/$slug',
+  path: '/progress/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const SiteSlugRoute = SiteSlugRouteImport.update({
   id: '/site/$slug',
@@ -110,16 +164,25 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/onboarding': typeof OnboardingRoute
   '/activity': typeof AppActivityRoute
+  '/ads': typeof AppAdsRoute
   '/approvals': typeof AppApprovalsRoute
   '/billing': typeof AppBillingRoute
   '/build': typeof AppBuildRoute
   '/cohort': typeof AppCohortRouteWithChildren
+  '/documents': typeof AppDocumentsRoute
+  '/email': typeof AppEmailRoute
   '/evidence': typeof AppEvidenceRoute
   '/grow': typeof AppGrowRoute
   '/hq': typeof AppHqRoute
   '/legal': typeof AppLegalRoute
+  '/media': typeof AppMediaRoute
+  '/ownership': typeof AppOwnershipRoute
   '/raise': typeof AppRaiseRoute
+  '/routines': typeof AppRoutinesRoute
   '/run': typeof AppRunRoute
+  '/settings': typeof AppSettingsRoute
+  '/team': typeof AppTeamRoute
+  '/progress/$slug': typeof ProgressSlugRoute
   '/site/$slug': typeof SiteSlugRoute
   '/cohort/$companyId': typeof AppCohortCompanyIdRoute
 }
@@ -127,16 +190,25 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/onboarding': typeof OnboardingRoute
   '/activity': typeof AppActivityRoute
+  '/ads': typeof AppAdsRoute
   '/approvals': typeof AppApprovalsRoute
   '/billing': typeof AppBillingRoute
   '/build': typeof AppBuildRoute
   '/cohort': typeof AppCohortRouteWithChildren
+  '/documents': typeof AppDocumentsRoute
+  '/email': typeof AppEmailRoute
   '/evidence': typeof AppEvidenceRoute
   '/grow': typeof AppGrowRoute
   '/hq': typeof AppHqRoute
   '/legal': typeof AppLegalRoute
+  '/media': typeof AppMediaRoute
+  '/ownership': typeof AppOwnershipRoute
   '/raise': typeof AppRaiseRoute
+  '/routines': typeof AppRoutinesRoute
   '/run': typeof AppRunRoute
+  '/settings': typeof AppSettingsRoute
+  '/team': typeof AppTeamRoute
+  '/progress/$slug': typeof ProgressSlugRoute
   '/site/$slug': typeof SiteSlugRoute
   '/cohort/$companyId': typeof AppCohortCompanyIdRoute
 }
@@ -146,16 +218,25 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/_app/activity': typeof AppActivityRoute
+  '/_app/ads': typeof AppAdsRoute
   '/_app/approvals': typeof AppApprovalsRoute
   '/_app/billing': typeof AppBillingRoute
   '/_app/build': typeof AppBuildRoute
   '/_app/cohort': typeof AppCohortRouteWithChildren
+  '/_app/documents': typeof AppDocumentsRoute
+  '/_app/email': typeof AppEmailRoute
   '/_app/evidence': typeof AppEvidenceRoute
   '/_app/grow': typeof AppGrowRoute
   '/_app/hq': typeof AppHqRoute
   '/_app/legal': typeof AppLegalRoute
+  '/_app/media': typeof AppMediaRoute
+  '/_app/ownership': typeof AppOwnershipRoute
   '/_app/raise': typeof AppRaiseRoute
+  '/_app/routines': typeof AppRoutinesRoute
   '/_app/run': typeof AppRunRoute
+  '/_app/settings': typeof AppSettingsRoute
+  '/_app/team': typeof AppTeamRoute
+  '/progress/$slug': typeof ProgressSlugRoute
   '/site/$slug': typeof SiteSlugRoute
   '/_app/cohort/$companyId': typeof AppCohortCompanyIdRoute
 }
@@ -165,16 +246,25 @@ export interface FileRouteTypes {
     | '/'
     | '/onboarding'
     | '/activity'
+    | '/ads'
     | '/approvals'
     | '/billing'
     | '/build'
     | '/cohort'
+    | '/documents'
+    | '/email'
     | '/evidence'
     | '/grow'
     | '/hq'
     | '/legal'
+    | '/media'
+    | '/ownership'
     | '/raise'
+    | '/routines'
     | '/run'
+    | '/settings'
+    | '/team'
+    | '/progress/$slug'
     | '/site/$slug'
     | '/cohort/$companyId'
   fileRoutesByTo: FileRoutesByTo
@@ -182,16 +272,25 @@ export interface FileRouteTypes {
     | '/'
     | '/onboarding'
     | '/activity'
+    | '/ads'
     | '/approvals'
     | '/billing'
     | '/build'
     | '/cohort'
+    | '/documents'
+    | '/email'
     | '/evidence'
     | '/grow'
     | '/hq'
     | '/legal'
+    | '/media'
+    | '/ownership'
     | '/raise'
+    | '/routines'
     | '/run'
+    | '/settings'
+    | '/team'
+    | '/progress/$slug'
     | '/site/$slug'
     | '/cohort/$companyId'
   id:
@@ -200,16 +299,25 @@ export interface FileRouteTypes {
     | '/_app'
     | '/onboarding'
     | '/_app/activity'
+    | '/_app/ads'
     | '/_app/approvals'
     | '/_app/billing'
     | '/_app/build'
     | '/_app/cohort'
+    | '/_app/documents'
+    | '/_app/email'
     | '/_app/evidence'
     | '/_app/grow'
     | '/_app/hq'
     | '/_app/legal'
+    | '/_app/media'
+    | '/_app/ownership'
     | '/_app/raise'
+    | '/_app/routines'
     | '/_app/run'
+    | '/_app/settings'
+    | '/_app/team'
+    | '/progress/$slug'
     | '/site/$slug'
     | '/_app/cohort/$companyId'
   fileRoutesById: FileRoutesById
@@ -218,6 +326,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   OnboardingRoute: typeof OnboardingRoute
+  ProgressSlugRoute: typeof ProgressSlugRoute
   SiteSlugRoute: typeof SiteSlugRoute
 }
 
@@ -251,6 +360,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppActivityRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/ads': {
+      id: '/_app/ads'
+      path: '/ads'
+      fullPath: '/ads'
+      preLoaderRoute: typeof AppAdsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/approvals': {
       id: '/_app/approvals'
       path: '/approvals'
@@ -277,6 +393,20 @@ declare module '@tanstack/react-router' {
       path: '/cohort'
       fullPath: '/cohort'
       preLoaderRoute: typeof AppCohortRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/documents': {
+      id: '/_app/documents'
+      path: '/documents'
+      fullPath: '/documents'
+      preLoaderRoute: typeof AppDocumentsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/email': {
+      id: '/_app/email'
+      path: '/email'
+      fullPath: '/email'
+      preLoaderRoute: typeof AppEmailRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/evidence': {
@@ -307,11 +437,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLegalRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/media': {
+      id: '/_app/media'
+      path: '/media'
+      fullPath: '/media'
+      preLoaderRoute: typeof AppMediaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/ownership': {
+      id: '/_app/ownership'
+      path: '/ownership'
+      fullPath: '/ownership'
+      preLoaderRoute: typeof AppOwnershipRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/raise': {
       id: '/_app/raise'
       path: '/raise'
       fullPath: '/raise'
       preLoaderRoute: typeof AppRaiseRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/routines': {
+      id: '/_app/routines'
+      path: '/routines'
+      fullPath: '/routines'
+      preLoaderRoute: typeof AppRoutinesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/run': {
@@ -320,6 +471,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/run'
       preLoaderRoute: typeof AppRunRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/team': {
+      id: '/_app/team'
+      path: '/team'
+      fullPath: '/team'
+      preLoaderRoute: typeof AppTeamRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/progress/$slug': {
+      id: '/progress/$slug'
+      path: '/progress/$slug'
+      fullPath: '/progress/$slug'
+      preLoaderRoute: typeof ProgressSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/site/$slug': {
       id: '/site/$slug'
@@ -352,30 +524,46 @@ const AppCohortRouteWithChildren = AppCohortRoute._addFileChildren(
 
 interface AppRouteChildren {
   AppActivityRoute: typeof AppActivityRoute
+  AppAdsRoute: typeof AppAdsRoute
   AppApprovalsRoute: typeof AppApprovalsRoute
   AppBillingRoute: typeof AppBillingRoute
   AppBuildRoute: typeof AppBuildRoute
   AppCohortRoute: typeof AppCohortRouteWithChildren
+  AppDocumentsRoute: typeof AppDocumentsRoute
+  AppEmailRoute: typeof AppEmailRoute
   AppEvidenceRoute: typeof AppEvidenceRoute
   AppGrowRoute: typeof AppGrowRoute
   AppHqRoute: typeof AppHqRoute
   AppLegalRoute: typeof AppLegalRoute
+  AppMediaRoute: typeof AppMediaRoute
+  AppOwnershipRoute: typeof AppOwnershipRoute
   AppRaiseRoute: typeof AppRaiseRoute
+  AppRoutinesRoute: typeof AppRoutinesRoute
   AppRunRoute: typeof AppRunRoute
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppTeamRoute: typeof AppTeamRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppActivityRoute: AppActivityRoute,
+  AppAdsRoute: AppAdsRoute,
   AppApprovalsRoute: AppApprovalsRoute,
   AppBillingRoute: AppBillingRoute,
   AppBuildRoute: AppBuildRoute,
   AppCohortRoute: AppCohortRouteWithChildren,
+  AppDocumentsRoute: AppDocumentsRoute,
+  AppEmailRoute: AppEmailRoute,
   AppEvidenceRoute: AppEvidenceRoute,
   AppGrowRoute: AppGrowRoute,
   AppHqRoute: AppHqRoute,
   AppLegalRoute: AppLegalRoute,
+  AppMediaRoute: AppMediaRoute,
+  AppOwnershipRoute: AppOwnershipRoute,
   AppRaiseRoute: AppRaiseRoute,
+  AppRoutinesRoute: AppRoutinesRoute,
   AppRunRoute: AppRunRoute,
+  AppSettingsRoute: AppSettingsRoute,
+  AppTeamRoute: AppTeamRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -384,6 +572,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   OnboardingRoute: OnboardingRoute,
+  ProgressSlugRoute: ProgressSlugRoute,
   SiteSlugRoute: SiteSlugRoute,
 }
 export const routeTree = rootRouteImport
