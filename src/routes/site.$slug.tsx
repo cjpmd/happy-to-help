@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { pageHead } from "@/lib/seo";
+import { ClaimsCheck } from "@/components/dawn/WorkControls";
 import { useStore } from "@/lib/store";
 
 // Stand-in for each company's generated website, shown in the HQ preview frame.
 export const Route = createFileRoute("/site/$slug")({
   validateSearch: (s: Record<string, unknown>) => ({ preview: s.preview ? 1 : undefined }),
-  head: () => ({ meta: [{ title: "Company website" }, { name: "robots", content: "noindex" }] }),
+  head: ({params}) => pageHead(`${params.slug} website`, "A company beta website preview from Dawn."),
   component: Site,
 });
 
@@ -25,6 +27,7 @@ function Site() {
         <p className="text-xs font-medium uppercase tracking-widest text-primary">{c?.customer_type === "B2B" ? "For teams" : "Now in beta"}</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">{c?.description.split(".")[0]}.</h1>
         <p className="mt-4 text-muted-foreground">{c?.description.split(".").slice(1).join(".").trim()}</p>
+        <ClaimsCheck text={c?.description ?? ""}/>
         <div className="mx-auto mt-8 flex max-w-sm gap-2">
           <div className="h-11 flex-1 rounded-lg border bg-card" />
           <div className="flex h-11 items-center rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground">Get early access</div>

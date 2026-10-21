@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { DawnLogo, SolAvatar } from "@/components/dawn/primitives";
 import { useStore } from "@/lib/store";
 import { pageHead } from "@/lib/seo";
+import { businessDefaults, type Sector } from "@/lib/workspace";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/onboarding")({
@@ -31,14 +32,14 @@ function Onboarding() {
   const { createCompany } = useStore();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
-  const [f, setF] = useState({ name: "", idea: "", customer: "", type: "", stage: "", goal: "", url: "", code: "" });
+  const [f, setF] = useState({ name: "", idea: "", customer: "", type: "", stage: "", goal: "", url: "", code: "", sector: "general" });
   const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
 
   const steps = [
     { title: "What's your company called?", hint: "A working name is fine.", ok: f.name.trim(), body: <Input autoFocus className="h-11" placeholder="e.g. StudyBuddy" value={f.name} onChange={(e) => set("name")(e.target.value)} /> },
     { title: "Describe the idea in two sentences.", hint: "What it is, and why it matters.", ok: f.idea.trim(), body: <Textarea rows={4} placeholder="Bite-sized revision quizzes for Highers students…" value={f.idea} onChange={(e) => set("idea")(e.target.value)} /> },
-    { title: "Who's your target customer?", hint: "Be specific.", ok: f.customer.trim() && f.type, body: <div className="space-y-3"><Input className="h-11" placeholder="S5–S6 students in Scotland" value={f.customer} onChange={(e) => set("customer")(e.target.value)} /><Choice options={["B2C", "B2B"]} value={f.type} onChange={set("type")} /></div> },
-    { title: "Where are you right now?", hint: "Sol will tailor tonight's work.", ok: f.stage, body: <Choice options={STAGE_OPTS} value={f.stage} onChange={set("stage")} /> },
+    { title: "Who's your target customer?", hint: "Be specific.", ok: f.customer.trim() && f.type, body: <div className="space-y-3"><Input className="h-11" placeholder="S5–S6 students in Scotland" value={f.customer} onChange={(e) => set("customer")(e.target.value)} /><Choice options={["B2C", "B2B"]} value={f.type} onChange={set("type")} />{f.type&&<p className="text-xs text-muted-foreground">Enabled by default: {businessDefaults(f.type as "B2B"|"B2C").join(", ")}</p>}</div> },
+    { title: "Where are you right now?", hint: "Sol will tailor tonight's work.", ok: f.stage, body: <div className="space-y-4"><Choice options={STAGE_OPTS} value={f.stage} onChange={set("stage")} /><label className="block text-sm">Sector pack<select aria-label="Sector pack" value={f.sector} onChange={e=>set("sector")(e.target.value)} className="mt-2 h-10 w-full rounded-md border bg-background px-3"><option value="general">General</option><option value="legal">Legal</option><option value="finance">Finance</option><option value="health">Health</option><option value="education">Education</option></select></label>{f.sector!=="general"&&<p className="text-xs text-warning">Regulated sector · stricter claims checks</p>}</div> },
     { title: "Main goal for the next 90 days?", hint: "One measurable outcome works best.", ok: f.goal.trim(), body: <Input className="h-11" placeholder="500 weekly active students" value={f.goal} onChange={(e) => set("goal")(e.target.value)} /> },
     { title: "A couple of optional extras", hint: "Skip if you don't have them.", ok: true, body: <div className="space-y-3"><Input className="h-11" placeholder="Existing website (https://…)" value={f.url} onChange={(e) => set("url")(e.target.value)} /><Input className="h-11" placeholder="Cohort invite code" value={f.code} onChange={(e) => set("code")(e.target.value)} /></div> },
   ];
@@ -46,7 +47,7 @@ function Onboarding() {
   const last = step === steps.length - 1;
 
   const finish = () => {
-    createCompany({ name: f.name.trim(), description: f.idea.trim(), customer_type: f.type as "B2B" | "B2C", target_customer: f.customer, goal_90d: f.goal });
+    createCompany({ name: f.name.trim(), description: f.idea.trim(), customer_type: f.type as "B2B" | "B2C", target_customer: f.customer, goal_90d: f.goal, sector: f.sector as Sector });
     navigate({ to: "/hq" });
   };
 

@@ -1,10 +1,12 @@
 import { Check, X, HelpCircle, Megaphone, Mail, PoundSterling, FileText, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useStore, labelFor } from "@/lib/store";
+import { useStore, labelFor, useBalance, useCompany } from "@/lib/store";
 import type { Approval } from "@/lib/types";
 import { fmtDateTime, num } from "@/lib/format";
 import { Pill, StatusPill } from "./primitives";
+import { ClaimsCheck, Why, CostButton } from './WorkControls';
+import { checkClaims } from '@/lib/workspace';
 import { cn } from "@/lib/utils";
 
 const icons = { publish_post: Megaphone, send_email: Mail, ad_spend: PoundSterling, file_document: FileText, publish_site: Globe };
@@ -31,6 +33,9 @@ function Preview({ a }: { a: Approval }) {
 
 export function ApprovalCard({ a, compact, readOnly }: { a: Approval; compact?: boolean; readOnly?: boolean }) {
   const { decideApproval, askWhy } = useStore();
+  const c = useCompany(a.company_id);
+  const text = [a.payload.text,a.payload.body].filter(Boolean).join(' ');
+  const flagged = checkClaims(text,c.sector).length > 0;
   const Icon = icons[a.action_type];
   const decide = (s: "approved" | "declined") => {
     decideApproval(a.id, s);
@@ -50,10 +55,13 @@ export function ApprovalCard({ a, compact, readOnly }: { a: Approval; compact?: 
       </div>
       {!compact && <div className="mt-4"><Preview a={a} /></div>}
       {compact && <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{a.payload.text ?? a.payload.subject ?? `${a.payload.platform ?? ""} ${a.payload.audience ?? a.payload.change ?? ""}`}</p>}
+      {text && <ClaimsCheck text={text} />}
+      <Why reason={a.payload.reason ? `${a.payload.reason}${/[.!?]$/.test(a.payload.reason) ? '' : '.'} The current company records inform this proposal; review the evidence before approval.` : undefined} />
+      {flagged && a.status === 'pending' && <p className="mt-2 text-xs text-warning">Resolve flagged claims before approval.</p>}
       {a.status === "pending" && !readOnly ? (
-        <div className={cn("mt-3 flex gap-2", !compact && "mt-5")}>
-          <Button size="sm" className="flex-1 sm:flex-none" onClick={() => decide("approved")}><Check className="h-4 w-4" />Approve</Button>
-          <Button size="sm" variant="outline" className="flex-1 sm:flex-none" onClick={() => decide("declined")}><X className="h-4 w-4" />Decline</Button>
+        <div className={cn("mt-3 flex flex-wrap items-start gap-2", !compact && "mt-5")}>
+          <div className="min-w-0 flex-1"><CostButton label="Approve" icon={<Check className="h-4 w-4"/>} cost={a.estimated_credits} disabled={flagged} onConfirm={()=>decide("approved")}/></div>
+          <Button size="sm" variant="outline" className="sm:flex-none" onClick={() => decide("declined")}><X className="h-4 w-4" />Decline</Button>
           <Button size="sm" variant="ghost" onClick={() => askWhy(a.id)} aria-label="Ask why"><HelpCircle className="h-4 w-4" />{!compact && "Ask why"}</Button>
         </div>
       ) : a.status !== "pending" ? (

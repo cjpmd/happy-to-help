@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useStore } from "@/lib/store";
-import { contacts, tasks } from "@/lib/seed";
+import { contacts } from "@/lib/seed";
 import { PageHeader, Panel, Pill, SolAvatar, StatusPill } from "@/components/dawn/primitives";
 import { pageHead } from "@/lib/seo";
 import { fmtDate } from "@/lib/format";
@@ -11,9 +11,9 @@ export const Route = createFileRoute("/_app/run")({
 });
 
 function Run() {
-  const { companyId } = useStore();
+  const { companyId, db } = useStore();
   const people = contacts.filter((c) => c.company_id === companyId);
-  const todo = tasks.filter((t) => t.company_id === companyId && t.pillar === "run");
+  const todo = db.tasks.filter((t) => t.company_id === companyId && t.pillar === "run");
   return (
     <div>
       <PageHeader title="Run" description="The day-to-day: inbox, customers and tasks." />

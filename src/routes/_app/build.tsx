@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useStore } from "@/lib/store";
-import { tasks } from "@/lib/seed";
+import { CostButton, ProofOfDone, Why } from '@/components/dawn/WorkControls';
+import { Button } from '@/components/ui/button';
+import { hasProof } from '@/lib/workspace';
 import { PageHeader, Panel, StatusPill } from "@/components/dawn/primitives";
 import { ApprovalCard } from "@/components/dawn/ApprovalCard";
 import { pageHead } from "@/lib/seo";
@@ -15,7 +17,7 @@ function Build() {
   const { db, companyId } = useStore();
   const runs = db.agent_runs.filter((r) => r.company_id === companyId && r.pillar === "build");
   const pending = db.approvals.filter((a) => a.company_id === companyId && a.status === "pending" && a.action_type === "publish_site");
-  const versions = runs.filter((r) => r.status === "succeeded").map((r, i) => ({ v: `v0.${9 - i}`, what: r.task, when: r.finished_at! }));
+  const versions = runs.filter((r) => r.status === "succeeded").map((r, i) => ({ v: `v0.${9 - i}`, what: r.task, when: r.finished_at ?? r.started_at ?? "2026-10-21T00:00:00Z" }));
   versions.push({ v: "v0.8", what: "Quiz engine and landing page", when: "2026-10-08T03:00:00Z" });
   return (
     <div>
@@ -41,14 +43,14 @@ function Build() {
 }
 
 export function TaskList({ pillar, companyId }: { pillar: string; companyId: string }) {
-  const rows = tasks.filter((t) => t.company_id === companyId && t.pillar === pillar);
+  const {db,work,markDone}=useStore();
+  const rows = db.tasks.filter((t) => t.company_id === companyId && t.pillar === pillar);
   if (!rows.length) return <p className="p-4 text-sm text-muted-foreground">No tasks yet.</p>;
   return (
     <ul>{rows.map((t) => (
-      <li key={t.id} className="flex items-center gap-3 border-b px-4 py-3 last:border-0">
-        <span className="flex-1 text-sm">{t.title}</span>
-        <span className="text-xs text-muted-foreground tabular">{num(t.estimated_credits)} cr</span>
-        <StatusPill status={t.status} />
+      <li key={t.id} className="border-b px-4 py-4 last:border-0">
+        <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0 flex-1"><p className="text-sm font-medium">{t.title}</p><ProofOfDone proof={t.proof}/><Why reason="This task addresses an identified gap in the current product. Passing checks, a screenshot, preview and pull request are required before completion is verified."/></div><StatusPill status={t.status}/></div>
+        {t.status!=='done'&&<div className="mt-3 flex flex-wrap items-start gap-3"><div><CostButton label="Run task" cost={t.estimated_credits} onConfirm={()=>work(companyId,t.title,t.estimated_credits,'task',t.id)}/></div><Button size="sm" variant="outline" disabled={!hasProof(t.proof)} onClick={()=>markDone(t.id)}>Mark done</Button></div>}
       </li>))}</ul>
   );
 }
