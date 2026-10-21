@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, CheckSquare, Activity, Hammer, Megaphone, Inbox, Scale, Coins, Lightbulb, CreditCard, Users, Menu, ChevronsUpDown, Moon, Sun, Plus, Check, LogOut } from "lucide-react";
+import { Home, CheckSquare, Activity, Hammer, Megaphone, Inbox, Scale, Coins, Lightbulb, CreditCard, Users, Menu, ChevronsUpDown, Moon, Sun, Plus, Check, LogOut, CalendarClock, Mail, Images, FileText, Settings, Shield, Target } from "lucide-react";
 import { useStore, useMyCompanies, useCompany, useBalance } from "@/lib/store";
 import { isLowBalance, PLANS } from "@/lib/credits";
 import { num } from "@/lib/format";
@@ -25,6 +25,14 @@ const founderNav = [
   ] },
   { group: "Company", items: [
     { to: "/evidence", label: "Evidence", icon: Lightbulb },
+    { to: "/routines", label: "Routines", icon: CalendarClock },
+    { to: "/email", label: "Email", icon: Mail },
+    { to: "/media", label: "Media", icon: Images },
+    { to: "/ads", label: "Ads", icon: Target },
+    { to: "/documents", label: "Documents", icon: FileText },
+    { to: "/team", label: "Team", icon: Users },
+    { to: "/ownership", label: "Ownership", icon: Shield },
+    { to: "/settings", label: "Settings", icon: Settings },
     { to: "/billing", label: "Billing & credits", icon: CreditCard },
   ] },
 ] as const;
