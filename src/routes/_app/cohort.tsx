@@ -17,6 +17,7 @@ function Cohort() {
   const { db } = useStore();
   if (child) return <Outlet />;
   const cohort = cohorts[0];
+  if (!cohort) return null;
   const rows = cohort_companies.filter((cc) => cc.cohort_id === cohort.id).map((cc) => {
     const c = db.companies.find((x) => x.id === cc.company_id)!;
     const ledger = db.credit_ledger.filter((l) => l.company_id === c.id);

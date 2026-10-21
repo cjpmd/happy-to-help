@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useStore } from "@/lib/store";
 import { social_posts } from "@/lib/seed";
 import { PageHeader, Panel, Pill, StatusPill } from "@/components/dawn/primitives";
+import { ClaimsCheck, CostButton, Why } from '@/components/dawn/WorkControls';
 import { pageHead } from "@/lib/seo";
 import { fmtShortDate, num } from "@/lib/format";
 import type { SocialPost } from "@/lib/types";
@@ -14,12 +15,12 @@ export const Route = createFileRoute("/_app/grow")({
 const COLS: SocialPost["status"][] = ["draft", "awaiting_approval", "scheduled", "published"];
 
 function Grow() {
-  const { companyId } = useStore();
-  const posts = social_posts.filter((p) => p.company_id === companyId);
+  const { companyId, db, work } = useStore();
+  const posts = [...social_posts.filter(p=>p.company_id===companyId),...db.approvals.filter(a=>a.company_id===companyId&&a.action_type==='publish_post'&&!social_posts.some(p=>p.text===a.payload.text)).map(a=>({id:a.id,company_id:companyId,channel:a.payload.channel as SocialPost['channel'],text:a.payload.text,angle:'Sol draft',status:a.status==='approved'?'published' as const:a.status==='pending'?'awaiting_approval' as const:'draft' as const,scheduled_for:a.created_at,metrics:{clicks:0,signups:0},media_id:a.payload.media_id}))];
   const published = posts.filter((p) => p.status === "published");
   return (
     <div>
-      <PageHeader title="Grow" description="Social posts across every channel, from draft to published." />
+      <PageHeader title="Grow" description="Social posts across every channel, from draft to published." actions={<div><CostButton label="Write post" cost={40} onConfirm={()=>work(companyId,"Write social post",40,"social")}/></div>} />
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {COLS.map((s) => {
           const list = posts.filter((p) => p.status === s);
@@ -31,6 +32,9 @@ function Grow() {
                   <div key={p.id} className="rounded-lg border bg-card p-3 shadow-card">
                     <div className="flex items-center justify-between"><Pill>{p.channel}</Pill><span className="text-xs text-muted-foreground">{fmtShortDate(p.scheduled_for)}</span></div>
                     <p className="mt-2 text-sm leading-snug">{p.text}</p>
+                    <ClaimsCheck text={p.text}/>
+                    <Why reason="This post tests a specific message with your target audience. Previous post results and the company voice guide inform the draft."/>
+                    {'media_id' in p && typeof p.media_id === 'string' && db.media.find(m=>m.id===p.media_id)?.url && <img className="mt-3 aspect-[4/3] w-full rounded border object-cover" src={db.media.find(m=>m.id===p.media_id)?.url} alt="Post creative"/>}
                     <p className="mt-2 text-[11px] text-muted-foreground">{p.angle}</p>
                   </div>
                 ))}

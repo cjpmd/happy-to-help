@@ -5,6 +5,7 @@ import { useStore } from "@/lib/store";
 import { PageHeader, Pill, StatusPill } from "@/components/dawn/primitives";
 import { pageHead } from "@/lib/seo";
 import { duration, fmtDateTime, num } from "@/lib/format";
+import { ProofOfDone, Why } from '@/components/dawn/WorkControls';
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/activity")({
