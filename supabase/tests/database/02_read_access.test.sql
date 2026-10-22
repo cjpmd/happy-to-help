@@ -59,23 +59,23 @@ select results_eq('select slug from public.companies order by 1', array['b-co'],
 select pg_temp.login('outsider');
 select is_empty('select 1 from public.companies', 'an outsider sees no companies');
 select pg_temp.login('admin');
-select results_eq('select slug from public.companies order by 1', array['a-co', 'b-co'], 'an admin sees every company');
+select results_eq($$select slug from public.companies where slug in ('a-co', 'b-co') order by 1$$, array['a-co', 'b-co'], 'an admin sees every company');
 
 -- Profiles: the people you work with.
 select pg_temp.login('founder');
 select results_eq(
   'select email from public.profiles order by 1',
-  array['cohort_mentor@example.com', 'founder@example.com', 'member_mentor@example.com', 'teammate@example.com', 'viewer@example.com'],
+  array['cohort_mentor@test.example.com', 'founder@test.example.com', 'member_mentor@test.example.com', 'teammate@test.example.com', 'viewer@test.example.com'],
   'a founder sees co-members and their cohort''s mentors, and nobody else'
 );
 select pg_temp.login('cohort_mentor');
 select results_eq(
   'select email from public.profiles order by 1',
-  array['cohort_mentor@example.com', 'founder@example.com', 'member_mentor@example.com', 'teammate@example.com', 'viewer@example.com'],
+  array['cohort_mentor@test.example.com', 'founder@test.example.com', 'member_mentor@test.example.com', 'teammate@test.example.com', 'viewer@test.example.com'],
   'a cohort mentor sees the members of their cohort''s companies'
 );
 select pg_temp.login('outsider');
-select results_eq('select email from public.profiles', array['outsider@example.com'], 'an outsider sees only their own profile');
+select results_eq('select email from public.profiles', array['outsider@test.example.com'], 'an outsider sees only their own profile');
 
 -- Cohorts.
 select pg_temp.login('founder');

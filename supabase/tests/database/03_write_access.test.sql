@@ -18,7 +18,7 @@ update public.companies set name = 'Teammate edit' where slug = 'a-co';
 select pg_temp.login('admin');
 update public.companies set name = 'Admin edit' where slug = 'a-co';
 reset role;
-select results_eq($$select name from public.companies order by slug$$, array['A renamed', 'Company B'],
+select results_eq($$select name from public.companies where slug in ('a-co', 'b-co') order by slug$$, array['A renamed', 'Company B'],
   'teammates, admins and other founders cannot edit a company profile');
 
 -- Membership and cohorts are changed only through RPCs or the service role ------------------

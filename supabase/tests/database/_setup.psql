@@ -103,7 +103,7 @@ grant execute on all functions in schema pg_temp to anon, authenticated, service
 -- Fixtures ---------------------------------------------------------------------------------
 
 insert into auth.users (id, email, raw_user_meta_data)
-select pg_temp.id(n), n || '@example.com', jsonb_build_object('full_name', initcap(replace(n, '_', ' ')))
+select pg_temp.id(n), n || '@test.example.com', jsonb_build_object('full_name', initcap(replace(n, '_', ' ')))
 from unnest(array[
   'founder', 'teammate', 'viewer', 'member_mentor', 'cohort_mentor', 'other_mentor',
   'outsider', 'admin', 'founder_b'
