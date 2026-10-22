@@ -7,10 +7,19 @@ Phase 0 audit, 22 Oct 2026, at commit `aad3f26`. Updated 22 Oct 2026 after Phase
 | Group | Status |
 |---|---|
 | 1a. Repo hygiene | **Done.** npm only (`package-lock.json` committed; `bun.lock` and `bunfig.toml` removed). Product name in `src/lib/brand.ts` (`PRODUCT_NAME = "Gumption"`). Prettier run over `src/` and root configs in its own commit (`c3b4531`). Lint: 0 errors. |
-| 1b. Supabase schema, auth, RLS, seed | Next. Waiting on the project URL and anon key. |
+| 1b. Supabase schema, auth, RLS, seed | **In progress.** Migrations, RLS, pgTAP tests and seed are written and pass locally (see below). Still to do: apply them to the staging project, generate `src/integrations/supabase/types.ts`, and commit `.env`. Waiting on the project URL and anon key. |
 | 1c. Data layer on Supabase | Not started |
 | 1d. Server-side writes | Not started |
 | 1e. Bug fixes | Not started |
+
+### Database (group 1b)
+
+- **Migrations** in `supabase/migrations/`: 34 tables covering every SPEC part A table, `agent_jobs`, and the part B workspace data (documents and versions, routines, media, email, ads, preferences, HQ layouts, sharing, site versions, grants, contacts, gate comments, team invites, cohort mentors).
+- **Roles are per company** (`company_members.role`: founder, teammate, mentor, viewer), plus cohort mentors (`cohort_mentors`) and platform admins (`profiles.is_admin`). The rules are summarised at the top of `20261022150100_access_rules.sql`.
+- **RLS on every table.** App users can only read agent output (jobs, runs, approvals, activity, chat), the ledger, posts, metrics, documents, media, email and ads. Founders and teammates edit evidence, tasks (not status or proof), compliance items, investors, grants, contacts and routines. Founders edit the company profile (not stage or plan), invite people and control public sharing. Anonymous visitors can only call `get_public_progress(slug)`.
+- **Ledger:** insert-only for everyone (a trigger blocks update, delete and truncate even for the service role), inserted by the service role only. `company_credit_balance` shows `balance` and `held`.
+- **Tests:** 694 pgTAP checks in `supabase/tests/database/`. Run them with `scripts/db/test-local.sh` (local Postgres 16 with pgTAP) or `supabase test db`.
+- **Seed:** `supabase/seed.sql`, fictional, dates relative to when it runs. Demo accounts have no password.
 
 Everything below the checks table describes the app as it still works today: the in-memory mock store. Items fixed since the audit are marked **Fixed**.
 
@@ -166,7 +175,7 @@ None of these exist in a database. "Type" means a TypeScript interface the mock 
 - **No auth, no RLS, no server.** Every rule in CLAUDE.md is currently enforced only in browser code, or not at all: the insert-only ledger, service-role-only writes, approvals before external actions, and credit holds. That's expected at this stage, but nothing in the current code can be relied on for security. Phase 1 needs to recreate all of it in Postgres.
 - **Credits work differently from the rules.** The UI charges `usage` straight away rather than reserve, settle and release (CLAUDE.md rule 3), and the browser writes the ledger. The UI's labels and flows will need reworking around holds in Phase 2.
 - **Approvals are "executed" in the browser.** `decideApproval` changes ad budgets and appends sent emails itself. This logic must move to the executor (Phase 5) and must not be ported into the client.
-- **Seed data looks real.** It includes real-looking personal email addresses (`mark.d@gmail.com`, `rachelb@outlook.com`), school domains (`govanhigh.sch.uk`, `stmungo.sch.uk`), invented people at real firms (Archangels, Techstart Ventures, Par Equity, Scottish Enterprise, Ada Ventures), "University of Glasgow", and real grant schemes with invented deadlines. Before any public demo, swap these for clearly fictional `example.com`-style data.
+- **Fixed in 1b.** The seed data looked real (personal email addresses, real school domains, real investor firms and grants, a real university). Both `supabase/seed.sql` and `src/lib/seed.ts` now use fictional data on `example.com`.
 - **The demo site makes the claims the checker flags.** The stand-in site shows "Learns your weak spots", which is the "Feature not built yet" claim.
 - **The model name is hard-coded.** `seed.ts` writes `claude-sonnet-4.5` into every run. CLAUDE.md wants model IDs in config.
 - **Costs are defined in three places** that disagree (see B4 in part B). CLAUDE.md wants one config.
