@@ -4,7 +4,16 @@ import { cn } from "@/lib/utils";
 import solImg from "@/assets/sol.png";
 
 export function SolAvatar({ size = 28, className }: { size?: number; className?: string }) {
-  return <img src={solImg} alt="Sol" width={size} height={size} className={cn("shrink-0 rounded-full", className)} style={{ width: size, height: size }} />;
+  return (
+    <img
+      src={solImg}
+      alt="Sol"
+      width={size}
+      height={size}
+      className={cn("shrink-0 rounded-full", className)}
+      style={{ width: size, height: size }}
+    />
+  );
 }
 
 export function BrandLogo({ className }: { className?: string }) {
@@ -28,23 +37,80 @@ const tones: Record<Tone, string> = {
   destructive: "bg-destructive-soft text-destructive",
   info: "bg-info-soft text-info",
 };
-export function Pill({ tone = "neutral", children, className }: { tone?: Tone; children: ReactNode; className?: string }) {
-  return <span className={cn("inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium", tones[tone], className)}>{children}</span>;
+export function Pill({
+  tone = "neutral",
+  children,
+  className,
+}: {
+  tone?: Tone;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium",
+        tones[tone],
+        className,
+      )}
+    >
+      {children}
+    </span>
+  );
 }
 
 export const statusTone: Record<string, Tone> = {
-  succeeded: "success", approved: "success", done: "success", validated: "success", published: "success", committed: "success", on_track: "success",
-  running: "info", testing: "info", scheduled: "info", in_progress: "info", meeting: "info", diligence: "info", doing: "info",
-  queued: "neutral", untested: "neutral", draft: "neutral", upcoming: "neutral", researching: "neutral", todo: "neutral", contacted: "neutral",
-  needs_approval: "warning", pending: "warning", awaiting_approval: "warning", needs_attention: "warning", ready: "warning",
-  failed: "destructive", declined: "destructive", invalidated: "destructive", overdue: "destructive", passed: "destructive", stalled: "destructive",
+  succeeded: "success",
+  approved: "success",
+  done: "success",
+  validated: "success",
+  published: "success",
+  committed: "success",
+  on_track: "success",
+  running: "info",
+  testing: "info",
+  scheduled: "info",
+  in_progress: "info",
+  meeting: "info",
+  diligence: "info",
+  doing: "info",
+  queued: "neutral",
+  untested: "neutral",
+  draft: "neutral",
+  upcoming: "neutral",
+  researching: "neutral",
+  todo: "neutral",
+  contacted: "neutral",
+  needs_approval: "warning",
+  pending: "warning",
+  awaiting_approval: "warning",
+  needs_attention: "warning",
+  ready: "warning",
+  failed: "destructive",
+  declined: "destructive",
+  invalidated: "destructive",
+  overdue: "destructive",
+  passed: "destructive",
+  stalled: "destructive",
 };
 export const humanise = (s: string) => s.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 export function StatusPill({ status }: { status: string }) {
   return <Pill tone={statusTone[status] ?? "neutral"}>{humanise(status)}</Pill>;
 }
 
-export function Panel({ title, action, children, className, bodyClassName }: { title?: ReactNode; action?: ReactNode; children: ReactNode; className?: string; bodyClassName?: string }) {
+export function Panel({
+  title,
+  action,
+  children,
+  className,
+  bodyClassName,
+}: {
+  title?: ReactNode;
+  action?: ReactNode;
+  children: ReactNode;
+  className?: string;
+  bodyClassName?: string;
+}) {
   return (
     <section className={cn("rounded-xl border bg-card shadow-card", className)}>
       {title && (
@@ -58,7 +124,15 @@ export function Panel({ title, action, children, className, bodyClassName }: { t
   );
 }
 
-export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: ReactNode }) {
+export function PageHeader({
+  title,
+  description,
+  actions,
+}: {
+  title: string;
+  description?: string;
+  actions?: ReactNode;
+}) {
   return (
     <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
