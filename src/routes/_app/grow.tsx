@@ -5,7 +5,7 @@ import { PageHeader, Panel, Pill, StatusPill } from "@/components/dawn/primitive
 import { ClaimsCheck, CostButton, Why } from "@/components/dawn/WorkControls";
 import { pageHead } from "@/lib/seo";
 import { fmtShortDate, num } from "@/lib/format";
-import type { SocialPost } from "@/lib/types";
+import type { ApprovalOf, SocialPost } from "@/lib/types";
 
 export const Route = createFileRoute("/_app/grow")({
   head: () => pageHead("Grow", "Content calendar and results for every social channel."),
@@ -20,7 +20,7 @@ function Grow() {
     ...social_posts.filter((p) => p.company_id === companyId),
     ...db.approvals
       .filter(
-        (a) =>
+        (a): a is ApprovalOf<"publish_post"> =>
           a.company_id === companyId &&
           a.action_type === "publish_post" &&
           !social_posts.some((p) => p.text === a.payload.text),
@@ -28,7 +28,7 @@ function Grow() {
       .map((a) => ({
         id: a.id,
         company_id: companyId,
-        channel: a.payload.channel as SocialPost["channel"],
+        channel: a.payload.channel,
         text: a.payload.text,
         angle: "Sol draft",
         status:

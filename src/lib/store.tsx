@@ -10,6 +10,7 @@ import {
 import { PRODUCT_NAME } from "./brand";
 import * as seed from "./seed";
 import type * as T from "./types";
+import { approvalText } from "./types";
 import { sendChatMessage } from "./agentClient";
 import { creditBalance, actionQuote, ACTION_COSTS, autoModeCost } from "./credits";
 import {
@@ -154,7 +155,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const a = d.approvals.find((x) => x.id === id);
         if (!a || a.status !== "pending") return d;
         const c = d.companies.find((c) => c.id === a.company_id);
-        const text = [a.payload.text, a.payload.body].filter(Boolean).join(" ");
+        const text = approvalText(a);
         if (
           status === "approved" &&
           (!actionQuote(creditBalance(d.credit_ledger, a.company_id), a.estimated_credits)
@@ -163,10 +164,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         )
           return d;
         const ad = d.ads.find((x) => x.company_id === a.company_id);
+        const adChange =
+          a.action_type === "ad_spend" && a.payload.daily_budget !== undefined ? a.payload : null;
+        const outreach = a.action_type === "send_email" && a.payload.outreach ? a.payload : null;
         if (
           status === "approved" &&
-          a.payload.daily_budget !== undefined &&
-          (!ad || a.payload.daily_budget > (a.payload.hard_cap ?? ad.hard_cap))
+          adChange?.daily_budget !== undefined &&
+          (!ad || adChange.daily_budget > (adChange.hard_cap ?? ad.hard_cap))
         )
           return d;
         return {
@@ -187,25 +191,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 ]
               : d.credit_ledger,
           ads:
-            status === "approved" && a.payload.daily_budget !== undefined
+            status === "approved" && adChange?.daily_budget !== undefined
               ? d.ads.map((x) =>
                   x.company_id === a.company_id
-                    ? { ...x, daily_budget: a.payload.daily_budget, hard_cap: a.payload.hard_cap }
+                    ? {
+                        ...x,
+                        daily_budget: adChange.daily_budget ?? x.daily_budget,
+                        hard_cap: adChange.hard_cap ?? x.hard_cap,
+                      }
                     : x,
                 )
               : d.ads,
           emails:
-            status === "approved" && a.payload.outreach
+            status === "approved" && outreach
               ? [
                   ...d.emails,
                   {
                     id: uid("email"),
                     company_id: a.company_id,
-                    subject: a.payload.subject,
-                    name: a.payload.to,
-                    address: a.payload.to,
+                    subject: outreach.subject,
+                    name: outreach.to,
+                    address: outreach.to,
                     mode: "outreach",
-                    messages: [{ direction: "sent", text: a.payload.body, date: iso() }],
+                    messages: [{ direction: "sent", text: outreach.body, date: iso() }],
                   },
                 ]
               : d.emails,

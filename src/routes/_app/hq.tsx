@@ -9,8 +9,10 @@ export const Route = createFileRoute("/_app/hq")({
       "Company HQ",
       "Your stage, website, Sol chat, approvals and overnight activity in one place.",
     ),
-  component: () => {
-    const { companyId } = useStore();
-    return <CompanyHQ companyId={companyId} />;
-  },
+  component: HQ,
 });
+
+function HQ() {
+  const { companyId } = useStore();
+  return <CompanyHQ companyId={companyId} />;
+}

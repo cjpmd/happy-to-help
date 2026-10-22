@@ -11,7 +11,7 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useStore, labelFor, useBalance, useCompany } from "@/lib/store";
-import type { Approval } from "@/lib/types";
+import { approvalText, type Approval } from "@/lib/types";
 import { fmtDateTime, num } from "@/lib/format";
 import { Pill, StatusPill } from "./primitives";
 import { ClaimsCheck, Why, CostButton } from "./WorkControls";
@@ -34,7 +34,6 @@ const titles = {
 };
 
 function Preview({ a }: { a: Approval }) {
-  const p = a.payload;
   const row = (k: string, v: string) => (
     <div className="flex gap-3 text-xs">
       <span className="w-20 shrink-0 text-muted-foreground">{k}</span>
@@ -45,44 +44,59 @@ function Preview({ a }: { a: Approval }) {
     case "publish_post":
       return (
         <div className="space-y-2">
-          {row("Channel", p.channel)}
-          {p.scheduled_for && row("When", p.scheduled_for)}
-          <p className="rounded-lg bg-muted p-3 text-sm leading-relaxed">{p.text}</p>
+          {row("Channel", a.payload.channel)}
+          {a.payload.scheduled_for && row("When", a.payload.scheduled_for)}
+          <p className="rounded-lg bg-muted p-3 text-sm leading-relaxed">{a.payload.text}</p>
         </div>
       );
     case "send_email":
       return (
         <div className="space-y-2">
-          {row("To", p.to)}
-          {row("Subject", p.subject)}
+          {row("To", a.payload.to)}
+          {row("Subject", a.payload.subject)}
           <p className="whitespace-pre-line rounded-lg bg-muted p-3 text-sm leading-relaxed">
-            {p.body}
+            {a.payload.body}
           </p>
         </div>
       );
     case "ad_spend":
       return (
         <div className="space-y-1.5">
-          {row("Platform", p.platform)}
-          {row("Budget", `£${p.amount_gbp} over ${p.duration}`)}
-          {row("Audience", p.audience)}
-          {row("Creative", p.creative)}
+          {row("Platform", a.payload.platform)}
+          {row("Budget", `£${a.payload.amount_gbp} over ${a.payload.duration}`)}
+          {row("Audience", a.payload.audience)}
+          {row("Creative", a.payload.creative)}
         </div>
       );
     case "file_document":
       return (
         <div className="space-y-1.5">
-          {row("Document", p.document)}
-          {row("Destination", p.destination)}
+          {row("Document", a.payload.document)}
+          {row("Destination", a.payload.destination)}
         </div>
       );
     case "publish_site":
       return (
         <div className="space-y-1.5">
-          {row("Change", p.change)}
-          {row("Preview", p.url)}
+          {row("Change", a.payload.change)}
+          {row("Preview", a.payload.url)}
         </div>
       );
+  }
+}
+
+function summary(a: Approval) {
+  switch (a.action_type) {
+    case "publish_post":
+      return a.payload.text;
+    case "send_email":
+      return a.payload.subject;
+    case "ad_spend":
+      return `${a.payload.platform} ${a.payload.audience}`;
+    case "file_document":
+      return a.payload.document;
+    case "publish_site":
+      return a.payload.change;
   }
 }
 
@@ -97,7 +111,7 @@ export function ApprovalCard({
 }) {
   const { decideApproval, askWhy } = useStore();
   const c = useCompany(a.company_id);
-  const text = [a.payload.text, a.payload.body].filter(Boolean).join(" ");
+  const text = approvalText(a);
   const flagged = checkClaims(text, c.sector).length > 0;
   const Icon = icons[a.action_type];
   const decide = (s: "approved" | "declined") => {
@@ -130,13 +144,7 @@ export function ApprovalCard({
           <Preview a={a} />
         </div>
       )}
-      {compact && (
-        <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
-          {a.payload.text ??
-            a.payload.subject ??
-            `${a.payload.platform ?? ""} ${a.payload.audience ?? a.payload.change ?? ""}`}
-        </p>
-      )}
+      {compact && <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{summary(a)}</p>}
       {text && <ClaimsCheck text={text} />}
       <Why
         reason={

@@ -213,7 +213,8 @@ function Onboarding() {
           onSubmit={(e) => {
             e.preventDefault();
             if (!s.ok) return;
-            last ? finish() : setStep(step + 1);
+            if (last) finish();
+            else setStep(step + 1);
           }}
         >
           {s.body}

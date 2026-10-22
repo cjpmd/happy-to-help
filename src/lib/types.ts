@@ -94,41 +94,68 @@ export interface AgentRun {
   usage: { input_tokens: number; output_tokens: number };
   steps: RunStep[];
 }
-export interface ApprovalPayload {
-  channel?: any;
-  scheduled_for?: any;
-  text?: any;
-  to?: any;
-  subject?: any;
-  body?: any;
-  platform?: any;
-  amount_gbp?: any;
-  duration?: any;
-  audience?: any;
-  creative?: any;
-  document?: any;
-  destination?: any;
-  change?: any;
-  url?: any;
-  reason?: any;
-  daily_budget?: any;
-  hard_cap?: any;
-  outreach?: any;
-  media_id?: any;
+// Each action type has its own payload. Narrow on `action_type` to read its fields.
+interface PayloadBase {
+  reason?: string;
 }
-export type ApprovalAction =
-  "publish_post" | "send_email" | "ad_spend" | "file_document" | "publish_site";
-export interface Approval {
+export interface PublishPostPayload extends PayloadBase {
+  channel: SocialPost["channel"];
+  text: string;
+  scheduled_for?: string;
+  media_id?: string | undefined;
+}
+export interface SendEmailPayload extends PayloadBase {
+  to: string;
+  subject: string;
+  body: string;
+  outreach?: boolean;
+}
+export interface AdSpendPayload extends PayloadBase {
+  platform: string;
+  amount_gbp: number;
+  duration: string;
+  audience: string;
+  creative: string;
+  daily_budget?: number;
+  hard_cap?: number;
+}
+export interface FileDocumentPayload extends PayloadBase {
+  document: string;
+  destination: string;
+}
+export interface PublishSitePayload extends PayloadBase {
+  change: string;
+  url: string;
+}
+export interface ApprovalPayloads {
+  publish_post: PublishPostPayload;
+  send_email: SendEmailPayload;
+  ad_spend: AdSpendPayload;
+  file_document: FileDocumentPayload;
+  publish_site: PublishSitePayload;
+}
+export type ApprovalAction = keyof ApprovalPayloads;
+interface ApprovalBase {
   id: string;
   company_id: string;
   run_id: string | null;
-  action_type: ApprovalAction;
-  payload: ApprovalPayload;
   estimated_credits: number;
   status: "pending" | "approved" | "declined";
   decided_by?: string | null;
   decided_at?: string | null;
   created_at: string;
+}
+export type ApprovalOf<K extends ApprovalAction> = ApprovalBase & {
+  action_type: K;
+  payload: ApprovalPayloads[K];
+};
+export type Approval = { [K in ApprovalAction]: ApprovalOf<K> }[ApprovalAction];
+
+/** The public-facing text in an approval (a post or an email body), which the claims check reads. */
+export function approvalText(a: Approval): string {
+  if (a.action_type === "publish_post") return a.payload.text;
+  if (a.action_type === "send_email") return a.payload.body;
+  return "";
 }
 export interface ActivityEvent {
   id: string;
