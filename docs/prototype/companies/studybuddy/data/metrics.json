@@ -1,0 +1,10 @@
+{
+  "period": "last 14 days",
+  "waitlist_signups": 64,
+  "goal": 150,
+  "posts": [
+    { "angle": "time-saving", "hook": "Revise in 5 minutes a day", "clicks": 41, "signups": 9 },
+    { "angle": "parent reassurance", "hook": "Know they're actually revising", "clicks": 88, "signups": 21 },
+    { "angle": "exam stress", "hook": "Highers in 12 weeks?", "clicks": 23, "signups": 3 }
+  ]
+}
