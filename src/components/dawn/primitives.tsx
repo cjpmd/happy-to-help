@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { PRODUCT_NAME } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import solImg from "@/assets/sol.png";
 
@@ -6,14 +7,14 @@ export function SolAvatar({ size = 28, className }: { size?: number; className?:
   return <img src={solImg} alt="Sol" width={size} height={size} className={cn("shrink-0 rounded-full", className)} style={{ width: size, height: size }} />;
 }
 
-export function DawnLogo({ className }: { className?: string }) {
+export function BrandLogo({ className }: { className?: string }) {
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <span className="relative block h-6 w-6 overflow-hidden rounded-md bg-dawn">
         <span className="absolute bottom-[6px] left-1/2 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-primary-foreground/90" />
         <span className="absolute bottom-[6px] left-0 right-0 h-[1.5px] bg-primary-foreground/90" />
       </span>
-      <span className="text-[15px] font-semibold tracking-tight">Dawn</span>
+      <span className="text-[15px] font-semibold tracking-tight">{PRODUCT_NAME}</span>
     </div>
   );
 }

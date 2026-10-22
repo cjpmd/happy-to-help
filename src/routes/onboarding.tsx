@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { DawnLogo, SolAvatar } from "@/components/dawn/primitives";
+import { BrandLogo, SolAvatar } from "@/components/dawn/primitives";
 import { useStore } from "@/lib/store";
 import { pageHead } from "@/lib/seo";
 import { businessDefaults, type Sector } from "@/lib/workspace";
@@ -53,7 +53,7 @@ function Onboarding() {
 
   return (
     <div className="flex min-h-screen flex-col px-6 py-8">
-      <DawnLogo />
+      <BrandLogo />
       <div className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center">
         <div className="mb-8 flex gap-1.5">{steps.map((_, i) => <span key={i} className={cn("h-1 flex-1 rounded-full", i <= step ? "bg-primary" : "bg-muted")} />)}</div>
         <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground"><SolAvatar size={22} />Sol · step {step + 1} of {steps.length}</div>

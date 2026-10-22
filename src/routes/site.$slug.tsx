@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { PRODUCT_NAME } from "@/lib/brand";
 import { pageHead } from "@/lib/seo";
 import { ClaimsCheck } from "@/components/dawn/WorkControls";
 import { useStore } from "@/lib/store";
@@ -6,7 +7,7 @@ import { useStore } from "@/lib/store";
 // Stand-in for each company's generated website, shown in the HQ preview frame.
 export const Route = createFileRoute("/site/$slug")({
   validateSearch: (s: Record<string, unknown>) => ({ preview: s["preview"] ? 1 : undefined }),
-  head: ({params}) => pageHead(`${params.slug} website`, "A company beta website preview from Dawn."),
+  head: ({params}) => pageHead(`${params.slug} website`, `A company beta website preview from ${PRODUCT_NAME}.`),
   component: Site,
 });
 

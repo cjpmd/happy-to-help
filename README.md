@@ -1,24 +1,34 @@
-# Happy to Help
+# Gumption
 
-I'm hapy for you to suggest a name
+Gumption (working name) helps early-stage founders run their startup with an AI cofounder, Sol, powered by Claude. Sol does marketing, admin, compliance and simple website builds overnight; founders approve every external action; university and incubator mentors oversee their cohorts.
 
-This project was built with [Lovable](https://lovable.dev).
+The product name lives in one place: `src/lib/brand.ts`.
 
-## Build with Lovable
+## Documents
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/f68f0353-2157-41a9-85f3-be3d786a6f70).
+- `docs/SPEC.md`: what the product should do
+- `docs/PHASES.md`: the delivery plan
+- `docs/STATUS.md`: what's done, mocked or missing right now
+- `CLAUDE.md`: how we work, and the rules the code must follow
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+## Run it locally
 
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+You need Node.js 22 and npm. This project uses npm only: commit `package-lock.json` and don't add another package manager's lockfile.
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
+npm ci
 npm run dev
 ```
+
+Checks to run before pushing:
+
+```sh
+npx tsc --noEmit
+npm test
+npm run lint
+npm run build
+```
+
+## Lovable
+
+The UI was started in [Lovable](https://lovable.dev/projects/f68f0353-2157-41a9-85f3-be3d786a6f70), and commits to `main` sync back to the Lovable editor. Don't edit in Lovable and Claude Code at the same time, and pull before starting work.

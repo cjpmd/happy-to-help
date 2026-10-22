@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { PRODUCT_NAME } from "@/lib/brand";
 import {
   Outlet,
   Link,
@@ -56,7 +57,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Dawn — run your startup with an AI cofounder" },
+      { title: `${PRODUCT_NAME} — run your startup with an AI cofounder` },
       { name: "description", content: "Sol, your AI cofounder, works overnight on marketing, admin and compliance. You review and approve." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

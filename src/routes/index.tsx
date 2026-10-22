@@ -1,13 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { PRODUCT_NAME } from "@/lib/brand";
 import { useState } from "react";
 import { Mail, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DawnLogo, SolAvatar } from "@/components/dawn/primitives";
+import { BrandLogo, SolAvatar } from "@/components/dawn/primitives";
 import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/")({
-  head: () => pageHead("Sign in", "Sign in to Dawn and see what Sol, your AI cofounder, did overnight."),
+  head: () => pageHead("Sign in", `Sign in to ${PRODUCT_NAME} and see what Sol, your AI cofounder, did overnight.`),
   component: SignIn,
 });
 
@@ -18,7 +19,7 @@ function SignIn() {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       <div className="flex flex-col px-6 py-8 sm:px-12">
-        <DawnLogo />
+        <BrandLogo />
         <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center">
           <h1 className="text-3xl font-semibold tracking-tight">Wake up to progress.</h1>
           <p className="mt-2 text-muted-foreground">Sol works on your startup overnight. You review and approve over breakfast.</p>
@@ -41,7 +42,7 @@ function SignIn() {
             <Link to="/onboarding" className="hover:text-foreground">New founder? Start here →</Link>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">© 2026 Dawn. Made in Glasgow.</p>
+        <p className="text-xs text-muted-foreground">© 2026 {PRODUCT_NAME}. Made in Glasgow.</p>
       </div>
       <div className="relative hidden overflow-hidden border-l bg-sidebar lg:block">
         <div className="absolute -right-32 -top-32 h-[28rem] w-[28rem] rounded-full bg-dawn opacity-25 blur-3xl" />

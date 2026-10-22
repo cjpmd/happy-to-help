@@ -5,7 +5,7 @@ import { useStore, useMyCompanies, useCompany, useBalance } from "@/lib/store";
 import { isLowBalance, PLANS } from "@/lib/credits";
 import { num } from "@/lib/format";
 import { profiles } from "@/lib/seed";
-import { DawnLogo } from "./primitives";
+import { BrandLogo } from "./primitives";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
@@ -126,7 +126,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen">
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r bg-sidebar lg:flex">
-        <div className="flex h-14 items-center border-b px-5"><Link to="/hq"><DawnLogo /></Link></div>
+        <div className="flex h-14 items-center border-b px-5"><Link to="/hq"><BrandLogo /></Link></div>
         <div className="flex-1 overflow-y-auto"><Nav /></div>
         <div className="border-t p-3 text-xs text-muted-foreground">
           <div className="flex justify-between"><span>{PLANS[company.plan].name} plan</span><span className="tabular">{num(balance)} credits</span></div>
@@ -134,7 +134,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-64 bg-sidebar p-0">
-          <SheetTitle className="flex h-14 items-center border-b px-5"><DawnLogo /></SheetTitle>
+          <SheetTitle className="flex h-14 items-center border-b px-5"><BrandLogo /></SheetTitle>
           <Nav onNavigate={() => setOpen(false)} />
         </SheetContent>
       </Sheet>

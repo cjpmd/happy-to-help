@@ -8,7 +8,7 @@ const ahead = (d: number) => new Date(NOW.getTime() + d * 86400_000).toISOString
 export const profiles: T.Profile[] = [
   { id: "u1", full_name: "Aisha Grant", role: "founder", email: "aisha@studybuddy.app" },
   { id: "u2", full_name: "Dr Morag Fraser", role: "mentor", email: "m.fraser@uni.ac.uk" },
-  { id: "u3", full_name: "Platform Admin", role: "admin", email: "admin@dawn.app" },
+  { id: "u3", full_name: "Platform Admin", role: "admin", email: "admin@example.com" },
   { id: "u4", full_name: "Callum Reid", role: "founder", email: "callum@kelpie.energy" },
 ];
 

@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { PRODUCT_NAME } from "./brand";
 import * as seed from "./seed";
 import type * as T from "./types";
 import { sendChatMessage } from "./agentClient";
@@ -146,7 +147,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       companies: [...d.companies, { ...c, channels: businessDefaults(c.customer_type), id, slug, stage: "idea", plan: "starter", created_by: userId, website_live_url: `/site/${slug}`, website_preview_url: `/site/${slug}?preview=1` }],
       company_members: [...d.company_members, { company_id: id, user_id: userId, role: "founder" }],
       credit_ledger: [...d.credit_ledger, { id: uid("l"), company_id: id, entry_type: "grant", amount: 1500, run_id: null, note: "Starter plan — welcome grant", created_at: iso() }],
-      chat_messages: [...d.chat_messages, { id: uid("m"), company_id: id, sender: "sol", content: `Welcome to Dawn. I've read your idea for ${c.name}. Tonight I'll draft your first assumptions to test and a simple landing page.`, created_at: iso() }],
+      chat_messages: [...d.chat_messages, { id: uid("m"), company_id: id, sender: "sol", content: `Welcome to ${PRODUCT_NAME}. I've read your idea for ${c.name}. Tonight I'll draft your first assumptions to test and a simple landing page.`, created_at: iso() }],
     }));
     setCompanyId(id);
     return id;
