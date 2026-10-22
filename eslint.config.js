@@ -6,7 +6,8 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", ".output", ".vinxi"] },
+  // docs/prototype is a separate package with its own tsconfig; Phase 3 moves it into agent-service/.
+  { ignores: ["dist", ".output", ".vinxi", "docs/prototype"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

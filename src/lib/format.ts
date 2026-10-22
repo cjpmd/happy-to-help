@@ -2,10 +2,19 @@ const TZ = "Europe/London";
 
 /** 21 Oct 2026 */
 export function fmtDate(d: string | Date) {
-  return new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: TZ });
+  return new Date(d).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: TZ,
+  });
 }
 export function fmtTime(d: string | Date) {
-  return new Date(d).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: TZ });
+  return new Date(d).toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: TZ,
+  });
 }
 export function fmtDateTime(d: string | Date) {
   return `${fmtDate(d)}, ${fmtTime(d)}`;

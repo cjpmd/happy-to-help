@@ -1,5 +1,7 @@
+import { PRODUCT_NAME } from "./brand";
+
 export function pageHead(title: string, description: string) {
-  const t = `${title} · Dawn`;
+  const t = `${title} · ${PRODUCT_NAME}`;
   return {
     meta: [
       { title: t },

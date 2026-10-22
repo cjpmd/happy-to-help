@@ -1,0 +1,184 @@
+-- Shared setup for the pgTAP tests. Each test file includes this with \ir inside its own
+-- transaction, and rolls back at the end, so nothing here outlives a test run.
+--
+-- People (pg_temp.id(name) returns their id):
+--   founder         founder of company A
+--   teammate        teammate in A
+--   viewer          viewer in A
+--   member_mentor   member of A with the mentor role
+--   cohort_mentor   mentor of cohort X, which contains A
+--   other_mentor    mentor of cohort Y, which contains B
+--   outsider        no memberships
+--   admin           platform admin (profiles.is_admin)
+--   founder_b       founder of company B
+-- Companies: company_a (slug a-co), company_b (slug b-co, public sharing on).
+-- Cohorts: cohort_x (A), cohort_y (B).
+-- Every company-scoped table gets at least one row for each company.
+
+create extension if not exists pgtap with schema extensions;
+
+create function pg_temp.id(p_name text)
+returns uuid
+language sql
+immutable
+as $$
+  select case p_name
+    when 'founder'       then '11111111-0000-4000-8000-000000000001'
+    when 'teammate'      then '11111111-0000-4000-8000-000000000002'
+    when 'viewer'        then '11111111-0000-4000-8000-000000000003'
+    when 'member_mentor' then '11111111-0000-4000-8000-000000000004'
+    when 'cohort_mentor' then '11111111-0000-4000-8000-000000000005'
+    when 'other_mentor'  then '11111111-0000-4000-8000-000000000006'
+    when 'outsider'      then '11111111-0000-4000-8000-000000000007'
+    when 'admin'         then '11111111-0000-4000-8000-000000000008'
+    when 'founder_b'     then '11111111-0000-4000-8000-000000000009'
+    when 'company_a'     then '22222222-0000-4000-8000-00000000000a'
+    when 'company_b'     then '22222222-0000-4000-8000-00000000000b'
+    when 'cohort_x'      then '33333333-0000-4000-8000-00000000000a'
+    when 'cohort_y'      then '33333333-0000-4000-8000-00000000000b'
+  end::uuid
+$$;
+
+-- Act as a signed-in user, as an anonymous visitor, or as the service role.
+-- `reset role;` returns to the test's owner.
+create function pg_temp.login(p_name text)
+returns void
+language plpgsql
+as $$
+begin
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', pg_temp.id(p_name), 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+end;
+$$;
+
+create function pg_temp.login_anon()
+returns void
+language plpgsql
+as $$
+begin
+  perform set_config('request.jwt.claims', '{"role": "anon"}', true);
+  perform set_config('role', 'anon', true);
+end;
+$$;
+
+create function pg_temp.login_service()
+returns void
+language plpgsql
+as $$
+begin
+  perform set_config('request.jwt.claims', '{"role": "service_role"}', true);
+  perform set_config('role', 'service_role', true);
+end;
+$$;
+
+-- Whether the current role can see any of a company's rows in a table.
+create function pg_temp.sees(p_table text, p_company uuid)
+returns boolean
+language plpgsql
+as $$
+declare
+  found boolean;
+begin
+  execute format('select exists (select 1 from public.%I where company_id = $1)', p_table)
+    into found using p_company;
+  return found;
+end;
+$$;
+
+-- Every table and view in public with a company_id column.
+create function pg_temp.company_tables()
+returns setof text
+language sql
+stable
+as $$
+  select c.table_name::text
+  from information_schema.columns c
+  where c.table_schema = 'public' and c.column_name = 'company_id'
+  order by 1
+$$;
+
+grant execute on all functions in schema pg_temp to anon, authenticated, service_role;
+
+-- Fixtures ---------------------------------------------------------------------------------
+
+insert into auth.users (id, email, raw_user_meta_data)
+select pg_temp.id(n), n || '@test.example.com', jsonb_build_object('full_name', initcap(replace(n, '_', ' ')))
+from unnest(array[
+  'founder', 'teammate', 'viewer', 'member_mentor', 'cohort_mentor', 'other_mentor',
+  'outsider', 'admin', 'founder_b'
+]) n;
+update public.profiles set is_admin = true where id = pg_temp.id('admin');
+
+insert into public.companies (id, slug, name, description, customer_type, created_by) values
+  (pg_temp.id('company_a'), 'a-co', 'Company A', 'First test company.', 'B2C', pg_temp.id('founder')),
+  (pg_temp.id('company_b'), 'b-co', 'Company B', 'Second test company.', 'B2B', pg_temp.id('founder_b'));
+
+insert into public.company_members (company_id, user_id, role) values
+  (pg_temp.id('company_a'), pg_temp.id('founder'), 'founder'),
+  (pg_temp.id('company_a'), pg_temp.id('teammate'), 'teammate'),
+  (pg_temp.id('company_a'), pg_temp.id('viewer'), 'viewer'),
+  (pg_temp.id('company_a'), pg_temp.id('member_mentor'), 'mentor'),
+  (pg_temp.id('company_b'), pg_temp.id('founder_b'), 'founder');
+
+insert into public.cohorts (id, name, institution, credit_pool, join_code) values
+  (pg_temp.id('cohort_x'), 'Cohort X', 'Taybridge University', 10000, 'JOIN-X'),
+  (pg_temp.id('cohort_y'), 'Cohort Y', 'Taybridge University', 10000, 'JOIN-Y');
+insert into public.cohort_companies (cohort_id, company_id, credit_cap) values
+  (pg_temp.id('cohort_x'), pg_temp.id('company_a'), 5000),
+  (pg_temp.id('cohort_y'), pg_temp.id('company_b'), 5000);
+insert into public.cohort_mentors (cohort_id, user_id) values
+  (pg_temp.id('cohort_x'), pg_temp.id('cohort_mentor')),
+  (pg_temp.id('cohort_y'), pg_temp.id('other_mentor'));
+
+-- One row of everything for each company.
+do $$
+declare
+  c uuid;
+  founder_id uuid;
+  job uuid;
+  run uuid;
+  approval uuid;
+  doc uuid;
+  thread uuid;
+begin
+  foreach c in array array[pg_temp.id('company_a'), pg_temp.id('company_b')]
+  loop
+    founder_id := case when c = pg_temp.id('company_a') then pg_temp.id('founder') else pg_temp.id('founder_b') end;
+
+    insert into public.team_invites (company_id, email, role, invited_by)
+      values (c, 'invitee+' || c || '@example.com', 'teammate', founder_id);
+    insert into public.stage_gates (company_id, stage, status) values (c, 'idea', 'approved'), (c, 'evidence', 'in_progress');
+    insert into public.gate_comments (company_id, author_id, body) values (c, founder_id, 'A comment');
+    insert into public.evidence_items (company_id, type, title, status) values (c, 'assumption', 'People want this', 'untested');
+    insert into public.tasks (company_id, pillar, title) values (c, 'build', 'Build the thing');
+    insert into public.agent_jobs (company_id, job_type) values (c, 'social_post') returning id into job;
+    insert into public.agent_runs (company_id, job_id, task, pillar, model, status)
+      values (c, job, 'Draft a post', 'grow', 'test-model', 'needs_approval') returning id into run;
+    insert into public.approvals (company_id, run_id, action_type, payload, estimated_credits)
+      values (c, run, 'publish_post', '{"channel": "X", "text": "Hello"}', 40) returning id into approval;
+    insert into public.activity_events (company_id, type, summary) values (c, 'grow', 'Drafted a post');
+    insert into public.chat_messages (company_id, sender, author_id, content) values (c, 'founder', founder_id, 'Hi Sol');
+    insert into public.credit_ledger (company_id, entry_type, amount, note) values (c, 'grant', 1000, 'Test grant');
+    insert into public.social_posts (company_id, approval_id, channel, text) values (c, approval, 'X', 'Hello');
+    insert into public.compliance_items (company_id, title, category, due_date) values (c, 'Pay ICO fee', 'Data protection', '2026-11-14');
+    insert into public.investors (company_id, name, firm) values (c, 'Test Investor', 'Test Capital');
+    insert into public.grants (company_id, name) values (c, 'Test Grant');
+    insert into public.contacts (company_id, name, email) values (c, 'Test Contact', 'contact@example.com');
+    insert into public.site_versions (company_id, version, summary) values (c, 'v0.1', 'First page');
+    insert into public.metrics_daily (company_id, date, visitors, signups, paying_customers, mrr)
+      values (c, '2026-10-21', 100, 5, 2, 9.98);
+    insert into public.documents (company_id, title) values (c, 'Company profile') returning id into doc;
+    insert into public.document_versions (document_id, company_id, version, content) values (doc, c, 1, 'About us');
+    insert into public.routines (company_id, title, cadence, credits) values (c, 'Morning brief', 'daily', 25);
+    insert into public.media_assets (company_id, kind, title, status) values (c, 'image', 'Hero', 'ready');
+    insert into public.email_threads (company_id, subject, mode) values (c, 'Hello', 'support') returning id into thread;
+    insert into public.email_messages (thread_id, company_id, direction, body) values (thread, c, 'received', 'Hi there');
+    insert into public.ad_accounts (company_id) values (c);
+    insert into public.company_sharing (company_id, enabled) values (c, c = pg_temp.id('company_b'));
+  end loop;
+end;
+$$;
+
+insert into public.user_preferences (user_id) values (pg_temp.id('founder'));
+insert into public.hq_layouts (user_id, layout) values (pg_temp.id('founder'), '[]');
