@@ -1,6 +1,18 @@
 # Status
 
-Phase 0 audit, 22 Oct 2026, at commit `aad3f26`. No code was changed for this audit.
+Phase 0 audit, 22 Oct 2026, at commit `aad3f26`. Updated 22 Oct 2026 after Phase 1 group 1a.
+
+## Phase 1 progress
+
+| Group | Status |
+|---|---|
+| 1a. Repo hygiene | **Done.** npm only (`package-lock.json` committed; `bun.lock` and `bunfig.toml` removed). Product name in `src/lib/brand.ts` (`PRODUCT_NAME = "Gumption"`). Prettier run over `src/` and root configs in its own commit (`c3b4531`). Lint: 0 errors. |
+| 1b. Supabase schema, auth, RLS, seed | Next. Waiting on the project URL and anon key. |
+| 1c. Data layer on Supabase | Not started |
+| 1d. Server-side writes | Not started |
+| 1e. Bug fixes | Not started |
+
+Everything below the checks table describes the app as it still works today: the in-memory mock store. Items fixed since the audit are marked **Fixed**.
 
 ## Summary
 
@@ -15,8 +27,8 @@ Phase 0 audit, 22 Oct 2026, at commit `aad3f26`. No code was changed for this au
   |---|---|
   | `tsc --noEmit` | Passes |
   | `vite build` | Passes |
-  | `vitest run` | Fails on a clean `npm install`: `@testing-library/dom` (a peer dependency of `@testing-library/jest-dom`) is not in `package.json`. With it installed, all 20 tests pass. |
-  | `npm run lint` | 851 errors and 14 warnings. 828 of the errors are Prettier formatting, mostly in Lovable's one-line files. The rest: 20 `no-explicit-any` in `ApprovalPayload`, 1 `rules-of-hooks` in `hq.tsx`, 1 `no-unused-expressions` in `onboarding.tsx`, and 1 `no-empty` in `docs/prototype/src/social-server.ts`. |
+  | `vitest run` | Passes on a clean `npm ci`: 22 tests. (At the audit it failed because `@testing-library/dom` was missing.) |
+  | `npm run lint` | 0 errors, 14 fast-refresh warnings. (At the audit: 851 errors, mostly Prettier.) |
 
 Key: **done** works as the spec describes (against mock data) · **partial** exists but is incomplete or hard-coded · **mocked** looks right but nothing real happens behind it · **missing** is not there.
 
@@ -144,8 +156,8 @@ None of these exist in a database. "Type" means a TypeScript interface the mock 
 6. **B6. Onboarding throws away three answers:** stage, website and cohort code (see A1).
 7. **B7. StudyBuddy demo content leaks into every company.** It appears in the stand-in site, the Run inbox summary, the Build versions, the grants list, email threads, the roadmap outcomes and the ad figures.
 8. **B8. Seed hold `l10` is never released,** and seed run `r8` never finishes, so Sol always shows as working.
-9. **B9. `hq.tsx` breaks the rules of hooks.** It calls `useStore()` inside an inline `component` arrow function, which the lint rule flags. It works today, but it is fragile.
-10. **B10. Tests fail on a clean install** because `@testing-library/dom` is missing from `package.json`.
+9. **B9. Fixed in 1a.** `hq.tsx` broke the rules of hooks. It calls `useStore()` inside an inline `component` arrow function, which the lint rule flags. It works today, but it is fragile.
+10. **B10. Fixed in 1a.** Tests failed on a clean install because `@testing-library/dom` is missing from `package.json`.
 11. **B11. Investor drag and drop needs a mouse.** It doesn't work on touch screens or with a keyboard.
 12. **B12. Theme choice isn't saved.** Dark mode resets on every reload.
 
@@ -158,10 +170,10 @@ None of these exist in a database. "Type" means a TypeScript interface the mock 
 - **The demo site makes the claims the checker flags.** The stand-in site shows "Learns your weak spots", which is the "Feature not built yet" claim.
 - **The model name is hard-coded.** `seed.ts` writes `claude-sonnet-4.5` into every run. CLAUDE.md wants model IDs in config.
 - **Costs are defined in three places** that disagree (see B4 in part B). CLAUDE.md wants one config.
-- **`ApprovalPayload` is all `any`,** which breaks the CLAUDE.md "no `any` without a comment" rule. It should become a union typed by `action_type`.
-- **The product has three names.** The UI is "Dawn", CLAUDE.md says "Gumption", the README says "Happy to Help", and `package.json` says `tanstack_start_ts`.
-- **Package installs.** `bun.lock` points at Lovable's private registry, so `bun install` gets 403 errors outside Lovable. `npm install` works, but creates an untracked `package-lock.json`; delete it, or decide on one package manager.
-- **The prototype upload is incomplete.** `docs/prototype/README.md` refers to `.claude/skills/social-post/SKILL.md`, but no `.claude` folder was uploaded (GitHub's web upload drops dot-folders). Phase 3 needs that skill file.
+- **Fixed in 1a.** `ApprovalPayload` was all `any`. It's now a union keyed by `action_type` (`src/lib/types.ts`).
+- **Fixed in 1a.** The product had three names. It's now Gumption everywhere, from `PRODUCT_NAME` in `src/lib/brand.ts`. The `bg-dawn` colour token and the `components/dawn/` folder keep their names. The `localStorage` key `dawn-hq-layouts` also stays until 1c replaces it with a table.
+- **Fixed in 1a: package installs.** The project now uses npm only, and `package-lock.json` resolves everything from the public registry. One npm quirk: with **no** lockfile, npm 10 (bundled with Node 22) crashes while resolving peer dependencies (`Cannot read properties of null (reading 'edgesOut')`). npm 11 doesn't, and with the committed lockfile `npm ci` and `npm install` both work on npm 10. If Lovable's editor installs with bun, `bun.lock` may come back; if it does, add it to `.gitignore`.
+- **Fixed.** The prototype's `social-post` skill, dropped by GitHub's web upload, was restored in `78efe76`.
 - **Repo housekeeping.** There is a stray empty file `willremovethislater` at the root, and `roadmap.md` is Lovable's own checklist ("Dawn extension"), which will drift from this file.
 - **The repo layout differs from what CLAUDE.md describes.** `src/integrations/supabase/`, `supabase/migrations/` and `agent-service/` don't exist yet, and the agent-call boundary is really `store.tsx`, which calls `agentClient`. In `agentClient`, `runTask` and `estimateTaskCredits` are never used.
 
@@ -174,7 +186,7 @@ None of these exist in a database. "Type" means a TypeScript interface the mock 
 
 ## Recommended order for Phase 1
 
-1. **Repo hygiene (small, no behaviour change).** Add `@testing-library/dom`, choose npm or bun, remove `willremovethislater`, agree the product name, and decide whether to run Prettier once over the repo (it touches every Lovable file, so do it in its own commit when Lovable isn't being used).
+1. **Done in 1a: repo hygiene.** One item is left: the stray `willremovethislater` file at the root.
 2. **Supabase project, auth and a typed client.** Create the project, set up magic-link sign-in, auto-create `profiles` on sign-up, and add `src/integrations/supabase/`. Remove the "view as" switcher, or limit it to local development.
 3. **Core schema and RLS, with RLS tests.** Create `companies`, `company_members` (roles per company, not on `profiles`), `cohorts`, `cohort_companies`, `stage_gates`, `gate_comments` and `evidence_items`. Membership policies: founders see their own companies, mentors read their cohort's companies and update gates. A gate-approval RPC that also advances `companies.stage`. Tests for founder, mentor, outsider and admin.
 4. **Ledger foundations.** An insert-only `credit_ledger` (with no update or delete grants, and a trigger as a backstop), a `company_credit_balance` view that already separates held from available credits, and inserts by the service role only. The full credits engine stays in Phase 2.
