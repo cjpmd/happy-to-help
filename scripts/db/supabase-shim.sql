@@ -71,4 +71,6 @@ $$;
 grant usage on schema auth, extensions to anon, authenticated, service_role;
 grant execute on all functions in schema auth to anon, authenticated, service_role;
 
+-- Realtime needs logical replication on a real project; here the publication only has to exist.
+set client_min_messages to error;
 create publication supabase_realtime;
