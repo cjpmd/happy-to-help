@@ -39,7 +39,13 @@ Phase 0 audit, 22 Oct 2026, at commit `aad3f26`. Updated 23 Oct 2026 during Phas
   - **Removed from HQ:** the old widgets (Sol chat card, stage bar, live preview iframe, tasks, documents, email, media, ads, compliance, investors, credits) and the regulated-sector banner, replaced by a REGULATED · <SECTOR> pill by the phase title. Claims checks are still stricter for regulated sectors. Customise HQ now covers just the six cards; saved layouts from the old widget list fall back to the default.
   - **Channels** leaves out the waitlist (its signups are in Telemetry). **Next windows** shows open compliance items and dated tasks: amber within two weeks, red for overdue statutory items.
 - **Agreed layout decisions** for steps 2 to 5: no third sidebar group. Evidence lives in Flight Plan (selected milestone plus an Evidence tab), Routines in LOG (Past and Scheduled tabs), Email and Documents in Run, Media and Ads in Grow, department pages show their relevant documents, and Team, Ownership, Settings and Billing go in an account menu on the avatar by the fuel box. Mentors get a COHORT group at the top. Old routes redirect. New `/flight-plan` and `/telemetry` pages. HQ keeps customisation for the six grid cards only.
-- **For 1b:** add `tasks.actor` (sol / founder / mentor) and switch the flight plan task badges to it (until then they are derived from status and proof). Add a target or completed date for gates and key tasks (or a view giving each milestone's day from the company start) for `FlightPlanArc`, plus `companies.started_at`. Add `compliance_items.statutory`. Add run `r9` and approval `a7` (Connect Stripe) to `supabase/seed.sql`. Add `tasks.key`, `tasks.stage` and `tasks.completed_at`, and StudyBuddy's key tasks to `supabase/seed.sql`. `supabase/seed.sql` also creates a fifth gate on the Grow stage for every company: drop it (and update any pgTAP counts) so there are four gates, one per transition. Onboarding should create the company's stage gates (it doesn't today, so a new company's header shows no countdown).
+- **Step 5 decisions (agreed 23 Oct 2026):**
+  - Credit figures on mission screens read "≈ 40 CR"; only Billing and the ledger spell out "credits" (sentences and screen-reader labels also say credits).
+  - Telemetry's cost per signup by channel has three columns: £ ad spend per signup, credits per signup, and all-in £ per signup = ad spend + credits valued at the founder's own plan price per credit (plan price ÷ plan credits, e.g. Founder £79 / 5,000 = 1.58p), labelled as all-in at their plan price.
+  - "Activated" in the funnel is a mock figure labelled as sample data until each company defines activation.
+  - Theme: Light (default), Dark and Match system.
+  - The GO / NO-GO page's decline button says NO-GO; HQ keeps GO / EDIT / WHY.
+- **For 1b:** add `tasks.actor` (sol / founder / mentor) and switch the flight plan task badges to it (until then they are derived from status and proof). Add a target or completed date for gates and key tasks (or a view giving each milestone's day from the company start) for `FlightPlanArc`, plus `companies.started_at`. Add `compliance_items.statutory`. Add a `theme` column to `user_preferences` ('light', 'dark', 'system'; default 'light'). Flight plan setup gets a "define activation" step (Sol proposes what counts as activated, the founder confirms) and a `metrics_daily.activated` column. Add run `r9` and approval `a7` (Connect Stripe) to `supabase/seed.sql`. Add `tasks.key`, `tasks.stage` and `tasks.completed_at`, and StudyBuddy's key tasks to `supabase/seed.sql`. `supabase/seed.sql` also creates a fifth gate on the Grow stage for every company: drop it (and update any pgTAP counts) so there are four gates, one per transition. Onboarding should create the company's stage gates (it doesn't today, so a new company's header shows no countdown).
 
 ### Database (group 1b)
 
@@ -197,7 +203,7 @@ None of these exist in a database. "Type" means a TypeScript interface the mock 
 9. **B9. Fixed in 1a.** `hq.tsx` broke the rules of hooks. It calls `useStore()` inside an inline `component` arrow function, which the lint rule flags. It works today, but it is fragile.
 10. **B10. Fixed in 1a.** Tests failed on a clean install because `@testing-library/dom` is missing from `package.json`.
 11. **B11. Investor drag and drop needs a mouse.** It doesn't work on touch screens or with a keyboard.
-12. **B12. Theme choice isn't saved.** Dark mode resets on every reload. Being fixed in 1a-design step 5 (a light/dark setting).
+12. **B12. Fixed in 1a-design step 5.** Theme choice wasn't saved. Settings now has Light (default), Dark and Match system, saved in the browser and applied before the page draws.
 
 ## Risks
 
