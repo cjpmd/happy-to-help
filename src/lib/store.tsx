@@ -30,7 +30,7 @@ import {
   type Sector,
 } from "./workspace";
 import { simulateWork } from "./agentClient";
-import { solStatus } from "./mission";
+import { defaultGates, solStatus } from "./mission";
 
 /**
  * In-memory data store shaped like the Supabase schema.
@@ -356,8 +356,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     (c) => {
       const id = uid("c");
       const slug = c.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const startedAt = iso();
       setDb((d) => ({
         ...d,
+        stage_gates: [...d.stage_gates, ...defaultGates(id, startedAt, "idea")],
         routines: [
           ...d.routines,
           ...workspaceSeed(
@@ -411,7 +413,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           {
             ...c,
             channels: businessDefaults(c.customer_type),
-            started_at: iso(),
+            started_at: startedAt,
             id,
             slug,
             stage: "idea",

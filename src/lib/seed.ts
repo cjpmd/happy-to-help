@@ -1,5 +1,5 @@
 import type * as T from "./types";
-import { GATE_TARGET_DAYS, STAGE_ORDER } from "./mission";
+import { defaultGates } from "./mission";
 
 // Fixed "now" keeps server and browser renders identical for the demo.
 export const NOW = new Date("2026-10-21T07:30:00Z");
@@ -101,22 +101,11 @@ export const cohort_companies: T.CohortCompany[] = [
 function gates(
   cid: string,
   stage: T.Stage,
-  ev: T.GateCriterion[],
+  evidence: T.GateCriterion[],
   build: T.GateCriterion[],
 ): T.StageGate[] {
-  const idx = STAGE_ORDER.indexOf(stage);
-  const start = new Date(companies.find((c) => c.id === cid)?.started_at ?? NOW).getTime();
-  const onDay = (day: number) => new Date(start + day * 86_400_000).toISOString();
-  return STAGE_ORDER.map((s, i) => ({
-    id: `${cid}-${s}`,
-    company_id: cid,
-    stage: s,
-    criteria: s === "evidence" ? ev : s === "build" ? build : [],
-    status: i < idx ? "approved" : i === idx ? "in_progress" : "locked",
-    approved_by: i < idx ? "u2" : null,
-    approved_at: i < idx ? onDay(GATE_TARGET_DAYS[s]) : null,
-    target_date: onDay(GATE_TARGET_DAYS[s]),
-  }));
+  const started = companies.find((c) => c.id === cid)?.started_at ?? NOW.toISOString();
+  return defaultGates(cid, started, stage, { idea: [], evidence, build, launch: [] }, "u2");
 }
 export const stage_gates: T.StageGate[] = [
   ...gates(

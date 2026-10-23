@@ -1,27 +1,75 @@
-import type { ActivityEvent, AgentRun, Approval, Company, Stage, StageGate } from "./types";
+import type {
+  ActivityEvent,
+  AgentRun,
+  Approval,
+  Company,
+  GateCriterion,
+  Stage,
+  StageGate,
+} from "./types";
 
 // Mission timeline helpers for the mock store. In the database these days will
 // come from gate target and completed dates (see docs/STATUS.md, group 1b).
 
 export const STAGE_ORDER: Stage[] = ["idea", "evidence", "build", "launch", "grow"];
 
+/** Stages that end in a gate. Grow is the last stage, so it has none. */
+export type GateStage = Exclude<Stage, "grow">;
+export const GATE_STAGES: GateStage[] = ["idea", "evidence", "build", "launch"];
+
 /** Default day, counted from the company's start, by which each stage's gate should pass. */
-export const GATE_TARGET_DAYS: Record<Stage, number> = {
+export const GATE_TARGET_DAYS: Record<GateStage, number> = {
   idea: 8,
   evidence: 18,
   build: 42,
   launch: 80,
-  grow: 120,
+};
+
+/** Default criteria for a new company's gates (the seed sets its own). */
+export const DEFAULT_GATE_CRITERIA: Record<GateStage, GateCriterion[]> = {
+  idea: [],
+  evidence: [
+    { label: "Waitlist", current: 0, target: 50 },
+    { label: "Interviews", current: 0, target: 8 },
+  ],
+  build: [{ label: "Beta users", current: 0, target: 40 }],
+  launch: [],
 };
 
 const DAY_MS = 86_400_000;
 
 export const stageLabel = (s: Stage) => s.charAt(0).toUpperCase() + s.slice(1);
 
-/** A stage's gate is named after the stage it opens: passing Build's gate is the Launch gate. */
-export function gateName(stage: Stage): string {
-  const next = STAGE_ORDER[STAGE_ORDER.indexOf(stage) + 1];
-  return `${stageLabel(next ?? stage)} gate`;
+/** A gate is named like a launch call for the stage it clears you into. */
+const GATE_NAMES: Record<GateStage, string> = {
+  idea: "Go for evidence",
+  evidence: "Go for build",
+  build: "Go for launch",
+  launch: "Go for growth",
+};
+export const gateName = (stage: Stage): string => (stage === "grow" ? "Growth" : GATE_NAMES[stage]);
+
+/** One gate per stage transition, timed from the company's start. */
+export function defaultGates(
+  companyId: string,
+  startedAt: string,
+  stage: Stage,
+  criteria: Partial<Record<GateStage, GateCriterion[]>> = {},
+  approvedBy: string | null = null,
+): StageGate[] {
+  const current = STAGE_ORDER.indexOf(stage);
+  const start = new Date(startedAt).getTime();
+  const onDay = (day: number) => new Date(start + day * DAY_MS).toISOString();
+  return GATE_STAGES.map((s, i) => ({
+    id: `${companyId}-${s}`,
+    company_id: companyId,
+    stage: s,
+    criteria: criteria[s] ?? DEFAULT_GATE_CRITERIA[s].map((c) => ({ ...c })),
+    status: i < current ? "approved" : i === current ? "in_progress" : "locked",
+    approved_by: i < current ? approvedBy : null,
+    approved_at: i < current ? onDay(GATE_TARGET_DAYS[s]) : null,
+    target_date: onDay(GATE_TARGET_DAYS[s]),
+  }));
 }
 
 /** Whole days from the company's start to `date`. */

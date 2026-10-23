@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   currentGate,
+  defaultGates,
   gateDay,
   gateMetric,
   gateName,
@@ -21,10 +22,25 @@ describe("mission timeline", () => {
     expect(missionDay({}, NOW)).toBe(0);
   });
 
-  it("names a gate after the stage it opens", () => {
-    expect(gateName("build")).toBe("Launch gate");
-    expect(gateName("idea")).toBe("Evidence gate");
-    expect(gateName("grow")).toBe("Grow gate");
+  it("names a gate like a launch call for the stage it opens", () => {
+    expect(gateName("idea")).toBe("Go for evidence");
+    expect(gateName("evidence")).toBe("Go for build");
+    expect(gateName("build")).toBe("Go for launch");
+    expect(gateName("launch")).toBe("Go for growth");
+  });
+
+  it("has one gate per stage transition, none after Grow", () => {
+    expect(gates.map((g) => g.stage)).toEqual(["idea", "evidence", "build", "launch"]);
+  });
+
+  it("gives a new company default gates with a countdown", () => {
+    const fresh = defaultGates("cx", "2026-10-21T00:00:00.000Z", "idea");
+    expect(fresh.map((g) => g.status)).toEqual(["in_progress", "locked", "locked", "locked"]);
+    expect(fresh.map((g) => gateDay(g, { started_at: "2026-10-21T00:00:00.000Z" }))).toEqual([
+      8, 18, 42, 80,
+    ]);
+    // Criteria are copied, so editing one company's gate can't change another's.
+    expect(fresh[1]!.criteria).not.toBe(defaultGates("cy", "2026-10-21", "idea")[1]!.criteria);
   });
 
   it("uses the completed date for passed gates and the target date otherwise", () => {

@@ -96,7 +96,7 @@ export function MissionHeader({
         {gate && until !== null && (
           <Readout
             size={30}
-            label={`Next gate · ${gateName(gate.stage).replace(/ gate$/, "")}`}
+            label={gateName(gate.stage)}
             value={until >= 0 ? `T–${until}` : `+${-until}`}
             unit={
               <span className={cn("tracking-[0.1em] text-ink", until < 0 && "text-hold")}>
