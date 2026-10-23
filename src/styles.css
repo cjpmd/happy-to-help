@@ -23,6 +23,11 @@
   --font-display: "Barlow Semi Condensed", "Barlow", ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, monospace;
 
+  /* Layout breakpoints from DESIGN.md section 4: the sidebar shows from 700px,
+     the HQ grid has three columns from 1100px. */
+  --breakpoint-tab: 700px;
+  --breakpoint-desk: 1100px;
+
   /* Design tokens */
   --color-bg: var(--bg);
   --color-side: var(--side);
