@@ -25,6 +25,8 @@ export interface Company {
   created_by: string;
   target_customer?: string;
   goal_90d?: string;
+  /** Mission start (day 0 of the flight plan). */
+  started_at?: string;
 }
 export interface CompanyMember {
   company_id: string;
@@ -55,6 +57,8 @@ export interface StageGate {
   status: "locked" | "in_progress" | "ready" | "approved";
   approved_by?: string | null;
   approved_at?: string | null;
+  /** When the gate should pass. */
+  target_date?: string | null;
 }
 export interface EvidenceItem {
   id: string;
@@ -198,6 +202,8 @@ export interface ComplianceItem {
   category: string;
   due_date: string;
   status: "done" | "in_progress" | "upcoming" | "overdue";
+  /** A legal filing or fee with penalties if missed. */
+  statutory?: boolean;
 }
 export type InvestorStage =
   "researching" | "contacted" | "meeting" | "diligence" | "committed" | "passed";

@@ -410,6 +410,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           {
             ...c,
             channels: businessDefaults(c.customer_type),
+            started_at: iso(),
             id,
             slug,
             stage: "idea",

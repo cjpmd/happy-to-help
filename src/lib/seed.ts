@@ -1,4 +1,5 @@
 import type * as T from "./types";
+import { GATE_TARGET_DAYS, STAGE_ORDER } from "./mission";
 
 // Fixed "now" keeps server and browser renders identical for the demo.
 export const NOW = new Date("2026-10-21T07:30:00Z");
@@ -15,6 +16,7 @@ export const profiles: T.Profile[] = [
 export const companies: T.Company[] = [
   {
     id: "c1",
+    started_at: ago(24 * 30),
     slug: "studybuddy",
     name: "StudyBuddy",
     description:
@@ -30,6 +32,7 @@ export const companies: T.Company[] = [
   },
   {
     id: "c2",
+    started_at: ago(24 * 14),
     slug: "kelpie-energy",
     name: "Kelpie Energy",
     description: "Smart heating controls for tenement flats. Cuts bills without landlord rewiring.",
@@ -42,6 +45,7 @@ export const companies: T.Company[] = [
   },
   {
     id: "c3",
+    started_at: ago(24 * 50),
     slug: "thrift-loop",
     name: "Thrift Loop",
     description:
@@ -55,6 +59,7 @@ export const companies: T.Company[] = [
   },
   {
     id: "c4",
+    started_at: ago(24 * 5),
     slug: "croft-care",
     name: "Croft Care",
     description:
@@ -99,16 +104,18 @@ function gates(
   ev: T.GateCriterion[],
   build: T.GateCriterion[],
 ): T.StageGate[] {
-  const order: T.Stage[] = ["idea", "evidence", "build", "launch", "grow"];
-  const idx = order.indexOf(stage);
-  return order.map((s, i) => ({
+  const idx = STAGE_ORDER.indexOf(stage);
+  const start = new Date(companies.find((c) => c.id === cid)?.started_at ?? NOW).getTime();
+  const onDay = (day: number) => new Date(start + day * 86_400_000).toISOString();
+  return STAGE_ORDER.map((s, i) => ({
     id: `${cid}-${s}`,
     company_id: cid,
     stage: s,
     criteria: s === "evidence" ? ev : s === "build" ? build : [],
     status: i < idx ? "approved" : i === idx ? "in_progress" : "locked",
     approved_by: i < idx ? "u2" : null,
-    approved_at: i < idx ? ago(24 * (20 * (idx - i))) : null,
+    approved_at: i < idx ? onDay(GATE_TARGET_DAYS[s]) : null,
+    target_date: onDay(GATE_TARGET_DAYS[s]),
   }));
 }
 export const stage_gates: T.StageGate[] = [
@@ -827,6 +834,7 @@ export const compliance_items: T.ComplianceItem[] = [
     category: "Incorporation",
     due_date: "2026-10-02",
     status: "done",
+    statutory: true,
   },
   {
     id: "k3",
@@ -851,6 +859,7 @@ export const compliance_items: T.ComplianceItem[] = [
     category: "Data protection",
     due_date: "2026-11-14",
     status: "upcoming",
+    statutory: true,
   },
   {
     id: "k6",
@@ -859,6 +868,7 @@ export const compliance_items: T.ComplianceItem[] = [
     category: "Companies House",
     due_date: "2027-09-15",
     status: "upcoming",
+    statutory: true,
   },
   {
     id: "k7",
@@ -867,6 +877,7 @@ export const compliance_items: T.ComplianceItem[] = [
     category: "Companies House",
     due_date: "2028-06-02",
     status: "upcoming",
+    statutory: true,
   },
 ];
 

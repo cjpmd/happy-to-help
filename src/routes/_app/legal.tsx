@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Check } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { compliance_items } from "@/lib/seed";
-import { PageHeader, Panel, StatusPill } from "@/components/mission/primitives";
+import { PageHeader, Panel, Pill, humanise } from "@/components/mission/primitives";
+import { complianceTone } from "@/lib/compliance";
 import { pageHead } from "@/lib/seo";
 import { fmtDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -40,12 +41,15 @@ function Legal() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm">{i.title}</p>
-                  <p className="text-xs text-muted-foreground">{i.category}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {i.category}
+                    {i.statutory && " · statutory"}
+                  </p>
                 </div>
                 <span className="hidden text-xs text-muted-foreground sm:block">
                   {fmtDate(i.due_date)}
                 </span>
-                <StatusPill status={i.status} />
+                <Pill tone={complianceTone(i)}>{humanise(i.status)}</Pill>
               </li>
             ))}
           </ul>
