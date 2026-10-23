@@ -38,6 +38,8 @@ export interface FlightPlanArcProps {
   onSelectMilestone: (id: string) => void;
   /** The current phase, for the screen-reader summary, e.g. "Build". */
   phase?: string | undefined;
+  /** Caps the arc box's height in px by cropping empty sky above and below. */
+  maxHeight?: number | undefined;
   /** Shown left of the pager, e.g. the card's heading. */
   heading?: ReactNode;
   className?: string;
@@ -100,6 +102,7 @@ export function FlightPlanArc({
   seed,
   onSelectMilestone,
   phase,
+  maxHeight,
   heading,
   className,
 }: FlightPlanArcProps) {
@@ -112,15 +115,17 @@ export function FlightPlanArc({
   const swiped = useRef(false);
   const listId = useId();
 
-  const view = arcViewport(width);
+  const view = arcViewport(width, maxHeight);
   const [minPan, maxPan] = panLimits(milestones, nowDay, view.lead);
   const items = useMemo(
-    () => layoutArc({ milestones, nowDay, pan, widthPx: width }),
-    [milestones, nowDay, pan, width],
+    () => layoutArc({ milestones, nowDay, pan, widthPx: width, maxHeightPx: maxHeight }),
+    [milestones, nowDay, pan, width, maxHeight],
   );
   const paths = arcPaths(nowDay, pan, view.lead);
   const readout = arcReadout(milestones, nowDay, pan, view.lead);
-  const viewBox = `${view.x0.toFixed(1)} 0 ${view.w.toFixed(1)} ${ARC.H}`;
+  const viewBox = `${view.x0.toFixed(1)} ${view.y0.toFixed(1)} ${view.w.toFixed(1)} ${view.h.toFixed(1)}`;
+  // The readout sits at the middle of the uncropped arc box.
+  const readoutTop = `${(((ARC.H / 2 - view.y0) / view.h) * 100).toFixed(2)}%`;
   const stars = useMemo(() => starField(seed), [seed]);
   const px = parallax(reduced ? 0 : pan, reduced ? { x: 0, y: 0 } : pointer);
 
@@ -226,7 +231,7 @@ export function FlightPlanArc({
         onPointerLeave={() => setPointer({ x: 0, y: 0 })}
         className="relative w-full cursor-grab touch-pan-y select-none overflow-hidden rounded-[8px] active:cursor-grabbing"
         style={{
-          aspectRatio: `${view.w.toFixed(1)} / ${ARC.H}`,
+          aspectRatio: `${view.w.toFixed(1)} / ${view.h.toFixed(1)}`,
           maskImage: EDGE_MASK,
           WebkitMaskImage: EDGE_MASK,
         }}
@@ -365,7 +370,8 @@ export function FlightPlanArc({
 
         {/* Readout: fixed in the centre below the arc */}
         <div
-          className="pointer-events-none absolute left-1/2 top-1/2 flex -translate-x-1/2 flex-col items-center gap-1"
+          className="pointer-events-none absolute left-1/2 flex -translate-x-1/2 flex-col items-center gap-1"
+          style={{ top: readoutTop }}
           aria-live="polite"
         >
           <div className="display-num whitespace-nowrap text-[34px] uppercase">{readout.main}</div>

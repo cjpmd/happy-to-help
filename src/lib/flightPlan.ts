@@ -48,20 +48,42 @@ const CY = ARC.R + ARC.TOP;
 export const MIN_SCALE = 0.75;
 
 export interface ArcViewport {
-  /** The horizontal slice of the viewBox on screen. */
+  /** The slice of the viewBox on screen. */
   x0: number;
   w: number;
+  y0: number;
+  h: number;
   /** Look-ahead in days, shrunk with the slice so "now" stays on screen. */
   lead: number;
 }
 
+/** Room (px) a gate's label and sub-label need above the top of the arc. */
+const LABEL_ROOM_PX = 58;
+/** Room (px) the readout needs below the middle of the box. */
+const READOUT_ROOM_PX = 57;
+
 /**
  * On wide screens the whole arc shows. On narrow ones (below 750px) it keeps a
- * readable scale and shows the middle of the arc, in a taller box.
+ * readable scale and shows the middle of the arc, in a taller box. With
+ * `maxHeightPx`, the box is cropped top and bottom (empty sky only) rather than
+ * the arc scaled down, so label spacing, and which labels fit, stay the same.
+ * Labels and the readout have fixed pixel sizes, so how much sky can go depends
+ * on the scale.
  */
-export function arcViewport(widthPx: number = ARC.W): ArcViewport {
-  const w = Math.min(ARC.W, Math.max(1, widthPx) / MIN_SCALE);
-  return { x0: (ARC.W - w) / 2, w, lead: Math.round((ARC.LEAD * w) / ARC.W) };
+export function arcViewport(widthPx: number = ARC.W, maxHeightPx?: number): ArcViewport {
+  const width = Math.max(1, widthPx);
+  const scale = Math.max(MIN_SCALE, width / ARC.W);
+  const w = width / scale;
+  let y0 = 0;
+  let h: number = ARC.H;
+  if (maxHeightPx && scale * ARC.H > maxHeightPx) {
+    y0 = Math.max(0, ARC.TOP - LABEL_ROOM_PX / scale);
+    const bottom = Math.min(ARC.H, ARC.H / 2 + READOUT_ROOM_PX / scale);
+    h = Math.min(ARC.H - y0, Math.max(bottom - y0, maxHeightPx / scale));
+    // Give back any top crop the height cap doesn't need.
+    y0 = Math.min(y0, ARC.H - h);
+  }
+  return { x0: (ARC.W - w) / 2, w, y0, h, lead: Math.round((ARC.LEAD * w) / ARC.W) };
 }
 
 export const viewCentre = (nowDay: number, pan: number, lead: number = ARC.LEAD) =>
@@ -150,13 +172,15 @@ export function layoutArc({
   nowDay,
   pan,
   widthPx = ARC.W,
+  maxHeightPx,
 }: {
   milestones: Milestone[];
   nowDay: number;
   pan: number;
   widthPx?: number;
+  maxHeightPx?: number | undefined;
 }): PlacedMilestone[] {
-  const view = arcViewport(widthPx);
+  const view = arcViewport(widthPx, maxHeightPx);
   const centre = viewCentre(nowDay, pan, view.lead);
   const sorted = [...milestones].sort((a, b) => a.day - b.day);
   const next = sorted.find((m) => m.status !== "done" && m.day > nowDay);
@@ -174,7 +198,7 @@ export function layoutArc({
       x,
       y,
       left: ((x - view.x0) / view.w) * 100,
-      top: (y / ARC.H) * 100,
+      top: ((y - view.y0) / view.h) * 100,
       angle,
       rotation: angle * 0.8,
       visible,

@@ -123,8 +123,8 @@ describe("milestone layout", () => {
 
 describe("narrow screens", () => {
   it("shows the whole arc from 750px wide", () => {
-    expect(arcViewport(1180)).toEqual({ x0: 0, w: 1000, lead: 10 });
-    expect(arcViewport(750)).toEqual({ x0: 0, w: 1000, lead: 10 });
+    expect(arcViewport(1180)).toEqual({ x0: 0, w: 1000, y0: 0, h: 205, lead: 10 });
+    expect(arcViewport(750)).toEqual({ x0: 0, w: 1000, y0: 0, h: 205, lead: 10 });
   });
 
   it("keeps a readable scale below that by showing the middle of the arc", () => {
@@ -141,6 +141,45 @@ describe("narrow screens", () => {
     expect(shown.every((m) => m.x >= v.x0 && m.x <= v.x0 + v.w)).toBe(true);
     expect(shown.every((m) => m.left >= 0 && m.left <= 100)).toBe(true);
     expect(arcPaths(NOW_DAY, 0, v.lead).now!.x).toBeGreaterThan(v.x0);
+  });
+});
+
+describe("height cap", () => {
+  it("crops empty sky, not the arc's scale", () => {
+    const v = arcViewport(1120, 160);
+    expect(v.w).toBeCloseTo(1000);
+    expect(v.y0).toBeGreaterThan(0);
+    expect((1120 / 1000) * v.h).toBeCloseTo(160);
+  });
+
+  it("keeps room for labels above the arc and the readout below, at any scale", () => {
+    for (const width of [700, 800, 1000, 1120, 1400]) {
+      const v = arcViewport(width, 60);
+      const scale = width / v.w;
+      // A gate label needs ~58px above the top of the arc (y = 72), or all
+      // the room there is when the arc is drawn small.
+      expect((ARC.TOP - v.y0) * scale).toBeGreaterThanOrEqual(Math.min(58, ARC.TOP * scale) - 0.01);
+      // The readout needs ~57px below the middle of the box.
+      expect((v.y0 + v.h - ARC.H / 2) * scale).toBeGreaterThanOrEqual(57 - 0.01);
+    }
+  });
+
+  it("leaves arcs that already fit alone", () => {
+    expect(arcViewport(800, 180)).toEqual(arcViewport(800));
+  });
+
+  it("places the same labels as the uncropped arc", () => {
+    for (let pan = -40; pan <= 40; pan += 2) {
+      const full = layoutArc({ milestones: prototype, nowDay: NOW_DAY, pan, widthPx: 1120 });
+      const cropped = layoutArc({
+        milestones: prototype,
+        nowDay: NOW_DAY,
+        pan,
+        widthPx: 1120,
+        maxHeightPx: 160,
+      });
+      expect(cropped.map((m) => m.showLabel)).toEqual(full.map((m) => m.showLabel));
+    }
   });
 });
 
