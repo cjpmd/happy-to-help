@@ -10,6 +10,9 @@ import { StageBar } from "@/components/mission/StageBar";
 import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/flight-plan")({
+  // ?m=<milestone id> opens that milestone (from the HQ arc).
+  validateSearch: (search: Record<string, unknown>): { m?: string } =>
+    typeof search["m"] === "string" ? { m: search["m"] } : {},
   head: () =>
     pageHead("Flight plan", "Your roadmap: milestones, gates and the evidence behind them."),
   component: FlightPlan,
@@ -29,7 +32,8 @@ function FlightPlan() {
       ),
     [c, db.stage_gates, db.tasks],
   );
-  const [selected, setSelected] = useState<string | null>(null);
+  const { m } = Route.useSearch();
+  const [selected, setSelected] = useState<string | null>(m ?? null);
   const picked = milestones.find((m) => m.id === selected);
   const gate = db.stage_gates.find((g) => g.id === selected);
 

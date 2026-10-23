@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pause } from "lucide-react";
+import { Pause, Settings2 } from "lucide-react";
 import { useCompany, useSolStatus, useStore } from "@/lib/store";
 import { NOW } from "@/lib/seed";
 import { autoModeCost } from "@/lib/credits";
@@ -36,9 +36,12 @@ const solDot: Record<SolState, string> = {
 export function MissionHeader({
   companyId,
   readOnly,
+  onCustomise,
 }: {
   companyId: string;
   readOnly?: boolean | undefined;
+  /** Opens the HQ card settings. */
+  onCustomise?: (() => void) | undefined;
 }) {
   const { db, user, solTyping, stopAuto } = useStore();
   const c = useCompany(companyId);
@@ -124,6 +127,18 @@ export function MissionHeader({
             </Button>
             <AutoModeDialog companyId={companyId} open={auto} onOpenChange={setAuto} />
           </>
+        )}
+        {onCustomise && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-11"
+            aria-label="Customise HQ"
+            title="Customise HQ"
+            onClick={onCustomise}
+          >
+            <Settings2 />
+          </Button>
         )}
       </div>
     </section>

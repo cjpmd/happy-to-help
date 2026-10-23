@@ -8,12 +8,23 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/
 import { SolChat } from "./SolChat";
 
 /** The HQ's "Ask Sol" bar. Sending opens the conversation in a side sheet. */
-export function AskSolBar({ companyId }: { companyId: string }) {
+export function AskSolBar({
+  companyId,
+  open: openProp,
+  onOpenChange,
+}: {
+  companyId: string;
+  /** Control the conversation sheet from outside, e.g. so WHY on an approval can open it. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
   const { sendChat, solTyping } = useStore();
   const balance = useBalance(companyId);
   const quote = actionQuote(balance, ACTION_COSTS.chat);
   const [text, setText] = useState("");
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const open = openProp ?? openState;
+  const setOpen = onOpenChange ?? setOpenState;
   const inputId = useId();
 
   const submit = (e: FormEvent) => {

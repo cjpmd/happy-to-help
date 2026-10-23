@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useStore } from "@/lib/store";
 import { PageHeader } from "@/components/mission/primitives";
-import { MetricsStrip } from "@/components/mission/CompanyHQ";
+import { TelemetryCard } from "@/components/mission/HQCards";
 import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/telemetry")({
@@ -18,7 +18,7 @@ function Telemetry() {
         title="Telemetry"
         description="How the mission is doing: visitors, signups and paying customers."
       />
-      <MetricsStrip companyId={companyId} />
+      <TelemetryCard companyId={companyId} />
     </div>
   );
 }
