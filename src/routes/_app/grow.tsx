@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RouteTabs } from "@/components/mission/RouteTabs";
+import { AdsPage, MediaPage } from "@/components/mission/WorkspacePages";
 import { useStore } from "@/lib/store";
 import { social_posts } from "@/lib/seed";
 import { PageHeader, Panel, Pill, StatusPill } from "@/components/mission/primitives";
@@ -7,15 +9,56 @@ import { pageHead } from "@/lib/seo";
 import { fmtShortDate, num } from "@/lib/format";
 import type { ApprovalOf, SocialPost } from "@/lib/types";
 
+type GrowTab = "overview" | "media" | "ads";
+const GROW_TABS: GrowTab[] = ["overview", "media", "ads"];
+
 export const Route = createFileRoute("/_app/grow")({
   head: () => pageHead("Grow", "Content calendar and results for every social channel."),
+  // ?tab=media|ads; the overview has no param.
+  validateSearch: (search: Record<string, unknown>): { tab?: Exclude<GrowTab, "overview"> } =>
+    search["tab"] === "media" || search["tab"] === "ads" ? { tab: search["tab"] } : {},
   component: Grow,
 });
 
+function Grow() {
+  const { companyId, work } = useStore();
+  const { tab = "overview" } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  return (
+    <div>
+      <PageHeader
+        title="Grow"
+        description="Social posts across every channel, from draft to published."
+        actions={
+          <div>
+            <CostButton
+              label="Write post"
+              cost={40}
+              onConfirm={() => work(companyId, "Write social post", 40, "social")}
+            />
+          </div>
+        }
+      />
+      <RouteTabs<GrowTab>
+        label="Grow"
+        value={GROW_TABS.includes(tab) ? tab : "overview"}
+        onValueChange={(t) =>
+          void navigate({ search: t === "overview" ? {} : { tab: t }, replace: true })
+        }
+        tabs={[
+          { value: "overview", label: "Posts", content: <GrowOverview /> },
+          { value: "media", label: "Media", content: <MediaPage embedded /> },
+          { value: "ads", label: "Ads", content: <AdsPage embedded /> },
+        ]}
+      />
+    </div>
+  );
+}
+
 const COLS: SocialPost["status"][] = ["draft", "awaiting_approval", "scheduled", "published"];
 
-function Grow() {
-  const { companyId, db, work } = useStore();
+function GrowOverview() {
+  const { companyId, db } = useStore();
   const posts = [
     ...social_posts.filter((p) => p.company_id === companyId),
     ...db.approvals
@@ -45,19 +88,6 @@ function Grow() {
   const published = posts.filter((p) => p.status === "published");
   return (
     <div>
-      <PageHeader
-        title="Grow"
-        description="Social posts across every channel, from draft to published."
-        actions={
-          <div>
-            <CostButton
-              label="Write post"
-              cost={40}
-              onConfirm={() => work(companyId, "Write social post", 40, "social")}
-            />
-          </div>
-        }
-      />
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {COLS.map((s) => {
           const list = posts.filter((p) => p.status === s);

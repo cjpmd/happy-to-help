@@ -4,6 +4,7 @@ import { useStore } from "@/lib/store";
 import { compliance_items } from "@/lib/seed";
 import { PageHeader, Panel, Pill, humanise } from "@/components/mission/primitives";
 import { complianceTone } from "@/lib/compliance";
+import { DocumentsPage } from "@/components/mission/WorkspacePages";
 import { pageHead } from "@/lib/seo";
 import { fmtDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -73,6 +74,9 @@ function Legal() {
           </ol>
         </Panel>
       </div>
+      <Panel className="mt-4">
+        <DocumentsPage embedded only={["Privacy policy"]} />
+      </Panel>
     </div>
   );
 }
