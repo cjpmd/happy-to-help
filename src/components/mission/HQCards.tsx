@@ -1,4 +1,4 @@
-import { useId, useMemo, type ReactNode } from "react";
+import { useId, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { labelFor, useBalance, useCompany, useStore } from "@/lib/store";
@@ -18,6 +18,7 @@ import {
   taskBadge,
   tasksAwaitingGo,
   telemetry,
+  tileSummary,
 } from "@/lib/hq";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -84,6 +85,9 @@ export function FlightPlanCard({
   );
   const tiles = phaseTasks(db.tasks, c.id, c.stage);
   const awaiting = tasksAwaitingGo(db.approvals, db.agent_runs);
+  const badges = tiles.map((t) => taskBadge(t, awaiting.has(t.id)));
+  const [showTiles, setShowTiles] = useState(false);
+  const tilesId = useId();
   return (
     <section
       aria-labelledby="hq-flight-plan"
@@ -106,9 +110,32 @@ export function FlightPlanCard({
         }
       />
       {tiles.length > 0 && (
-        <ul className="grid gap-2.5 min-[480px]:grid-cols-2 desk:grid-cols-4">
-          {tiles.map((t) => {
-            const badge = taskBadge(t, awaiting.has(t.id));
+        // On short screens the tiles collapse to one line until shown.
+        <div className="hidden items-baseline justify-between gap-3 short:flex">
+          <span className="label-caps text-[11px] text-muted-foreground">
+            {stageLabel(c.stage)} tasks · {tileSummary(badges)}
+          </span>
+          <button
+            type="button"
+            aria-expanded={showTiles}
+            aria-controls={tilesId}
+            onClick={() => setShowTiles((v) => !v)}
+            className="label-caps text-[11px] hover:opacity-80"
+          >
+            {showTiles ? "Hide tasks" : "Show tasks"}
+          </button>
+        </div>
+      )}
+      {tiles.length > 0 && (
+        <ul
+          id={tilesId}
+          className={cn(
+            "grid gap-2.5 min-[480px]:grid-cols-2 desk:grid-cols-4",
+            !showTiles && "short:hidden",
+          )}
+        >
+          {tiles.map((t, i) => {
+            const badge = badges[i]!;
             return (
               <li key={t.id}>
                 <Tile className="flex h-full flex-col items-start gap-1 px-3 py-[9px]">
@@ -246,8 +273,8 @@ export function GoNoGoCard({
       )}
       {rest.length > 0 && (
         <ul>
-          {rest.slice(0, 2).map((a) => (
-            <li key={a.id}>
+          {rest.slice(0, 2).map((a, i) => (
+            <li key={a.id} className={cn(i > 0 && "shorter:hidden")}>
               <Link
                 to="/approvals"
                 className="flex justify-between gap-2 border-t px-0.5 pt-1.5 hover:opacity-80"
@@ -342,7 +369,7 @@ export function TelemetryCard({ companyId }: { companyId: string }) {
         <svg
           viewBox="0 0 300 50"
           preserveAspectRatio="none"
-          className="h-[30px] w-full"
+          className="h-[30px] w-full short:hidden"
           role="img"
           aria-label={`Signups per day over the last ${t.spark.length} days`}
         >
@@ -389,8 +416,8 @@ export function VehicleCard({ companyId }: { companyId: string }) {
         </div>
         <div className="flex flex-col gap-1.5 px-3 py-2.5" aria-hidden="true">
           <div className="truncate text-[15px] font-semibold">{headline}</div>
-          <div className="h-[7px] w-[70%] rounded-[3px] bg-track" />
-          <div className="h-[7px] w-1/2 rounded-[3px] bg-track" />
+          <div className="h-[7px] w-[70%] rounded-[3px] bg-track shorter:hidden" />
+          <div className="h-[7px] w-1/2 rounded-[3px] bg-track shorter:hidden" />
           <span className="mt-1 self-start rounded-pill bg-ink px-2.5 py-[5px] text-xs font-semibold text-surface">
             {c.customer_type === "B2B" ? "Book a demo" : "Join the waitlist"}
           </span>
@@ -425,8 +452,8 @@ export function ChannelsCard({ companyId }: { companyId: string }) {
   return (
     <HQCard title="Channels">
       <dl className="grid grid-cols-[1fr_auto] items-baseline gap-x-3 gap-y-[7px]">
-        {rows.map((r) => (
-          <div key={r.channel} className="contents">
+        {rows.map((r, i) => (
+          <div key={r.channel} className={cn("contents", i >= 2 && "shorter:hidden")}>
             <dt className="truncate">
               {r.channel} <span className="text-muted-foreground">· {r.detail}</span>
             </dt>
@@ -467,8 +494,8 @@ export function OvernightBurnCard({ companyId }: { companyId: string }) {
         <p className="text-muted-foreground">No runs in the last 24 hours.</p>
       ) : (
         <ul className="grid grid-cols-[44px_1fr_auto] items-baseline gap-x-2.5 gap-y-[7px]">
-          {burn.rows.map((r) => (
-            <li key={r.id} className="contents">
+          {burn.rows.map((r, i) => (
+            <li key={r.id} className={cn("contents", i >= 2 && "shorter:hidden")}>
               <span className="text-xs text-muted-foreground tabular">{r.time}</span>
               <span className="truncate">{r.task}</span>
               {r.state === "refunded" ? (
@@ -496,8 +523,8 @@ export function NextWindowsCard({ companyId }: { companyId: string }) {
         <p className="text-muted-foreground">No deadlines coming up.</p>
       ) : (
         <dl className="grid grid-cols-[1fr_auto] items-baseline gap-x-3 gap-y-[7px]">
-          {rows.map((r) => (
-            <div key={r.id} className="contents">
+          {rows.map((r, i) => (
+            <div key={r.id} className={cn("contents", i >= 2 && "shorter:hidden")}>
               <dt className="truncate">{r.title}</dt>
               <dd
                 className={cn(

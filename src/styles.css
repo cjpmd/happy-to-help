@@ -12,6 +12,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Height-responsive HQ (docs/STATUS.md, 1a-design step 4): on wide but short
+   screens the HQ compacts in two steps so it still fits without scrolling. */
+@custom-variant short (@media (min-width: 1100px) and (max-height: 899px));
+@custom-variant shorter (@media (min-width: 1100px) and (max-height: 869px));
+
 /*
  * Mission HQ design tokens (docs/DESIGN.md section 1). Components use these
  * through Tailwind classes, never hard-coded colours. The shadcn variables

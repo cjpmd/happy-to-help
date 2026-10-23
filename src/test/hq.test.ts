@@ -7,6 +7,7 @@ import {
   phaseTasks,
   taskBadge,
   tasksAwaitingGo,
+  tileSummary,
   telemetry,
 } from "@/lib/hq";
 import { NOW, agent_runs, approvals, credit_ledger, metrics_daily, tasks } from "@/lib/seed";
@@ -39,6 +40,15 @@ describe("flight plan task tiles", () => {
     const stripe = tiles.find((t) => t.title === "Connect Stripe")!;
     expect(awaiting.has(stripe.id)).toBe(true);
     expect(taskBadge(stripe, awaiting.has(stripe.id)).text).toBe("Hold · awaiting GO");
+  });
+
+  it("sums the tiles up in one line for short screens", () => {
+    const awaiting = tasksAwaitingGo(approvals, agent_runs);
+    expect(tileSummary(tiles.map((t) => taskBadge(t, awaiting.has(t.id))))).toBe(
+      "2 done · 1 building · 1 awaiting GO",
+    );
+    expect(tileSummary([{ tone: "neutral" }, { tone: "neutral" }])).toBe("2 up next");
+    expect(tileSummary([])).toBe("");
   });
 
   it("finds tasks whose runs wait for a GO", () => {

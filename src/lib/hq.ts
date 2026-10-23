@@ -228,3 +228,19 @@ export function channelRows(
   );
   return rows;
 }
+
+const summaryWords: [BadgeTone, string][] = [
+  ["success", "done"],
+  ["info", "building"],
+  ["warning", "awaiting GO"],
+  ["neutral", "up next"],
+];
+
+/** One line for the task tiles on short screens: "2 done · 1 building · 1 awaiting GO". */
+export function tileSummary(badges: { tone: BadgeTone }[]): string {
+  return summaryWords
+    .map(([tone, word]) => [badges.filter((b) => b.tone === tone).length, word] as const)
+    .filter(([n]) => n > 0)
+    .map(([n, word]) => `${n} ${word}`)
+    .join(" · ");
+}
