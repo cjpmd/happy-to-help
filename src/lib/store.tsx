@@ -30,6 +30,7 @@ import {
   type Sector,
 } from "./workspace";
 import { simulateWork } from "./agentClient";
+import { solStatus } from "./mission";
 
 /**
  * In-memory data store shaped like the Supabase schema.
@@ -877,6 +878,17 @@ export function useMyCompanies() {
 export function useBalance(id?: string) {
   const { db, companyId } = useStore();
   return creditBalance(db.credit_ledger, id ?? companyId);
+}
+
+export function useSolStatus(id?: string) {
+  const { db, companyId, solTyping } = useStore();
+  return solStatus({
+    companyId: id ?? companyId,
+    runs: db.agent_runs,
+    approvals: db.approvals,
+    events: db.activity_events,
+    solTyping,
+  });
 }
 
 export function labelFor(a: T.Approval) {

@@ -17,8 +17,6 @@ import {
   GripVertical,
   ArrowUp,
   ArrowDown,
-  Zap,
-  Pause,
   FileText,
   Mail,
   Images,
@@ -42,11 +40,10 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
-import { CostButton, Why } from "./WorkControls";
 import { defaultLayout, businessDefaults, type Widget } from "@/lib/workspace";
-import { autoModeCost } from "@/lib/credits";
-import { SolAvatar, Pill } from "./primitives";
+import { Pill } from "./primitives";
+import { MissionHeader } from "./MissionHeader";
+import { AskSolBar } from "./AskSolBar";
 import { cn } from "@/lib/utils";
 
 const activityIcon: Record<string, typeof Hammer> = {
@@ -206,7 +203,7 @@ export function CompanyHQ({
   companyId: string;
   readOnly?: boolean | undefined;
 }) {
-  const { db, user, solTyping, saveLayout, stopAuto } = useStore();
+  const { db, user, saveLayout } = useStore();
   const c = useCompany(companyId);
   const balance = useBalance(companyId);
   const pending = db.approvals.filter((a) => a.company_id === companyId && a.status === "pending");
@@ -217,27 +214,6 @@ export function CompanyHQ({
   const layout = db.layouts[user.id] ?? defaultLayout();
   const [editing, setEditing] = useState(false);
   const [drag, setDrag] = useState<Widget | null>(null);
-  const [auto, setAuto] = useState(false);
-  const [hours, setHours] = useState(2);
-  const { work } = useStore();
-  const currentRun = db.agent_runs.find(
-    (r) => r.company_id === companyId && r.status === "running",
-  );
-  const latest = overnight[0];
-  const status = solTyping
-    ? "working"
-    : currentRun
-      ? "working"
-      : pending.length
-        ? "waiting for you"
-        : "idle";
-  const summary = solTyping
-    ? (latest?.summary ?? "Sol is working…")
-    : currentRun
-      ? currentRun.task
-      : pending.length
-        ? "Waiting for your approval"
-        : "Sol is idle";
   const reorder = (from: Widget, to: Widget) => {
     const next = [...layout];
     const index = next.findIndex((w) => w.id === from);
@@ -422,52 +398,22 @@ export function CompanyHQ({
     }
   };
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase text-muted-foreground">Company HQ</p>
-          <h1 className="text-2xl font-semibold">{c.name}</h1>
-        </div>
-        {!readOnly && (
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
-              <Settings2 className="h-4 w-4" />
-              Edit dashboard
-            </Button>
-            <Button size="sm" onClick={() => setAuto(true)}>
-              <Zap className="h-4 w-4" />
-              Auto Mode
-            </Button>
-          </div>
+    <div className="flex flex-col gap-3.5">
+      <MissionHeader companyId={companyId} readOnly={readOnly} />
+      {!readOnly && <AskSolBar companyId={companyId} />}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {c.sector && c.sector !== "general" ? (
+          <p className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Shield className="size-4" />
+            Regulated sector ({c.sector}): stricter claims checks
+          </p>
+        ) : (
+          <span />
         )}
-      </div>
-      {c.sector && c.sector !== "general" && (
-        <div className="flex items-center gap-2 border-l-2 border-warning bg-warning-soft px-3 py-2 text-xs text-warning">
-          <Shield className="h-4 w-4" />
-          Regulated sector · {c.sector} · stricter claims checks
-        </div>
-      )}
-      <div className="flex items-center gap-3 border-y py-2.5">
-        <div className="relative">
-          <SolAvatar size={26} />
-          <span
-            className={cn(
-              "absolute bottom-0 right-0 h-2 w-2 rounded-full ring-2 ring-background",
-              status === "working"
-                ? "bg-success"
-                : status === "idle"
-                  ? "bg-muted-foreground"
-                  : "bg-warning",
-            )}
-          />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-medium">{summary}</p>
-          <p className="text-[10px] text-muted-foreground">{status} · demo work stream</p>
-        </div>
-        {solTyping && !readOnly && (
-          <Button size="icon" variant="ghost" aria-label="Stop Auto Mode" onClick={stopAuto}>
-            <Pause className="h-4 w-4" />
+        {!readOnly && (
+          <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+            <Settings2 />
+            Edit dashboard
           </Button>
         )}
       </div>
@@ -548,41 +494,6 @@ export function CompanyHQ({
             </Button>
             <Button onClick={() => setEditing(false)}>Done</Button>
           </div>
-        </DialogContent>
-      </Dialog>
-      <Dialog open={auto} onOpenChange={setAuto}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Auto Mode</DialogTitle>
-            <DialogDescription>
-              Choose a work period for Sol. This demo previews one work cycle; it does not run
-              unattended jobs.
-            </DialogDescription>
-          </DialogHeader>
-          <label className="text-sm font-medium">
-            Work for {hours} {hours === 1 ? "hour" : "hours"}
-          </label>
-          <Slider
-            aria-label="Auto Mode hours"
-            min={1}
-            max={8}
-            step={1}
-            value={[hours]}
-            onValueChange={(v) => setHours(v[0] ?? 1)}
-          />
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>1 hour</span>
-            <span>8 hours</span>
-          </div>
-          <CostButton
-            label={`Start ${hours}-hour session`}
-            cost={autoModeCost(hours)}
-            onConfirm={() => {
-              setAuto(false);
-              return work(companyId, `Auto Mode: ${hours}-hour plan`, autoModeCost(hours), "auto");
-            }}
-          />
-          <Why reason="A time-boxed work period keeps the credit commitment visible and bounded. The hourly demo estimate and your available balance determine the cost before you start." />
         </DialogContent>
       </Dialog>
     </div>
