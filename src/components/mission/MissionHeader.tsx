@@ -15,7 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AUTO_MODE_DEFAULT_HOURS, AutoModeDialog } from "./AutoModeDialog";
-import { Readout } from "./primitives";
+import { Pill, Readout } from "./primitives";
 
 const TITLES = /^(dr|mr|mrs|ms|mx|prof)\.?$/i;
 const firstName = (fullName: string) =>
@@ -70,12 +70,20 @@ export function MissionHeader({
             ? `Mission ${c.name} · mentor view`
             : `${greeting(NOW)}, ${firstName(user.full_name)} · Mission ${c.name}`}
         </p>
-        <h1
-          id="mission-phase"
-          className="display-num text-[40px] uppercase leading-[0.95] tracking-[0.02em]"
-        >
-          {c.stage} phase
-        </h1>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <h1
+            id="mission-phase"
+            className="display-num text-[40px] uppercase leading-[0.95] tracking-[0.02em]"
+          >
+            {c.stage} phase
+          </h1>
+          {c.sector && c.sector !== "general" && (
+            <span title="Stricter claims checks apply to everything Sol writes">
+              <Pill>Regulated · {c.sector}</Pill>
+              <span className="sr-only">: stricter claims checks apply</span>
+            </span>
+          )}
+        </div>
         <p className="label-caps flex min-w-0 items-center gap-2 text-[12px]" aria-live="polite">
           <span className={cn("size-2 shrink-0 rounded-full", solDot[sol.state])} />
           <span className="truncate">
