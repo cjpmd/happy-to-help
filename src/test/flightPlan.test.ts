@@ -5,6 +5,7 @@ import {
   arcPoint,
   arcReadout,
   arcSummary,
+  arcViewport,
   buildMilestones,
   clampPan,
   inDays,
@@ -40,7 +41,7 @@ const prototype: Milestone[] = [
 }));
 
 const overlaps = (items: ReturnType<typeof layoutArc>, widthPx: number) => {
-  const k = ARC.W / widthPx;
+  const k = arcViewport(widthPx).w / widthPx;
   const spans = items
     .filter((m) => m.showLabel)
     .map((m) => {
@@ -117,6 +118,29 @@ describe("milestone layout", () => {
       const placed = layoutArc({ milestones: prototype, nowDay: NOW_DAY, pan });
       expect(placed.every((m) => m.visible || !m.showLabel)).toBe(true);
     }
+  });
+});
+
+describe("narrow screens", () => {
+  it("shows the whole arc from 750px wide", () => {
+    expect(arcViewport(1180)).toEqual({ x0: 0, w: 1000, lead: 10 });
+    expect(arcViewport(750)).toEqual({ x0: 0, w: 1000, lead: 10 });
+  });
+
+  it("keeps a readable scale below that by showing the middle of the arc", () => {
+    const v = arcViewport(360);
+    expect(v.w).toBe(480);
+    expect(v.x0).toBe(260);
+    expect(v.lead).toBe(5);
+  });
+
+  it("keeps now on screen and hides markers outside the slice", () => {
+    const items = layoutArc({ milestones: prototype, nowDay: NOW_DAY, pan: 0, widthPx: 360 });
+    const v = arcViewport(360);
+    const shown = items.filter((m) => m.visible);
+    expect(shown.every((m) => m.x >= v.x0 && m.x <= v.x0 + v.w)).toBe(true);
+    expect(shown.every((m) => m.left >= 0 && m.left <= 100)).toBe(true);
+    expect(arcPaths(NOW_DAY, 0, v.lead).now!.x).toBeGreaterThan(v.x0);
   });
 });
 

@@ -44,7 +44,28 @@ export const ARC = {
 const CX = ARC.W / 2;
 const CY = ARC.R + ARC.TOP;
 
-export const viewCentre = (nowDay: number, pan: number) => nowDay + ARC.LEAD + pan;
+/** Below this scale (px per viewBox unit) labels would be unreadable, so narrow screens crop. */
+export const MIN_SCALE = 0.75;
+
+export interface ArcViewport {
+  /** The horizontal slice of the viewBox on screen. */
+  x0: number;
+  w: number;
+  /** Look-ahead in days, shrunk with the slice so "now" stays on screen. */
+  lead: number;
+}
+
+/**
+ * On wide screens the whole arc shows. On narrow ones (below 750px) it keeps a
+ * readable scale and shows the middle of the arc, in a taller box.
+ */
+export function arcViewport(widthPx: number = ARC.W): ArcViewport {
+  const w = Math.min(ARC.W, Math.max(1, widthPx) / MIN_SCALE);
+  return { x0: (ARC.W - w) / 2, w, lead: Math.round((ARC.LEAD * w) / ARC.W) };
+}
+
+export const viewCentre = (nowDay: number, pan: number, lead: number = ARC.LEAD) =>
+  nowDay + lead + pan;
 export const angleFor = (day: number, centre: number) => (day - centre) * ARC.DEG;
 
 /** The point on the arc at `angle` degrees from the top, in viewBox units. */
@@ -61,17 +82,26 @@ export function arcPath(a1: number, a2: number): string {
 }
 
 /** Keep the view centre between the first and last milestones (and always allow "now"). */
-export function panLimits(milestones: Milestone[], nowDay: number): [number, number] {
+export function panLimits(
+  milestones: Milestone[],
+  nowDay: number,
+  lead: number = ARC.LEAD,
+): [number, number] {
   if (!milestones.length) return [0, 0];
   const days = milestones.map((m) => m.day);
   return [
-    Math.min(0, Math.min(...days) - nowDay - ARC.LEAD),
-    Math.max(0, Math.max(...days) - nowDay - ARC.LEAD),
+    Math.min(0, Math.min(...days) - nowDay - lead),
+    Math.max(0, Math.max(...days) - nowDay - lead),
   ];
 }
 
-export function clampPan(pan: number, milestones: Milestone[], nowDay: number): number {
-  const [lo, hi] = panLimits(milestones, nowDay);
+export function clampPan(
+  pan: number,
+  milestones: Milestone[],
+  nowDay: number,
+  lead: number = ARC.LEAD,
+): number {
+  const [lo, hi] = panLimits(milestones, nowDay, lead);
   return Math.min(hi, Math.max(lo, pan));
 }
 
@@ -126,7 +156,8 @@ export function layoutArc({
   pan: number;
   widthPx?: number;
 }): PlacedMilestone[] {
-  const centre = viewCentre(nowDay, pan);
+  const view = arcViewport(widthPx);
+  const centre = viewCentre(nowDay, pan, view.lead);
   const sorted = [...milestones].sort((a, b) => a.day - b.day);
   const next = sorted.find((m) => m.status !== "done" && m.day > nowDay);
   const items: PlacedMilestone[] = sorted.map((m) => {
@@ -136,13 +167,13 @@ export function layoutArc({
     const gate = m.kind === "gate";
     const isNext = m === next;
     const past = m.status === "done";
-    const visible = abs <= ARC.VISIBLE;
+    const visible = abs <= ARC.VISIBLE && x >= view.x0 && x <= view.x0 + view.w;
     const until = m.day - nowDay;
     return {
       ...m,
       x,
       y,
-      left: (x / ARC.W) * 100,
+      left: ((x - view.x0) / view.w) * 100,
       top: (y / ARC.H) * 100,
       angle,
       rotation: angle * 0.8,
@@ -169,7 +200,7 @@ export function layoutArc({
   // Place labels in priority order (gates, the next milestone, then the rest,
   // nearest the centre first). Skip any that would overlap one already placed;
   // its marker still shows.
-  const pxToUnits = ARC.W / Math.max(1, widthPx);
+  const pxToUnits = view.w / Math.max(1, widthPx);
   const gap = ARC.LABEL_GAP * pxToUnits;
   const placed: { lo: number; hi: number }[] = [];
   items
@@ -188,8 +219,8 @@ export function layoutArc({
 }
 
 /** The "now" tick and the flown part of the arc. */
-export function arcPaths(nowDay: number, pan: number) {
-  const aNow = angleFor(nowDay, viewCentre(nowDay, pan));
+export function arcPaths(nowDay: number, pan: number, lead: number = ARC.LEAD) {
+  const aNow = angleFor(nowDay, viewCentre(nowDay, pan, lead));
   const litEnd = Math.min(aNow, ARC.LIMIT);
   const [nx, ny] = arcPoint(aNow);
   return {
@@ -205,13 +236,18 @@ const firstUpcoming = (milestones: Milestone[], nowDay: number, kind?: Milestone
     .find((m) => m.status !== "done" && (kind ? m.kind === kind : m.day > nowDay));
 
 /** The fixed readout under the arc. Text is sentence case; the UI shows it in capitals. */
-export function arcReadout(milestones: Milestone[], nowDay: number, pan: number) {
+export function arcReadout(
+  milestones: Milestone[],
+  nowDay: number,
+  pan: number,
+  lead: number = ARC.LEAD,
+) {
   const gate = firstUpcoming(milestones, nowDay, "gate");
   return {
     main: `T+${nowDay} days`,
     sub:
       pan !== 0
-        ? `Viewing day ${viewCentre(nowDay, pan)} · press Now to return`
+        ? `Viewing day ${viewCentre(nowDay, pan, lead)} · press Now to return`
         : gate
           ? `Mission elapsed · ${gate.label} ${inDays(gate.day - nowDay).toLowerCase()}`
           : "Mission elapsed",
