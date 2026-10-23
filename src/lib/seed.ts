@@ -438,6 +438,25 @@ export const agent_runs: T.AgentRun[] = [
   run("r8", "Update investor pipeline from LinkedIn", "raise", "running", 0.3, 0, 80, [
     { tool: "web_search", summary: "Searching for edtech angels…", credits: 20 },
   ]),
+  // Yesterday: Sol prepared Stripe checkout for the Connect Stripe key task; it waits for GO.
+  run(
+    "r9",
+    "Prepare Stripe checkout for the pricing page",
+    "build",
+    "needs_approval",
+    26,
+    3,
+    30,
+    [
+      { tool: "plan", summary: "Planned checkout for the £4.99 monthly plan", credits: 10 },
+      {
+        tool: "propose_site_change",
+        summary: "Proposed Stripe checkout for approval",
+        credits: 20,
+      },
+    ],
+    "c1-key-5",
+  ),
 ];
 
 export const approvals: T.Approval[] = [
@@ -534,6 +553,21 @@ export const approvals: T.Approval[] = [
       change: "New landing page hero and waitlist form",
       url: "/site/kelpie-energy?preview=1",
       reason: "Current page has no clear call to action.",
+    },
+  },
+  {
+    id: "a7",
+    company_id: "c1",
+    run_id: "r9",
+    action_type: "publish_site",
+    estimated_credits: 120,
+    status: "pending",
+    created_at: ago(25.5),
+    payload: {
+      change: "Connect Stripe checkout to the pricing page (£4.99 a month, test mode)",
+      url: "/site/studybuddy?preview=1",
+      reason:
+        "Pre-orders passed the Launch gate target (12 of 10). Checkout lets them convert to paying.",
     },
   },
 ];

@@ -9,7 +9,7 @@ import {
   tasksAwaitingGo,
   telemetry,
 } from "@/lib/hq";
-import { NOW, agent_runs, credit_ledger, metrics_daily, tasks } from "@/lib/seed";
+import { NOW, agent_runs, approvals, credit_ledger, metrics_daily, tasks } from "@/lib/seed";
 import type { AgentRun, Approval, ComplianceItem } from "@/lib/types";
 
 describe("flight plan task tiles", () => {
@@ -32,6 +32,13 @@ describe("flight plan task tiles", () => {
       "Up next · ≈ 120 CR",
     ]);
     expect(taskBadge(tiles[3]!, true)).toEqual({ tone: "warning", text: "Hold · awaiting GO" });
+  });
+
+  it("holds Connect Stripe in the demo: its run waits for a GO", () => {
+    const awaiting = tasksAwaitingGo(approvals, agent_runs);
+    const stripe = tiles.find((t) => t.title === "Connect Stripe")!;
+    expect(awaiting.has(stripe.id)).toBe(true);
+    expect(taskBadge(stripe, awaiting.has(stripe.id)).text).toBe("Hold · awaiting GO");
   });
 
   it("finds tasks whose runs wait for a GO", () => {

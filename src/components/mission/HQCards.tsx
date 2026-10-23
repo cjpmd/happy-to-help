@@ -193,9 +193,12 @@ export function GoNoGoCard({
     <HQCard
       title="GO / NO-GO"
       meta={
-        <span className={cn(meta, "text-[12px]", pending.length && "text-hold")}>
+        <Link
+          to="/approvals"
+          className={cn(meta, "text-[12px] hover:opacity-80", pending.length && "text-hold")}
+        >
           {pending.length ? `${pending.length} holding` : "Clear"}
-        </span>
+        </Link>
       }
     >
       {!first ? (
@@ -259,11 +262,6 @@ export function GoNoGoCard({
             </li>
           ))}
         </ul>
-      )}
-      {rest.length > 2 && (
-        <Link to="/approvals" className={cn(meta, "text-ink")}>
-          {rest.length - 2} more in GO / NO-GO
-        </Link>
       )}
     </HQCard>
   );
