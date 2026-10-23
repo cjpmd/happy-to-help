@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useStore } from "@/lib/store";
-import { ApprovalCard } from "@/components/dawn/ApprovalCard";
-import { PageHeader } from "@/components/dawn/primitives";
+import { ApprovalCard } from "@/components/mission/ApprovalCard";
+import { PageHeader } from "@/components/mission/primitives";
 import { pageHead } from "@/lib/seo";
 import { num } from "@/lib/format";
 

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useStore } from "@/lib/store";
 import { grants } from "@/lib/seed";
-import { PageHeader, Panel, Pill, humanise } from "@/components/dawn/primitives";
+import { PageHeader, Panel, Pill, humanise } from "@/components/mission/primitives";
 import { pageHead } from "@/lib/seo";
 import { fmtDate } from "@/lib/format";
 import type { InvestorStage } from "@/lib/types";

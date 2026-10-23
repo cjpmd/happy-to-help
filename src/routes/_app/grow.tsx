@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useStore } from "@/lib/store";
 import { social_posts } from "@/lib/seed";
-import { PageHeader, Panel, Pill, StatusPill } from "@/components/dawn/primitives";
-import { ClaimsCheck, CostButton, Why } from "@/components/dawn/WorkControls";
+import { PageHeader, Panel, Pill, StatusPill } from "@/components/mission/primitives";
+import { ClaimsCheck, CostButton, Why } from "@/components/mission/WorkControls";
 import { pageHead } from "@/lib/seo";
 import { fmtShortDate, num } from "@/lib/format";
 import type { ApprovalOf, SocialPost } from "@/lib/types";

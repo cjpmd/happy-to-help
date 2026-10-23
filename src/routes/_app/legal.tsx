@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Check } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { compliance_items } from "@/lib/seed";
-import { PageHeader, Panel, StatusPill } from "@/components/dawn/primitives";
+import { PageHeader, Panel, StatusPill } from "@/components/mission/primitives";
 import { pageHead } from "@/lib/seo";
 import { fmtDate } from "@/lib/format";
 import { cn } from "@/lib/utils";

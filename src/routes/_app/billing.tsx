@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { Rocket } from "lucide-react";
 import { useStore, useCompany, useBalance } from "@/lib/store";
 import { PLANS, TOP_UPS, LAUNCH_PACK, isLowBalance } from "@/lib/credits";
-import { PageHeader, Panel, Pill, humanise } from "@/components/dawn/primitives";
+import { PageHeader, Panel, Pill, humanise } from "@/components/mission/primitives";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { pageHead } from "@/lib/seo";

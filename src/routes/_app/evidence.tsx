@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useStore } from "@/lib/store";
-import { PageHeader, Panel, StatusPill } from "@/components/dawn/primitives";
+import { PageHeader, Panel, StatusPill } from "@/components/mission/primitives";
 import { pageHead } from "@/lib/seo";
 import { fmtDate, gbp, num } from "@/lib/format";
 

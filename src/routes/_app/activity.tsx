@@ -2,10 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { ChevronRight, RotateCcw } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { PageHeader, Pill, StatusPill } from "@/components/dawn/primitives";
+import { PageHeader, Pill, StatusPill } from "@/components/mission/primitives";
 import { pageHead } from "@/lib/seo";
 import { duration, fmtDateTime, num } from "@/lib/format";
-import { ProofOfDone, Why } from "@/components/dawn/WorkControls";
+import { ProofOfDone, Why } from "@/components/mission/WorkControls";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/activity")({

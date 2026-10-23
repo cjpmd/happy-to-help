@@ -93,6 +93,8 @@ interface Ctx {
 const StoreCtx = createContext<Ctx | null>(null);
 const iso = () => new Date().toISOString();
 const uid = (p: string) => `${p}_${Math.random().toString(36).slice(2, 9)}`;
+const LAYOUTS_KEY = "gumption-hq-layouts";
+const OLD_LAYOUTS_KEY = "dawn-hq-layouts";
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [db, setDb] = useState<DB>(() => ({
@@ -122,7 +124,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [layoutLoaded, setLayoutLoaded] = useState(false);
   useEffect(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem("dawn-hq-layouts") ?? "{}");
+      // Layouts saved before the rename used the old key: read it once, then drop it.
+      const saved = JSON.parse(
+        localStorage.getItem(LAYOUTS_KEY) ?? localStorage.getItem(OLD_LAYOUTS_KEY) ?? "{}",
+      );
+      localStorage.removeItem(OLD_LAYOUTS_KEY);
       const valid: Record<string, LayoutItem[]> = {};
       for (const [key, value] of Object.entries(saved)) {
         if (
@@ -142,7 +148,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setLayoutLoaded(true);
   }, []);
   useEffect(() => {
-    if (layoutLoaded) localStorage.setItem("dawn-hq-layouts", JSON.stringify(db.layouts));
+    if (layoutLoaded) localStorage.setItem(LAYOUTS_KEY, JSON.stringify(db.layouts));
   }, [db.layouts, layoutLoaded]);
 
   useEffect(() => {

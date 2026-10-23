@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Mail, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BrandLogo, SolAvatar } from "@/components/dawn/primitives";
+import { BrandLogo, SolAvatar } from "@/components/mission/primitives";
 import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/")({

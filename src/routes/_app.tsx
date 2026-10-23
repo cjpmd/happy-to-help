@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { AppShell } from "@/components/dawn/AppShell";
+import { AppShell } from "@/components/mission/AppShell";
 
 export const Route = createFileRoute("/_app")({
   component: () => (
