@@ -312,6 +312,29 @@ export const tasks: T.Task[] = [
     estimated_credits: 300,
     due: ahead(12),
   },
+  // StudyBuddy's key tasks: the milestones on its flight plan (day N from its start).
+  ...(
+    [
+      ["Customer interviews", "run", "evidence", 12, "done", 0],
+      ["Approve product spec", "build", "build", 22, "done", 0],
+      ["Waitlist page live", "build", "build", 25, "done", 300],
+      ["Daily quiz feature", "build", "build", 34, "doing", 420],
+      ["Connect Stripe", "build", "build", 38, "todo", 120],
+      ["First paying customer", "grow", "launch", 50, "todo", 0],
+      ["50 paying customers", "grow", "launch", 64, "todo", 0],
+    ] as const
+  ).map(([title, pillar, stage, day, status, credits], i) => ({
+    id: `c1-key-${i + 1}`,
+    company_id: "c1",
+    pillar,
+    title,
+    status,
+    estimated_credits: credits,
+    key: true,
+    stage,
+    due: ahead(day - 30),
+    completed_at: status === "done" ? ago(24 * (30 - day)) : null,
+  })),
 ];
 
 const run = (

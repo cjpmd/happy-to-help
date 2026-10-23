@@ -76,6 +76,11 @@ export interface Task {
   status: "todo" | "doing" | "done";
   estimated_credits: number;
   due?: string;
+  /** A key task: shown as a milestone on the flight plan. */
+  key?: boolean;
+  /** The stage a key task belongs to. */
+  stage?: Stage;
+  completed_at?: string | null;
 }
 export type RunStatus = "queued" | "running" | "succeeded" | "failed" | "needs_approval";
 export interface RunStep {

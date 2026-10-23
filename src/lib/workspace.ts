@@ -189,7 +189,11 @@ export function workspaceSeed(companies: Company[], tasks: Task[]): WorkspaceDB 
     preferences: {},
     sharing: {},
     team: [],
-    tasks: tasks.map((t) => ({ ...t, status: t.status === "done" ? "doing" : t.status })),
+    // Seeded "done" tasks without a recorded completion are shown as still in progress.
+    tasks: tasks.map((t) => ({
+      ...t,
+      status: t.status === "done" && !t.completed_at ? "doing" : t.status,
+    })),
     routines: companies.flatMap((c) => [
       {
         id: `${c.id}-brief`,

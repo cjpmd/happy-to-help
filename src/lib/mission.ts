@@ -72,10 +72,12 @@ export function defaultGates(
   }));
 }
 
-/** Whole days from the company's start to `date`. */
+const calendarDay = (date: Date | string) => Math.floor(new Date(date).getTime() / DAY_MS);
+
+/** Calendar days (UTC) from the company's start to `date`. */
 export function dayOf(company: Pick<Company, "started_at">, date: Date | string): number {
   if (!company.started_at) return 0;
-  return Math.floor((new Date(date).getTime() - new Date(company.started_at).getTime()) / DAY_MS);
+  return calendarDay(date) - calendarDay(company.started_at);
 }
 
 /** Mission elapsed time in days (T+N). */
