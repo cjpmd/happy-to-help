@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PRODUCT_NAME } from "@/lib/brand";
+import { themeScript } from "@/lib/theme";
 import {
   Outlet,
   Link,
@@ -94,6 +95,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
+    // Apply the saved light/dark preference before the page draws.
+    scripts: [{ children: themeScript }],
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -103,7 +106,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en-GB">
+    // The theme script sets the class and color-scheme before React hydrates.
+    <html lang="en-GB" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>

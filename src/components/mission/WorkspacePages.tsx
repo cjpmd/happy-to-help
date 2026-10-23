@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useStore, useCompany, useBalance } from "@/lib/store";
 import { ACTION_COSTS, actionQuote } from "@/lib/credits";
+import type { ThemePref } from "@/lib/theme";
 import {
   defaultPreferences,
   defaultSharing,
@@ -522,8 +523,14 @@ export function DocumentsPage() {
   );
 }
 
+const themeOptions: { value: ThemePref; label: string }[] = [
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+  { value: "system", label: "Match system" },
+];
+
 export function SettingsPage() {
-  const { db, user, updatePreferences } = useStore();
+  const { db, user, updatePreferences, themePref, setThemePref } = useStore();
   const prefs = db.preferences[user.id] ?? defaultPreferences();
   const numeric = (key: keyof Preferences, label: string) => (
     <label className="flex flex-wrap items-center justify-between gap-3 border-b py-4 text-sm">
@@ -547,7 +554,25 @@ export function SettingsPage() {
     <>
       <PageHeader title="Settings" />
       <section className="max-w-2xl">
-        <h2 className="font-medium">Learning mode</h2>
+        <h2 className="font-medium" id="appearance">
+          Appearance
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Light is the default. Match system follows your device&rsquo;s setting.
+        </p>
+        <div className="my-4 flex flex-wrap gap-2" role="group" aria-labelledby="appearance">
+          {themeOptions.map((o) => (
+            <Button
+              key={o.value}
+              variant={themePref === o.value ? "default" : "outline"}
+              aria-pressed={themePref === o.value}
+              onClick={() => setThemePref(o.value)}
+            >
+              {o.label}
+            </Button>
+          ))}
+        </div>
+        <h2 className="mt-8 font-medium">Learning mode</h2>
         <div className="my-4 flex gap-2">
           <Button
             variant={prefs.explanation === "brief" ? "default" : "outline"}

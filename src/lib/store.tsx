@@ -31,6 +31,15 @@ import {
 } from "./workspace";
 import { simulateWork } from "./agentClient";
 import { defaultGates, solStatus } from "./mission";
+import {
+  DEFAULT_THEME,
+  THEME_KEY,
+  applyTheme,
+  readThemePref,
+  resolveTheme,
+  type Theme,
+  type ThemePref,
+} from "./theme";
 
 /**
  * In-memory data store shaped like the Supabase schema.
@@ -70,7 +79,12 @@ interface Ctx {
       "id" | "slug" | "stage" | "website_live_url" | "website_preview_url" | "plan" | "created_by"
     >,
   ) => string;
-  theme: "light" | "dark";
+  /** The theme on screen, resolved from the preference. */
+  theme: Theme;
+  /** Light (default), dark, or match the system. Saved in this browser. */
+  themePref: ThemePref;
+  setThemePref: (pref: ThemePref) => void;
+  /** Switches to the opposite of what's on screen (an explicit light or dark). */
   toggleTheme: () => void;
   work: (
     cid: string,
@@ -119,7 +133,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState("u1");
   const [companyId, setCompanyId] = useState("c1");
   const [solTyping, setSolTyping] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [themePref, setThemePrefState] = useState<ThemePref>(DEFAULT_THEME);
+  const [systemDark, setSystemDark] = useState(false);
+  const [themeLoaded, setThemeLoaded] = useState(false);
+  const theme = resolveTheme(themePref, systemDark);
   const user = seed.profiles.find((p) => p.id === userId) ?? seed.profiles[0];
   if (!user) throw new Error("Demo profiles missing");
   const [layoutLoaded, setLayoutLoaded] = useState(false);
@@ -152,9 +169,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (layoutLoaded) localStorage.setItem(LAYOUTS_KEY, JSON.stringify(db.layouts));
   }, [db.layouts, layoutLoaded]);
 
+  // The <head> script has already applied the saved theme; load the same
+  // preference here and follow the system while "Match system" is chosen.
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-  }, [theme]);
+    setThemePrefState(readThemePref(window.localStorage));
+    const mql = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => setSystemDark(mql.matches);
+    onChange();
+    mql.addEventListener("change", onChange);
+    setThemeLoaded(true);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+  useEffect(() => {
+    if (themeLoaded) applyTheme(theme);
+  }, [theme, themeLoaded]);
+  const setThemePref = useCallback((pref: ThemePref) => {
+    setThemePrefState(pref);
+    try {
+      window.localStorage.setItem(THEME_KEY, pref);
+    } catch {
+      /* Storage blocked: the choice lasts until reload. */
+    }
+  }, []);
 
   const decideApproval = useCallback(
     (id: string, status: "approved" | "declined") => {
@@ -823,7 +859,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       markDone,
       stopAuto,
       theme,
-      toggleTheme: () => setTheme((t) => (t === "light" ? "dark" : "light")),
+      themePref,
+      setThemePref,
+      toggleTheme: () => setThemePref(theme === "light" ? "dark" : "light"),
     }),
     [
       db,
@@ -838,6 +876,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       moveInvestor,
       createCompany,
       theme,
+      themePref,
+      setThemePref,
       work,
       saveLayout,
       updatePreferences,

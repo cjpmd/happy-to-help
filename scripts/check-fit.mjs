@@ -64,11 +64,11 @@ try {
       const page = await browser.newPage({ viewport: size });
       const errors = [];
       page.on("pageerror", (e) => errors.push(e.message));
+      // Choose the theme the way a user does: the saved preference.
+      await page.addInitScript((t) => localStorage.setItem("gumption-theme", t), theme);
       await page.goto(base + PATH, { waitUntil: "networkidle" });
-      await page.evaluate(
-        (t) => document.documentElement.classList.toggle("dark", t === "dark"),
-        theme,
-      );
+      const dark = await page.evaluate(() => document.documentElement.classList.contains("dark"));
+      if (dark !== (theme === "dark")) errors.push(`theme ${theme} not applied`);
       await page.evaluate(() => document.fonts.ready);
       await page.waitForTimeout(300);
       const m = await page.evaluate(() => ({
