@@ -1,18 +1,75 @@
 import type { ReactNode } from "react";
 import { PRODUCT_NAME } from "@/lib/brand";
 import { cn } from "@/lib/utils";
-import solImg from "@/assets/sol.png";
+import type { SolState } from "@/lib/mission";
 
-export function SolAvatar({ size = 28, className }: { size?: number; className?: string }) {
+const solDot: Record<SolState, string> = {
+  working: "bg-go",
+  idle: "bg-muted-foreground",
+  waiting: "bg-hold",
+};
+const solDotLabel: Record<SolState, string> = {
+  working: "working",
+  idle: "idle",
+  waiting: "waiting for you",
+};
+
+/**
+ * Sol's mark, taken from the flight plan's "now" marker: a short arc, flown
+ * on the left and still to fly on the right, with a dot at "now". Drawn in
+ * ink so it works in both themes and stays legible at 16px. The optional
+ * status dot is green while working, muted when idle, amber when waiting.
+ */
+export function SolAvatar({
+  size = 28,
+  status,
+  className,
+}: {
+  size?: number;
+  status?: SolState | undefined;
+  className?: string;
+}) {
+  const dot = Math.max(6, Math.round(size * 0.3));
   return (
-    <img
-      src={solImg}
-      alt="Sol"
-      width={size}
-      height={size}
-      className={cn("shrink-0 rounded-full", className)}
+    <span
+      role="img"
+      aria-label={status ? `Sol, ${solDotLabel[status]}` : "Sol"}
+      className={cn("relative inline-block shrink-0 text-ink", className)}
       style={{ width: size, height: size }}
-    />
+    >
+      <svg viewBox="0 0 24 24" width={size} height={size} fill="none" aria-hidden="true">
+        <path
+          d="M2 18.5A11.5 11.5 0 0 1 12 10"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <path
+          d="M12 10a11.5 11.5 0 0 1 10 8.5"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeLinecap="round"
+          opacity="0.35"
+        />
+        <circle
+          cx="12"
+          cy="10"
+          r="4.4"
+          fill="currentColor"
+          stroke="var(--surface)"
+          strokeWidth="1.6"
+        />
+      </svg>
+      {status && (
+        <span
+          className={cn(
+            "absolute bottom-0 right-0 rounded-full ring-2 ring-background",
+            solDot[status],
+          )}
+          style={{ width: dot, height: dot }}
+        />
+      )}
+    </span>
   );
 }
 
