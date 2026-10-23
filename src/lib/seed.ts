@@ -1,5 +1,6 @@
 import type * as T from "./types";
 import { defaultGates } from "./mission";
+import type { ExtendedTask } from "./workspace";
 
 // Fixed "now" keeps server and browser renders identical for the demo.
 export const NOW = new Date("2026-10-21T07:30:00Z");
@@ -236,7 +237,7 @@ export const evidence_items: T.EvidenceItem[] = [
   },
 ];
 
-export const tasks: T.Task[] = [
+export const tasks: ExtendedTask[] = [
   {
     id: "t1",
     company_id: "c1",
@@ -334,6 +335,18 @@ export const tasks: T.Task[] = [
     stage,
     due: ahead(day - 30),
     completed_at: status === "done" ? ago(24 * (30 - day)) : null,
+    // Sol built and checked the waitlist page: 6 of 6 checks, with a screenshot, preview and PR.
+    ...(title === "Waitlist page live"
+      ? {
+          proof: {
+            passed: 6,
+            total: 6,
+            screenshot: "/media/revision.svg",
+            preview: "/site/studybuddy?preview=1",
+            pr: "Build #12",
+          },
+        }
+      : {}),
   })),
 ];
 
