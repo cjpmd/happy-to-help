@@ -94,7 +94,7 @@ function SignIn() {
           </div>
           <div className="ml-12 max-w-sm rounded-2xl border bg-card p-4 shadow-float">
             <p className="text-xs text-muted-foreground">Overnight</p>
-            <p className="mt-1 text-2xl font-semibold tabular">8 runs · 795 credits</p>
+            <p className="mt-1 text-2xl font-semibold tabular">8 runs · 795 CR</p>
             <p className="text-xs text-success">1 failed run auto-refunded</p>
           </div>
         </div>

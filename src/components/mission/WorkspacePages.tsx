@@ -113,7 +113,7 @@ export function RoutinesPage() {
                     />
                   )}
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    Monthly forecast: {balance - cost} credits left
+                    Monthly forecast: {balance - cost} CR left
                   </p>
                 </div>
               </div>

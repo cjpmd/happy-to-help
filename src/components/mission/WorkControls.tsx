@@ -104,23 +104,23 @@ export function CostButton({
       >
         {icon === null ? null : (icon ?? <Zap className="h-3.5 w-3.5" />)}
         <span>
-          {label} · ≈ {cost} credits
+          {label} · ≈ {cost} CR
         </span>
       </Button>
       <span className="block mt-1 text-[11px] text-muted-foreground">
         {q.affordable
-          ? `${q.after.toLocaleString("en-GB")} left after`
-          : "Insufficient credits — top up to continue"}
+          ? `${q.after.toLocaleString("en-GB")} CR left after`
+          : "Not enough credits. Top up to continue."}
       </span>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{q.affordable ? label : "Top up to continue"}</DialogTitle>
             <DialogDescription>
-              ≈ {cost} credits · balance {balance.toLocaleString("en-GB")} ·{" "}
+              ≈ {cost} CR · balance {balance.toLocaleString("en-GB")} CR ·{" "}
               {q.affordable
-                ? `${q.after.toLocaleString("en-GB")} left after`
-                : `${cost - balance} more needed`}
+                ? `${q.after.toLocaleString("en-GB")} CR left after`
+                : `${cost - balance} CR more needed`}
               . Demo work only.
             </DialogDescription>
           </DialogHeader>
@@ -131,7 +131,7 @@ export function CostButton({
                 void onConfirm();
               }}
             >
-              Confirm · ≈ {cost} credits
+              Confirm · ≈ {cost} CR
             </Button>
           ) : (
             <Button asChild>

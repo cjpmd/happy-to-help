@@ -24,7 +24,7 @@ function Approvals() {
         title="Approvals"
         description={
           pending.length
-            ? `${pending.length} waiting · ${num(total)} credits if all approved`
+            ? `${pending.length} waiting · ≈ ${num(total)} CR if all get a GO`
             : "Nothing waiting on you."
         }
       />

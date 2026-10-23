@@ -102,16 +102,16 @@ export function SolChat({
             <Button
               type="submit"
               disabled={!text.trim() || !quote.affordable || solTyping}
-              aria-label="Send · ≈ 10 credits"
+              aria-label={`Send, about ${ACTION_COSTS.chat} credits`}
               className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-opacity disabled:opacity-30"
             >
               <ArrowUp className="h-4 w-4" />
             </Button>
           </div>
           <p className="px-2 pt-1 text-[10px] text-muted-foreground">
-            ≈ 10 credits ·{" "}
+            ≈ {ACTION_COSTS.chat} CR ·{" "}
             {quote.affordable
-              ? `${quote.after.toLocaleString("en-GB")} left after`
+              ? `${quote.after.toLocaleString("en-GB")} CR left after`
               : "Insufficient credits"}{" "}
             {!quote.affordable && (
               <Link to="/billing" className="text-primary underline">
