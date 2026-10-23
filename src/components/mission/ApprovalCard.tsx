@@ -1,13 +1,4 @@
-import {
-  Check,
-  X,
-  HelpCircle,
-  Megaphone,
-  Mail,
-  PoundSterling,
-  FileText,
-  Globe,
-} from "lucide-react";
+import { Megaphone, Mail, PoundSterling, FileText, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useStore, labelFor, useBalance, useCompany } from "@/lib/store";
@@ -46,7 +37,9 @@ function Preview({ a }: { a: Approval }) {
         <div className="space-y-2">
           {row("Channel", a.payload.channel)}
           {a.payload.scheduled_for && row("When", a.payload.scheduled_for)}
-          <p className="rounded-lg bg-muted p-3 text-sm leading-relaxed">{a.payload.text}</p>
+          <p className="rounded-tile bg-soft p-3 text-sm leading-relaxed shadow-tile">
+            {a.payload.text}
+          </p>
         </div>
       );
     case "send_email":
@@ -54,7 +47,7 @@ function Preview({ a }: { a: Approval }) {
         <div className="space-y-2">
           {row("To", a.payload.to)}
           {row("Subject", a.payload.subject)}
-          <p className="whitespace-pre-line rounded-lg bg-muted p-3 text-sm leading-relaxed">
+          <p className="whitespace-pre-line rounded-tile bg-soft p-3 text-sm leading-relaxed shadow-tile">
             {a.payload.body}
           </p>
         </div>
@@ -123,15 +116,17 @@ export function ApprovalCard({
   };
   return (
     <article
-      className={cn("rounded-xl border bg-card shadow-card", compact ? "p-3" : "p-4 sm:p-5")}
+      className={cn("rounded-card border bg-card shadow-card", compact ? "p-3" : "p-4 sm:p-5")}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-tile bg-soft text-ink shadow-tile">
             <Icon className="h-4 w-4" />
           </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{titles[a.action_type]}</p>
+            <p className="label-caps truncate text-[13px] tracking-[0.14em]">
+              {titles[a.action_type]}
+            </p>
             <p className="text-xs text-muted-foreground tabular">
               {num(a.estimated_credits)} credits est.
             </p>
@@ -160,8 +155,9 @@ export function ApprovalCard({
         <div className={cn("mt-3 flex flex-wrap items-start gap-2", !compact && "mt-5")}>
           <div className="min-w-0 flex-1">
             <CostButton
-              label="Approve"
-              icon={<Check className="h-4 w-4" />}
+              label="GO"
+              icon={null}
+              variant="default"
               cost={a.estimated_credits}
               disabled={flagged}
               onConfirm={() => decide("approved")}
@@ -173,12 +169,10 @@ export function ApprovalCard({
             className="sm:flex-none"
             onClick={() => decide("declined")}
           >
-            <X className="h-4 w-4" />
-            Decline
+            NO-GO
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => askWhy(a.id)} aria-label="Ask why">
-            <HelpCircle className="h-4 w-4" />
-            {!compact && "Ask why"}
+          <Button size="sm" variant="outline" onClick={() => askWhy(a.id)} aria-label="Ask Sol why">
+            Why
           </Button>
         </div>
       ) : a.status !== "pending" ? (
