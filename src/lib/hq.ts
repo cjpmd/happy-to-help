@@ -189,24 +189,24 @@ export interface ChannelRow {
   action?: { label: string; to: string };
 }
 
-/** One row per channel the company uses, plus email and Meta ads. */
+/**
+ * One row per marketing channel the company uses, plus email and Meta ads.
+ * The waitlist isn't a channel here: its signups are in Telemetry.
+ */
 export function channelRows(
   company: Pick<Company, "id" | "channels">,
   posts: SocialPost[],
   emails: EmailThread[],
   ad: Pick<AdAccount, "status" | "daily_budget" | "clicks"> | undefined,
-  weeklySignups: number,
 ): ChannelRow[] {
   const mine = posts.filter((p) => p.company_id === company.id);
-  const rows: ChannelRow[] = (company.channels ?? []).map((channel) => {
+  const channels = (company.channels ?? []).filter((c) => c !== "Waitlist");
+  const rows: ChannelRow[] = channels.map((channel) => {
     const forChannel = mine.filter((p) => p.channel === channel);
     if (forChannel.length) {
       const clicks = forChannel.reduce((n, p) => n + p.metrics.clicks, 0);
       const live = forChannel.filter((p) => p.status === "published").length;
       return { channel, detail: `${live} published`, value: `${clicks} clicks` };
-    }
-    if (channel === "Waitlist") {
-      return { channel, detail: "7 days", value: `${weeklySignups} signups` };
     }
     return { channel, detail: "not started", value: "—" };
   });

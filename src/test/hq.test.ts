@@ -120,7 +120,7 @@ describe("next windows", () => {
 });
 
 describe("channels", () => {
-  it("shows posts, the waitlist, support email and Meta ads", () => {
+  it("shows posts, support email and Meta ads, but not the waitlist", () => {
     const rows = channelRows(
       { id: "c1", channels: ["TikTok", "Waitlist", "Trust page"] },
       [
@@ -147,15 +147,13 @@ describe("channels", () => {
         },
       ],
       { status: "not_connected", daily_budget: 0, clicks: 0 },
-      21,
     );
     expect(rows.map((r) => [r.channel, r.detail, r.value])).toEqual([
       ["TikTok", "1 published", "41 clicks"],
-      ["Waitlist", "7 days", "21 signups"],
       ["Trust page", "not started", "—"],
       ["Email", "support", "1 to answer"],
       ["Meta ads", "off", ""],
     ]);
-    expect(rows[4]!.action).toEqual({ label: "Set up", to: "/ads" });
+    expect(rows[3]!.action).toEqual({ label: "Set up", to: "/ads" });
   });
 });
