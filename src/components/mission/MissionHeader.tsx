@@ -79,7 +79,7 @@ export function MissionHeader({
           </h1>
           {c.sector && c.sector !== "general" && (
             <span title="Stricter claims checks apply to everything Sol writes">
-              <Pill>Regulated · {c.sector}</Pill>
+              <Pill className="border border-line">Regulated · {c.sector}</Pill>
               <span className="sr-only">: stricter claims checks apply</span>
             </span>
           )}
