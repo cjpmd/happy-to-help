@@ -109,7 +109,6 @@ function Billing() {
           </div>
         </Panel>
         <Panel className="relative overflow-hidden">
-          <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-dawn opacity-30 blur-2xl" />
           <Rocket className="h-5 w-5 text-primary" />
           <p className="mt-3 font-medium">Launch Pack</p>
           <p className="text-sm text-muted-foreground tabular">

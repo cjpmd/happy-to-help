@@ -77,7 +77,6 @@ function SignIn() {
         <p className="text-xs text-muted-foreground">© 2026 {PRODUCT_NAME}. Made in Glasgow.</p>
       </div>
       <div className="relative hidden overflow-hidden border-l bg-sidebar lg:block">
-        <div className="absolute -right-32 -top-32 h-[28rem] w-[28rem] rounded-full bg-dawn opacity-25 blur-3xl" />
         <div className="relative flex h-full flex-col justify-center gap-4 p-16">
           <div className="max-w-md rounded-2xl border bg-card p-5 shadow-float">
             <div className="flex items-center gap-2.5">

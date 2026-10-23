@@ -1,17 +1,58 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import "@fontsource/inter/latin-400.css";
+@import "@fontsource/inter/latin-500.css";
+@import "@fontsource/inter/latin-600.css";
+@import "@fontsource/barlow/latin-500.css";
+@import "@fontsource/barlow/latin-600.css";
+@import "@fontsource/barlow/latin-700.css";
+@import "@fontsource/barlow-semi-condensed/latin-600.css";
+@import "@fontsource/barlow-semi-condensed/latin-700.css";
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Mission HQ design tokens (docs/DESIGN.md section 1). Components use these
+ * through Tailwind classes, never hard-coded colours. The shadcn variables
+ * below are aliases of the design tokens, so shadcn/ui picks them up too.
+ */
 @theme inline {
-  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, monospace;
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-label: "Barlow", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Barlow Semi Condensed", "Barlow", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, monospace;
+
+  /* Design tokens */
+  --color-bg: var(--bg);
+  --color-side: var(--side);
+  --color-surface: var(--surface);
+  --color-soft: var(--soft);
+  --color-ink: var(--ink);
+  --color-line: var(--line);
+  --color-track: var(--track);
+  --color-go: var(--go);
+  --color-go-bg: var(--go-bg);
+  --color-hold: var(--hold);
+  --color-hold-bg: var(--hold-bg);
+
+  /* Radius: cards 10px, flight plan 12px, tiles and buttons 6px, pills 4px */
+  --radius-pill: 4px;
+  --radius-tile: 6px;
+  --radius-card: 10px;
+  --radius-hero: 12px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-xl: var(--radius);
+  --radius-2xl: 12px;
+
+  /* Depth: three levels */
+  --shadow-tile: var(--shadow-sm);
+  --shadow-card: var(--shadow);
+  --shadow-float: var(--shadow);
+
+  /* shadcn aliases */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -53,99 +94,150 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --shadow-card: var(--shadow-card-v);
-  --shadow-float: var(--shadow-float-v);
 }
 
+/* Light is the default theme. */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(0.985 0.003 80);
-  --foreground: oklch(0.2 0.012 260);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.012 260);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.012 260);
-  --primary: oklch(0.64 0.17 42);
-  --primary-foreground: oklch(0.99 0.005 80);
-  --primary-soft: oklch(0.95 0.035 55);
-  --secondary: oklch(0.955 0.004 80);
-  --secondary-foreground: oklch(0.25 0.012 260);
-  --muted: oklch(0.955 0.004 80);
-  --muted-foreground: oklch(0.52 0.012 260);
-  --accent: oklch(0.945 0.006 80);
-  --accent-foreground: oklch(0.2 0.012 260);
-  --destructive: oklch(0.56 0.2 27);
-  --destructive-foreground: oklch(0.99 0 0);
-  --destructive-soft: oklch(0.95 0.03 25);
-  --success: oklch(0.55 0.12 155);
-  --success-soft: oklch(0.95 0.035 155);
-  --warning: oklch(0.65 0.14 75);
-  --warning-soft: oklch(0.96 0.045 85);
-  --info: oklch(0.55 0.12 245);
-  --info-soft: oklch(0.95 0.025 245);
-  --border: oklch(0.91 0.005 80);
-  --input: oklch(0.89 0.006 80);
-  --ring: oklch(0.64 0.17 42);
-  --chart-1: oklch(0.64 0.17 42);
-  --chart-2: oklch(0.55 0.12 245);
-  --chart-3: oklch(0.55 0.12 155);
-  --chart-4: oklch(0.7 0.13 80);
-  --chart-5: oklch(0.5 0.02 260);
-  --sidebar: oklch(0.97 0.004 80);
-  --sidebar-foreground: oklch(0.3 0.012 260);
-  --sidebar-primary: oklch(0.64 0.17 42);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.93 0.006 80);
-  --sidebar-accent-foreground: oklch(0.18 0.012 260);
-  --sidebar-border: oklch(0.91 0.005 80);
-  --sidebar-ring: oklch(0.64 0.17 42);
-  --shadow-card-v: 0 1px 2px oklch(0.2 0.01 260 / 0.04), 0 1px 1px oklch(0.2 0.01 260 / 0.03);
-  --shadow-float-v: 0 12px 32px -12px oklch(0.2 0.01 260 / 0.18);
-  --gradient-dawn: linear-gradient(135deg, oklch(0.7 0.16 35), oklch(0.82 0.13 75));
+  --bg: #f5f4f0;
+  --side: #fbfaf7;
+  --surface: #ffffff;
+  --soft: #f4f3ef;
+  --ink: #16181d;
+  --muted-ink: #5a5e66;
+  --line: #e4e2dc;
+  --track: #dddad2;
+  --go: #1e7a4c;
+  --go-bg: #e8f4ec;
+  --hold: #9a4708;
+  --hold-bg: #fdf1e4;
+  /* Errors and destructive confirmations only. */
+  --error: #a33a2e;
+  --error-bg: #f9eae7;
+  --hero-bg: linear-gradient(180deg, #ffffff 0%, #faf9f6 100%);
+
+  --shadow-sm: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 3px rgba(22, 24, 29, 0.09);
+  --shadow:
+    0 1px 2px rgba(22, 24, 29, 0.06), 0 4px 8px rgba(22, 24, 29, 0.05),
+    0 16px 32px -12px rgba(22, 24, 29, 0.16);
+  --shadow-hero:
+    0 1px 2px rgba(22, 24, 29, 0.08), 0 8px 16px -4px rgba(22, 24, 29, 0.08),
+    0 30px 60px -18px rgba(22, 24, 29, 0.28);
+
+  /* Flight plan sky */
+  --star: #16181d;
+  --star-o0: 0.1;
+  --star-o1: 0.18;
+  --star-o2: 0.3;
+  --glow: rgba(22, 24, 29, 0.06);
+  --arc-shadow: rgba(22, 24, 29, 0.22);
+  --marker-hollow: var(--surface);
+
+  --radius: 10px;
 }
 
 .dark {
-  --background: oklch(0.165 0.006 260);
-  --foreground: oklch(0.96 0.004 80);
-  --card: oklch(0.2 0.007 260);
-  --card-foreground: oklch(0.96 0.004 80);
-  --popover: oklch(0.21 0.007 260);
-  --popover-foreground: oklch(0.96 0.004 80);
-  --primary: oklch(0.72 0.16 45);
-  --primary-foreground: oklch(0.18 0.01 260);
-  --primary-soft: oklch(0.3 0.05 45);
-  --secondary: oklch(0.25 0.007 260);
-  --secondary-foreground: oklch(0.94 0.004 80);
-  --muted: oklch(0.24 0.007 260);
-  --muted-foreground: oklch(0.68 0.01 260);
-  --accent: oklch(0.26 0.008 260);
-  --accent-foreground: oklch(0.96 0.004 80);
-  --destructive: oklch(0.66 0.19 25);
-  --destructive-foreground: oklch(0.99 0 0);
-  --destructive-soft: oklch(0.3 0.07 25);
-  --success: oklch(0.7 0.13 155);
-  --success-soft: oklch(0.29 0.05 155);
-  --warning: oklch(0.78 0.13 80);
-  --warning-soft: oklch(0.31 0.05 80);
-  --info: oklch(0.7 0.12 245);
-  --info-soft: oklch(0.29 0.05 245);
-  --border: oklch(1 0 0 / 9%);
-  --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.72 0.16 45);
-  --sidebar: oklch(0.18 0.006 260);
-  --sidebar-foreground: oklch(0.85 0.006 80);
-  --sidebar-primary: oklch(0.72 0.16 45);
-  --sidebar-primary-foreground: oklch(0.18 0.01 260);
-  --sidebar-accent: oklch(0.25 0.008 260);
-  --sidebar-accent-foreground: oklch(0.97 0.004 80);
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.72 0.16 45);
-  --shadow-card-v: 0 1px 2px oklch(0 0 0 / 0.3);
-  --shadow-float-v: 0 16px 40px -12px oklch(0 0 0 / 0.6);
+  --bg: #000000;
+  --side: #08080a;
+  --surface: #0f0f12;
+  --soft: #18181c;
+  --ink: #f0f0fa;
+  --muted-ink: #a0a0a8;
+  --line: #2a2a2e;
+  --track: #3a3a3f;
+  --go: #5bd08f;
+  --go-bg: #0e2318;
+  --hold: #ffb020;
+  --hold-bg: #2a1f08;
+  --error: #e5786b;
+  --error-bg: #2a1210;
+  --hero-bg: linear-gradient(180deg, #17171b 0%, #0f0f12 100%);
+
+  --shadow-sm: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 1px 3px rgba(0, 0, 0, 0.6);
+  --shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 4px rgba(0, 0, 0, 0.7),
+    0 18px 36px -12px rgba(0, 0, 0, 0.95);
+  --shadow-hero:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 32px 64px -18px rgba(0, 0, 0, 1);
+
+  --star: #f0f0fa;
+  --star-o0: 0.25;
+  --star-o1: 0.45;
+  --star-o2: 0.8;
+  --glow: rgba(240, 240, 250, 0.08);
+  --arc-shadow: rgba(0, 0, 0, 0.85);
+  --marker-hollow: #000000;
 }
 
-@utility bg-dawn {
-  background-image: var(--gradient-dawn);
+/* shadcn variables, aliased to the design tokens for both themes. */
+:root,
+.dark {
+  --background: var(--bg);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--surface);
+  --primary-soft: var(--soft);
+  --secondary: var(--surface);
+  --secondary-foreground: var(--ink);
+  --muted: var(--soft);
+  --muted-foreground: var(--muted-ink);
+  --accent: var(--soft);
+  --accent-foreground: var(--ink);
+  --destructive: var(--error);
+  --destructive-foreground: var(--surface);
+  --destructive-soft: var(--error-bg);
+  --success: var(--go);
+  --success-soft: var(--go-bg);
+  --warning: var(--hold);
+  --warning-soft: var(--hold-bg);
+  /* Colour only carries meaning, so "info" is monochrome. */
+  --info: var(--ink);
+  --info-soft: var(--soft);
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--ink);
+  --chart-1: var(--ink);
+  --chart-2: var(--muted-ink);
+  --chart-3: var(--track);
+  --chart-4: var(--go);
+  --chart-5: var(--hold);
+  --sidebar: var(--side);
+  --sidebar-foreground: var(--muted-ink);
+  --sidebar-primary: var(--ink);
+  --sidebar-primary-foreground: var(--surface);
+  --sidebar-accent: var(--soft);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--ink);
+}
+
+/* Barlow labels: uppercase and tracked. Short labels only, never sentences. */
+@utility label-caps {
+  font-family: var(--font-label);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+/* Barlow Semi Condensed display text and big numbers. */
+@utility display-num {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* Flight plan card only. Not a theme entry: it would point at itself. */
+@utility shadow-hero {
+  box-shadow: var(--shadow-hero);
+}
+
+@utility bg-hero {
+  background-image: var(--hero-bg);
 }
 
 @layer base {
@@ -156,7 +248,8 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
-    font-feature-settings: "ss01", "cv11";
+    font-size: 14px;
+    line-height: 1.45;
     -webkit-font-smoothing: antialiased;
   }
   .tabular {
