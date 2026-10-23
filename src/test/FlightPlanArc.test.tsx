@@ -56,7 +56,9 @@ describe("FlightPlanArc", () => {
 
   it("opens a milestone's evidence from its marker", () => {
     const onSelect = setup();
-    fireEvent.click(screen.getByRole("button", { name: "Go for launch (gate): day 42, in 12 days" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Go for launch (gate): day 42, in 12 days" }),
+    );
     expect(onSelect).toHaveBeenCalledWith("g3");
   });
 
