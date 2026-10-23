@@ -171,6 +171,6 @@ describe("channels", () => {
       ["Email", "support", "1 to answer"],
       ["Meta ads", "off", ""],
     ]);
-    expect(rows[3]!.action).toEqual({ label: "Set up", to: "/ads" });
+    expect(rows[3]!.action).toEqual({ label: "Set up", to: "/grow", search: { tab: "ads" } });
   });
 });

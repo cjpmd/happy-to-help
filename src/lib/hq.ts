@@ -186,7 +186,7 @@ export interface ChannelRow {
   detail: string;
   value: string;
   /** A call to action instead of a figure, e.g. "Set up". */
-  action?: { label: string; to: string };
+  action?: { label: string; to: "/grow"; search: { tab: "ads" } };
 }
 
 /**
@@ -223,7 +223,12 @@ export function channelRows(
   });
   rows.push(
     !ad || ad.status === "not_connected"
-      ? { channel: "Meta ads", detail: "off", value: "", action: { label: "Set up", to: "/ads" } }
+      ? {
+          channel: "Meta ads",
+          detail: "off",
+          value: "",
+          action: { label: "Set up", to: "/grow", search: { tab: "ads" } },
+        }
       : { channel: "Meta ads", detail: `£${ad.daily_budget}/day`, value: `${ad.clicks} clicks` },
   );
   return rows;

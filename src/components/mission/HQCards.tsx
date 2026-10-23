@@ -459,7 +459,11 @@ export function ChannelsCard({ companyId }: { companyId: string }) {
             </dt>
             <dd className="tabular">
               {r.action ? (
-                <Link to={r.action.to} className="label-caps text-[11px] hover:opacity-80">
+                <Link
+                  to={r.action.to}
+                  search={r.action.search}
+                  className="label-caps text-[11px] hover:opacity-80"
+                >
                   {r.action.label}
                 </Link>
               ) : (
