@@ -9,6 +9,8 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    // Integration tests need the local Supabase stack: npm run test:integration.
+    exclude: ["src/test/integration/**", "node_modules/**"],
   },
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },

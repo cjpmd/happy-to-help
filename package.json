@@ -16,7 +16,8 @@
     "db:types": "supabase gen types typescript --local > src/integrations/supabase/types.ts && prettier --write src/integrations/supabase/types.ts",
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
-    "e2e:live": "node scripts/e2e/live-smoke.mjs"
+    "e2e:live": "node scripts/e2e/live-smoke.mjs",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "overrides": {
     "rolldown": "1.2.1"

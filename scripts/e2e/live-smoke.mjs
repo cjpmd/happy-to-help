@@ -37,11 +37,15 @@ async function waitFor(url, ms) {
 
 if (!base) {
   base = `http://127.0.0.1:${PORT}`;
-  server = spawn("npx", ["vite", "dev", "--port", String(PORT), "--host", "127.0.0.1", "--strictPort"], {
-    env: { ...process.env, VITE_SUPABASE_URL: API, VITE_SUPABASE_PUBLISHABLE_KEY: ANON },
-    stdio: "ignore",
-    detached: true,
-  });
+  server = spawn(
+    "npx",
+    ["vite", "dev", "--port", String(PORT), "--host", "127.0.0.1", "--strictPort"],
+    {
+      env: { ...process.env, VITE_SUPABASE_URL: API, VITE_SUPABASE_PUBLISHABLE_KEY: ANON },
+      stdio: "ignore",
+      detached: true,
+    },
+  );
   await waitFor(base, 60_000);
 }
 
@@ -52,7 +56,10 @@ async function sessionFor(email) {
   const { data, error } = await admin.auth.admin.generateLink({ type: "magiclink", email });
   if (error) throw error;
   const anon = createClient(API, ANON, { auth: { persistSession: false } });
-  const res = await anon.auth.verifyOtp({ token_hash: data.properties.hashed_token, type: "magiclink" });
+  const res = await anon.auth.verifyOtp({
+    token_hash: data.properties.hashed_token,
+    type: "magiclink",
+  });
   if (res.error) throw res.error;
   return res.data.session;
 }
@@ -95,15 +102,23 @@ try {
     const page = await pageAs("aisha.grant@example.com");
     await page.goto(`${base}/hq`);
     await page.getByText("BUILD PHASE", { exact: false }).first().waitFor({ timeout: 20_000 });
-    check(await page.getByText("StudyBuddy").first().isVisible(), "HQ shows StudyBuddy from Supabase");
+    check(
+      await page.getByText("StudyBuddy").first().isVisible(),
+      "HQ shows StudyBuddy from Supabase",
+    );
 
     await page.goto(`${base}/approvals`);
     await page.getByText("Publish a post").first().waitFor();
     const cards = page.locator("article");
     const postCard = cards.filter({ hasText: "Higher Maths prelim" }).first();
-    check(await postCard.getByRole("button", { name: /GO · ≈/ }).isDisabled(), "GO is disabled on a flagged draft");
+    check(
+      await postCard.getByRole("button", { name: /GO · ≈/ }).isDisabled(),
+      "GO is disabled on a flagged draft",
+    );
     await postCard.getByRole("button", { name: "Edit" }).click();
-    await postCard.getByLabel("Post text").fill("POV: 10 minutes before your Higher Maths prelim. Here's a 3-minute warm-up.");
+    await postCard
+      .getByLabel("Post text")
+      .fill("POV: 10 minutes before your Higher Maths prelim. Here's a 3-minute warm-up.");
     await postCard.getByRole("button", { name: "Save draft" }).click();
     await page.getByText("Draft updated").waitFor();
     await page.waitForTimeout(500);
@@ -131,7 +146,10 @@ try {
     const page = await pageAs("morag.fraser@example.com");
     await page.goto(`${base}/cohort`);
     await page.getByText("University Venture Programme").waitFor({ timeout: 20_000 });
-    check(await page.getByText("Kelpie Energy").isVisible(), "the mentor sees the cohort's companies");
+    check(
+      await page.getByText("Kelpie Energy").isVisible(),
+      "the mentor sees the cohort's companies",
+    );
     await page.getByRole("link", { name: "Kelpie Energy" }).click();
     const approve = page.getByRole("button", { name: /approve/i }).first();
     await approve.waitFor({ timeout: 10_000 });
