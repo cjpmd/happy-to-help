@@ -14,6 +14,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { MissionHeader } from "./MissionHeader";
 import { AskSolBar } from "./AskSolBar";
+import { AttributionCard } from "./LinkLayer";
 import {
   ChannelsCard,
   EvidenceCard,
@@ -88,7 +89,7 @@ export function CompanyHQ({
       case "Response times":
         return <ResponseTimesCard companyId={companyId} />;
       case "Campaigns":
-        return <ChannelsCard companyId={companyId} title="Campaigns" />;
+        return <AttributionCard companyId={companyId} />;
     }
   };
 

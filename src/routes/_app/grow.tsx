@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { RouteTabs } from "@/components/mission/RouteTabs";
 import { AdsPage, MediaPage } from "@/components/mission/WorkspacePages";
+import { LinksPage } from "@/components/mission/LinkLayer";
 import { useStore, useEstimate } from "@/lib/store";
 import { PageHeader, Panel, Pill, StatusPill } from "@/components/mission/primitives";
 import { ClaimsCheck, CostButton, Why } from "@/components/mission/WorkControls";
@@ -8,14 +9,16 @@ import { pageHead } from "@/lib/seo";
 import { fmtShortDate, num } from "@/lib/format";
 import type { ApprovalOf, SocialPost } from "@/lib/types";
 
-type GrowTab = "overview" | "media" | "ads";
-const GROW_TABS: GrowTab[] = ["overview", "media", "ads"];
+type GrowTab = "overview" | "media" | "ads" | "links";
+const GROW_TABS: GrowTab[] = ["overview", "media", "ads", "links"];
 
 export const Route = createFileRoute("/_app/grow")({
   head: () => pageHead("Grow", "Content calendar and results for every social channel."),
-  // ?tab=media|ads; the overview has no param.
+  // ?tab=media|ads|links; the overview has no param.
   validateSearch: (search: Record<string, unknown>): { tab?: Exclude<GrowTab, "overview"> } =>
-    search["tab"] === "media" || search["tab"] === "ads" ? { tab: search["tab"] } : {},
+    search["tab"] === "media" || search["tab"] === "ads" || search["tab"] === "links"
+      ? { tab: search["tab"] }
+      : {},
   component: Grow,
 });
 
@@ -49,6 +52,7 @@ function Grow() {
           { value: "overview", label: "Posts", content: <GrowOverview /> },
           { value: "media", label: "Media", content: <MediaPage embedded /> },
           { value: "ads", label: "Ads", content: <AdsPage embedded /> },
+          { value: "links", label: "Links & forms", content: <LinksPage /> },
         ]}
       />
     </div>

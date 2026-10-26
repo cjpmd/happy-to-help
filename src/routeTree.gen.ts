@@ -36,6 +36,9 @@ import { Route as AppRunRouteImport } from './routes/_app/run'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppTeamRouteImport } from './routes/_app/team'
 import { Route as AppTelemetryRouteImport } from './routes/_app/telemetry'
+import { Route as FFormIdRouteImport } from './routes/f.$formId'
+import { Route as HSlugRouteImport } from './routes/h.$slug'
+import { Route as LCodeRouteImport } from './routes/l.$code'
 import { Route as ProgressSlugRouteImport } from './routes/progress.$slug'
 import { Route as SiteSlugRouteImport } from './routes/site.$slug'
 import { Route as AppCohortCompanyIdRouteImport } from './routes/_app/cohort.$companyId'
@@ -174,6 +177,21 @@ const AppTelemetryRoute = AppTelemetryRouteImport.update({
   path: '/telemetry',
   getParentRoute: () => AppRoute,
 } as any)
+const FFormIdRoute = FFormIdRouteImport.update({
+  id: '/f/$formId',
+  path: '/f/$formId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HSlugRoute = HSlugRouteImport.update({
+  id: '/h/$slug',
+  path: '/h/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LCodeRoute = LCodeRouteImport.update({
+  id: '/l/$code',
+  path: '/l/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProgressSlugRoute = ProgressSlugRouteImport.update({
   id: '/progress/$slug',
   path: '/progress/$slug',
@@ -217,6 +235,9 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRoute
   '/team': typeof AppTeamRoute
   '/telemetry': typeof AppTelemetryRoute
+  '/f/$formId': typeof FFormIdRoute
+  '/h/$slug': typeof HSlugRoute
+  '/l/$code': typeof LCodeRoute
   '/progress/$slug': typeof ProgressSlugRoute
   '/site/$slug': typeof SiteSlugRoute
   '/cohort/$companyId': typeof AppCohortCompanyIdRoute
@@ -248,6 +269,9 @@ export interface FileRoutesByTo {
   '/settings': typeof AppSettingsRoute
   '/team': typeof AppTeamRoute
   '/telemetry': typeof AppTelemetryRoute
+  '/f/$formId': typeof FFormIdRoute
+  '/h/$slug': typeof HSlugRoute
+  '/l/$code': typeof LCodeRoute
   '/progress/$slug': typeof ProgressSlugRoute
   '/site/$slug': typeof SiteSlugRoute
   '/cohort/$companyId': typeof AppCohortCompanyIdRoute
@@ -281,6 +305,9 @@ export interface FileRoutesById {
   '/_app/settings': typeof AppSettingsRoute
   '/_app/team': typeof AppTeamRoute
   '/_app/telemetry': typeof AppTelemetryRoute
+  '/f/$formId': typeof FFormIdRoute
+  '/h/$slug': typeof HSlugRoute
+  '/l/$code': typeof LCodeRoute
   '/progress/$slug': typeof ProgressSlugRoute
   '/site/$slug': typeof SiteSlugRoute
   '/_app/cohort/$companyId': typeof AppCohortCompanyIdRoute
@@ -314,6 +341,9 @@ export interface FileRouteTypes {
     | '/settings'
     | '/team'
     | '/telemetry'
+    | '/f/$formId'
+    | '/h/$slug'
+    | '/l/$code'
     | '/progress/$slug'
     | '/site/$slug'
     | '/cohort/$companyId'
@@ -345,6 +375,9 @@ export interface FileRouteTypes {
     | '/settings'
     | '/team'
     | '/telemetry'
+    | '/f/$formId'
+    | '/h/$slug'
+    | '/l/$code'
     | '/progress/$slug'
     | '/site/$slug'
     | '/cohort/$companyId'
@@ -377,6 +410,9 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/_app/team'
     | '/_app/telemetry'
+    | '/f/$formId'
+    | '/h/$slug'
+    | '/l/$code'
     | '/progress/$slug'
     | '/site/$slug'
     | '/_app/cohort/$companyId'
@@ -386,6 +422,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   OnboardingRoute: typeof OnboardingRoute
+  FFormIdRoute: typeof FFormIdRoute
+  HSlugRoute: typeof HSlugRoute
+  LCodeRoute: typeof LCodeRoute
   ProgressSlugRoute: typeof ProgressSlugRoute
   SiteSlugRoute: typeof SiteSlugRoute
 }
@@ -581,6 +620,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTelemetryRouteImport
       parentRoute: typeof AppRoute
     }
+    '/f/$formId': {
+      id: '/f/$formId'
+      path: '/f/$formId'
+      fullPath: '/f/$formId'
+      preLoaderRoute: typeof FFormIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/h/$slug': {
+      id: '/h/$slug'
+      path: '/h/$slug'
+      fullPath: '/h/$slug'
+      preLoaderRoute: typeof HSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/l/$code': {
+      id: '/l/$code'
+      path: '/l/$code'
+      fullPath: '/l/$code'
+      preLoaderRoute: typeof LCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/progress/$slug': {
       id: '/progress/$slug'
       path: '/progress/$slug'
@@ -677,6 +737,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   OnboardingRoute: OnboardingRoute,
+  FFormIdRoute: FFormIdRoute,
+  HSlugRoute: HSlugRoute,
+  LCodeRoute: LCodeRoute,
   ProgressSlugRoute: ProgressSlugRoute,
   SiteSlugRoute: SiteSlugRoute,
 }

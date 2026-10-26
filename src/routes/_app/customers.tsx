@@ -4,6 +4,8 @@ import { Upload } from "lucide-react";
 import { toast } from "sonner";
 import { RouteTabs } from "@/components/mission/RouteTabs";
 import { VoiceAndPolicy } from "@/components/mission/VoicePolicy";
+import { LeadsList } from "@/components/mission/LinkLayer";
+import { marketingLabel } from "@/lib/links";
 import { PageHeader, Panel, Pill } from "@/components/mission/primitives";
 import { Button } from "@/components/ui/button";
 import { useCompanyRole, useStore } from "@/lib/store";
@@ -12,15 +14,18 @@ import { parseContactsCsv } from "@/lib/voice";
 import { fmtDate } from "@/lib/format";
 import { pageHead } from "@/lib/seo";
 
-type CustomersTab = "inbox" | "contacts" | "feedback" | "voice";
-const TABS: CustomersTab[] = ["inbox", "contacts", "feedback", "voice"];
+type CustomersTab = "inbox" | "leads" | "contacts" | "feedback" | "voice";
+const TABS: CustomersTab[] = ["inbox", "leads", "contacts", "feedback", "voice"];
 
 export const Route = createFileRoute("/_app/customers")({
   head: () =>
     pageHead("Customers", "Your inbox, contacts, customer feedback and brand voice in one place."),
-  // ?tab=contacts|feedback|voice; the inbox has no param.
+  // ?tab=leads|contacts|feedback|voice; the inbox has no param.
   validateSearch: (search: Record<string, unknown>): { tab?: Exclude<CustomersTab, "inbox"> } =>
-    search["tab"] === "contacts" || search["tab"] === "feedback" || search["tab"] === "voice"
+    search["tab"] === "leads" ||
+    search["tab"] === "contacts" ||
+    search["tab"] === "feedback" ||
+    search["tab"] === "voice"
       ? { tab: search["tab"] }
       : {},
   component: Customers,
@@ -43,6 +48,7 @@ function Customers() {
         }
         tabs={[
           { value: "inbox", label: "Inbox", content: <Inbox /> },
+          { value: "leads", label: "Leads", content: <LeadsList /> },
           { value: "contacts", label: "Contacts", content: <Contacts /> },
           { value: "feedback", label: "Feedback", content: <Feedback /> },
           { value: "voice", label: "Voice & policy", content: <VoiceAndPolicy /> },
@@ -139,7 +145,7 @@ function Contacts() {
       bodyClassName="p-0"
     >
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] text-sm">
+        <table className="w-full min-w-[720px] text-sm">
           <thead className="text-left text-xs text-muted-foreground">
             <tr className="border-b">
               <th className="px-4 py-2 font-medium">Name</th>
@@ -147,6 +153,7 @@ function Contacts() {
               <th className="px-4 py-2 font-medium">Type</th>
               <th className="px-4 py-2 font-medium">Value</th>
               <th className="px-4 py-2 font-medium">Source</th>
+              <th className="px-4 py-2 font-medium">Marketing</th>
               <th className="px-4 py-2 font-medium">Last contact</th>
             </tr>
           </thead>
@@ -164,12 +171,19 @@ function Contacts() {
                 <td className="px-4 py-3 capitalize text-muted-foreground">
                   {p.source ?? "manual"}
                 </td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {marketingLabel(
+                    db.current_consents.find(
+                      (c) => c.contact_id === p.id && c.purpose === "marketing",
+                    ),
+                  )}
+                </td>
                 <td className="px-4 py-3 text-muted-foreground">{fmtDate(p.last)}</td>
               </tr>
             ))}
             {!people.length && (
               <tr>
-                <td colSpan={6} className="px-4 py-4 text-muted-foreground">
+                <td colSpan={7} className="px-4 py-4 text-muted-foreground">
                   No contacts yet. Import a CSV with name and email columns to get started.
                 </td>
               </tr>

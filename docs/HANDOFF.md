@@ -31,3 +31,13 @@ Built: recordings and voice notes are transcribed by `agent-service/src/capture/
 3. Check the price per minute and set it in the database: `update public.credit_config set transcription_usd_per_minute = <price>;` (default 0.01). Credits per minute follow the usual conversion.
 4. Set on the agent service: `TRANSCRIPTION_PROVIDER=speechmatics`, `SPEECHMATICS_API_KEY=...` (and `SPEECHMATICS_URL` if you use a different region).
 5. Restart the worker; its start-up line should say "speechmatics transcription". Record a 30-second debrief on your phone and check the transcript under Meetings → Show transcript, and that the audio is gone from the `captures` storage bucket.
+
+## 4. A branded short-link domain and hub page addresses
+
+Built: short links work now at `<Supabase project URL>/functions/v1/link/<code>` (the `link` Edge Function, public, with a 302 redirect), and in the app at `/l/<code>`. Hub pages are at `/h/<slug>` and forms at `/f/<id>` on the app's own domain.
+
+1. Choose and buy a short domain (e.g. a 4–6 letter `.to` or `.co` domain). This costs money, so it's yours to do.
+2. Deploy the function: `npx supabase functions deploy link --no-verify-jwt` (the `verify_jwt = false` setting in `supabase/config.toml` does the same).
+3. Point the domain at it: with a proxy that supports path rewriting (e.g. Cloudflare in front of the domain), forward `https://<short-domain>/<code>` to `https://<project>.supabase.co/functions/v1/link/<code>`, keeping the visitor's `User-Agent` and `Referer` headers. Cloudflare also adds the `cf-ipcountry` header the function reads for the coarse country.
+4. Set `VITE_SHORT_LINK_BASE=https://<short-domain>` for the frontend build and redeploy it. New links copy with the short domain; existing ones keep working on both addresses.
+5. Subdomains per company (`{company}.<our-domain>`) or a company's own domain for its hub page need wildcard DNS and hosting rules on the app's host; until then the `/h/<slug>` address works everywhere. Update the links in seed data (`supabase/seed.sql`) if you use them for demos.

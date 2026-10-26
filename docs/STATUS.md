@@ -19,8 +19,8 @@ Restyle first, then the remaining Phase 1 groups, then the engine, then the v2 d
 | 10 | Two entry paths, stage-aware dashboard | `phase-10-entry-paths` | Done |
 | 11 | Brand voice and response policy | `phase-11-voice-policy` | Done |
 | 12 | Capture v1 | `phase-12-capture` | Done |
-| 13 | Link layer and lead capture | `phase-13-link-layer` | Next |
-| 6 | Stripe billing (test mode) | `phase-6-stripe` | |
+| 13 | Link layer and lead capture | `phase-13-link-layer` | Done |
+| 6 | Stripe billing (test mode) | `phase-6-stripe` | Next |
 | 7 | Real integrations (flagged, mocked by default) | `phase-7-integrations` | |
 | 8 | Scheduler, routines, Auto Mode | `phase-8-scheduler` | |
 | 9 | More skills and hardening | `phase-9-hardening` | |
@@ -124,6 +124,15 @@ Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, con
 - App: hold-to-talk mic on the Ask Sol bar (a voice note, D44), Debrief page (mobile-first, up to two follow-up questions; a Debrief button on the phone HQ), Meetings (list, review cards, transcript on demand, add a transcript or recording with consent and the cost shown, ideas, promises, recording and auto-accept settings), "From your meeting" cards in GO / NO-GO and in its count. The demo reads typed text with the same rules (`src/lib/demoCapture.ts`).
 - Tests: `12_capture.test.sql` and the new tables in the read-access matrix; `agent-service/test/capture.test.ts` (debrief, recording with transcription and deletion, follow-up draft, memory facts); `src/test/capture.test.ts` and `demoCapture.test.ts`; the live browser test adds a transcript and accepts from the review card.
 - **Mocked:** transcription (HANDOFF 3) and the extraction model (rule-based `src/lib/capture.ts` in the mock runtime, HANDOFF 1). "Commitments due today" is ready (`commitmentsDue`) for the morning brief, which Phase 8 builds.
+
+### Phase 13 (finished 27 Oct 2026)
+
+- `20261028100000_link_layer.sql`: `hub_pages` (one per company, unpublished until a founder publishes), `forms`, `tracked_links`, `link_clicks` (time, country, device class, referring site; no IP or cookie), `consents` (a history: updates are refused, the latest row is current, erasing a contact removes it), `current_consents` and `link_stats` views, and `leads` with attribution. Every company gets a hub page and a form.
+- Public RPCs (D47): `follow_link`, `get_hub`, `get_form`, `submit_lead` (validation, a hidden bot trap, light rate limits, the contact, a service consent on legitimate interests, the marketing opt-in only if ticked with its exact wording, the lead attributed to the link, and the message in the Customers inbox). Signed-in: `create_tracked_link`, `update_tracked_link`, `save_hub_page` and `save_form` (founders), `set_lead_status` (won makes a customer), `record_consent` (the team can record an opt-out, never an opt-in), `attribution`.
+- `supabase/functions/link`: the public short-link redirect (D45); device and country parsing in `_shared/logic.ts`.
+- App: Grow → Links & forms (what's working, tracked links with copy and QR PNG/SVG, hub page editor and publish, form wording, privacy link and embed code); public `/h/<slug>`, `/f/<id>` and `/l/<code>`; cookie banner on public pages (D48); Customers → Leads and a Marketing column on contacts; the Keep going HQ "Campaigns" card is now clicks → leads → customers.
+- Tests: `13_link_layer.test.sql`, the new tables in the read-access matrix (consents and leads founder/teammate only), the anonymous-function allowlist, `src/test/links.test.ts`, edge logic tests, an integration test for the redirect, and the live browser test follows a short link to the hub page and sends the form.
+- **Mocked / owner steps:** a branded short domain and per-company subdomains (HANDOFF 4). Campaign objects come in Phase 15; links carry the campaign's name until then.
 
 ## Phase 0 audit and Phase 1 history
 
