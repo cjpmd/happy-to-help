@@ -83,3 +83,36 @@ export function mockReply(message: string): string {
     return "I'll check your compliance calendar and draft what's due. Filings wait for your approval.";
   return "Got it. I'll add that to tonight's plan and have a draft ready for your approval by the morning.";
 }
+
+/** A device class from the User-Agent: enough for reporting, too coarse to identify anyone. */
+export function deviceClass(
+  ua: string | null,
+): "mobile" | "tablet" | "desktop" | "bot" | "unknown" {
+  if (!ua) return "unknown";
+  if (/bot|crawl|spider|slurp|preview|facebookexternalhit|whatsapp|curl|wget/i.test(ua))
+    return "bot";
+  if (/ipad|tablet|kindle|silk|(android(?!.*mobile))/i.test(ua)) return "tablet";
+  if (/mobi|iphone|ipod|android/i.test(ua)) return "mobile";
+  if (/windows|macintosh|linux|cros/i.test(ua)) return "desktop";
+  return "unknown";
+}
+
+/** The visitor's country, when the hosting platform supplies it. No IP address is kept. */
+export function countryFrom(headers: Headers): string | null {
+  for (const h of [
+    "cf-ipcountry",
+    "x-vercel-ip-country",
+    "x-country-code",
+    "x-appengine-country",
+  ]) {
+    const v = headers.get(h)?.toUpperCase();
+    if (v && /^[A-Z]{2}$/.test(v) && v !== "XX") return v;
+  }
+  return null;
+}
+
+/** The short code from /functions/v1/link/{code} (or /l/{code}). */
+export function linkCode(pathname: string): string | null {
+  const last = pathname.split("/").filter(Boolean).pop() ?? "";
+  return /^[A-Za-z0-9]{6,12}$/.test(last) ? last : null;
+}
