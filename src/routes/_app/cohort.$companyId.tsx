@@ -3,6 +3,7 @@ import { useState } from "react";
 import { ArrowLeft, Eye } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { CompanyHQ } from "@/components/mission/CompanyHQ";
+import { StageBar } from "@/components/mission/StageBar";
 import { Panel } from "@/components/mission/primitives";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +40,9 @@ function MentorCompany() {
         </span>
       </div>
       <CompanyHQ companyId={companyId} readOnly />
+      <Panel title="Stage gates">
+        <StageBar companyId={companyId} canApprove />
+      </Panel>
       <Panel title="Mentor comments">
         <ul className="space-y-3">
           {comments.map((c) => (

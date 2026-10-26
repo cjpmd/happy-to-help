@@ -90,7 +90,7 @@ export function CostButton({
   variant?: "default" | "outline";
 }) {
   const balance = useBalance();
-  const { solTyping } = useStore();
+  const { solTyping, mode } = useStore();
   const q = actionQuote(balance, cost);
   const [open, setOpen] = useState(false);
   return (
@@ -120,7 +120,7 @@ export function CostButton({
               {q.affordable
                 ? `${q.after.toLocaleString("en-GB")} CR left after`
                 : `${cost - balance} CR more needed`}
-              . Demo work only.
+              .{mode === "demo" ? " Demo work only." : ""}
             </DialogDescription>
           </DialogHeader>
           {q.affordable ? (

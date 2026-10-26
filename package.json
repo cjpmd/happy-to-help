@@ -15,7 +15,8 @@
     "check:fit": "node scripts/check-fit.mjs",
     "db:types": "supabase gen types typescript --local > src/integrations/supabase/types.ts && prettier --write src/integrations/supabase/types.ts",
     "db:reset": "supabase db reset",
-    "db:test": "supabase test db"
+    "db:test": "supabase test db",
+    "e2e:live": "node scripts/e2e/live-smoke.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"

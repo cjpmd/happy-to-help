@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useCompany, useStore } from "@/lib/store";
+import { useCompany, useStore, useCompanyRole } from "@/lib/store";
 import { missionDay, stageLabel } from "@/lib/mission";
 import { buildMilestones, inDays } from "@/lib/flightPlan";
 import { PageHeader, Panel, Pill } from "@/components/mission/primitives";
@@ -25,6 +25,7 @@ export const Route = createFileRoute("/_app/flight-plan")({
 function FlightPlan() {
   const { db, companyId, now } = useStore();
   const c = useCompany(companyId);
+  const role = useCompanyRole(companyId);
   const nowDay = missionDay(c, now);
   const milestones = useMemo(
     () =>
@@ -118,7 +119,10 @@ function FlightPlan() {
                     )}
                   </Panel>
                 )}
-                <StageBar companyId={companyId} />
+                <StageBar
+                  companyId={companyId}
+                  canApprove={role === "founder" || role === "mentor"}
+                />
               </div>
             ),
           },
