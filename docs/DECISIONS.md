@@ -108,3 +108,17 @@ Non-trivial decisions made during the autonomous build run (`docs/AUTONOMOUS-RUN
 ## D28. Local Edge Functions behind a TLS-re-signing proxy
 - **Question:** the local edge runtime couldn't download npm packages in the build sandbox ("invalid peer certificate").
 - **Chosen:** `scripts/dev/warm-functions-cache.sh` fills the runtime's cache from a Deno 2.1.4 container that trusts the proxy's CA. Not needed on a normal machine or on hosted Supabase.
+
+## D29. Where and how approved actions are carried out
+- **Chosen:** the executor is a deterministic module in the agent service (`agent-service/src/executor/`), polled by the same worker loop (approvals first). `decide_approval` queues approved actions (`execution_status = 'queued'`); the executor claims them with `FOR UPDATE SKIP LOCKED`, re-checks the rules, charges the approval's credits through its own run (reserve → `settle_run_credits`), calls the provider, and records the result on the approval and in activity. Provider failures are refunded and retried once; rule failures are blocked with no charge and explained in chat.
+
+## D30. Executor rules
+- **Chosen:** checked again at execution time, whatever was approved: the claims check; ad budgets never over their hard cap or the platform maximum (£100/day); outreach batches never over 50 recipients; and the founders' own settings as escalation rules: an ad budget over the "Ad change alert (£)", an outreach batch over the "Outreach volume alert", or any publishing when "Ask before publishing" is on must have been approved by a founder, not a mentor. Where founders differ, the strictest setting wins.
+- **Why:** the settings existed but nothing read them (STATUS B13). Using them to decide who may approve keeps every action approved while letting mentors handle routine work.
+- **Change it:** limits in `DEFAULT_LIMITS` (`agent-service/src/executor/rules.ts`); the founder rules in `checkRules`.
+
+## D31. Cohort headroom counts when approving
+- **Chosen:** `decide_approval` now accepts an approval the balance plus the cohort pool's headroom can cover, matching what `reserve_credits` will actually allow.
+
+## D32. NO-GO notes
+- **Chosen:** `decide_approval` takes an optional note; it's stored on the approval and shown in the agent's company memory under "Recently declined", so Sol doesn't propose the same thing again unchanged. The app doesn't ask for a note yet.

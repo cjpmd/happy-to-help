@@ -6,6 +6,8 @@
 import { loadConfig, type Config } from "./config.js";
 import { serviceClient, type Db } from "./db/client.js";
 import { processJob, type Job } from "./runner.js";
+import { claimApproval, executeApproval } from "./executor/executor.js";
+import { mockProviders } from "./executor/providers.js";
 import { runtimeFor } from "./runtime/index.js";
 import type { AgentRuntime } from "./runtime/types.js";
 
@@ -43,13 +45,17 @@ async function main() {
   const config = loadConfig();
   const db = serviceClient(config);
   const runtime = runtimeFor(config.runtime);
+  // Phase 7 picks real providers per company; until then everything goes to the mocks.
+  const providers = mockProviders();
   let stopping = false;
   for (const sig of ["SIGINT", "SIGTERM"] as const)
     process.on(sig, () => {
       console.log(`${sig}: finishing the current job, then stopping`);
       stopping = true;
     });
-  console.log(`Agent worker ${config.workerId} started (${runtime.name} runtime)`);
+  console.log(
+    `Agent worker ${config.workerId} started (${runtime.name} runtime, ${providers.name} providers)`,
+  );
   let lastReap = 0;
   while (!stopping) {
     try {
@@ -59,6 +65,15 @@ async function main() {
           p_stale: `${config.staleAfterMinutes} minutes`,
         });
         if (data) console.log(`Recovered ${data} stale run(s)`);
+      }
+      // Approved actions first: the founder is waiting on them.
+      const approval = await claimApproval(db, config.workerId);
+      if (approval) {
+        await executeApproval(
+          { db, providers, workerId: config.workerId, log: console.log },
+          approval,
+        );
+        continue;
       }
       const job = await claimNext(db, config.workerId);
       if (job) await processJob({ db, config, runtime, log: console.log }, job);

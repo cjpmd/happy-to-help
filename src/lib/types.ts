@@ -165,6 +165,12 @@ interface ApprovalBase {
   created_at: string;
   /** Set when a founder asked for it themselves. */
   requested_by?: string | null;
+  /** What the executor did with an approved action (Phase 5). */
+  execution_status?: "not_started" | "queued" | "executing" | "done" | "blocked" | "failed";
+  execution_error?: string | null;
+  executed_at?: string | null;
+  /** Why it got a NO-GO; Sol reads it on its next run. */
+  decision_note?: string | null;
 }
 export type ApprovalOf<K extends ApprovalAction> = ApprovalBase & {
   action_type: K;

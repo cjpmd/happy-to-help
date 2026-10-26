@@ -132,6 +132,10 @@ export function mapApproval(a: Row<"approvals">): T.Approval {
     decided_at: a.decided_at,
     created_at: a.created_at,
     requested_by: a.requested_by,
+    execution_status: a.execution_status,
+    execution_error: a.execution_error,
+    executed_at: a.executed_at,
+    decision_note: a.decision_note,
   } as unknown as T.Approval;
 }
 

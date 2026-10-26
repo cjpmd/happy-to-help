@@ -20,7 +20,8 @@ grant execute on function pg_temp.approval(text) to authenticated, service_role;
 insert into public.approvals (id, company_id, action_type, payload, estimated_credits) values
   (pg_temp.approval('flagged'), pg_temp.id('company_a'), 'publish_post', '{"channel": "X", "text": "The best app in Scotland"}', 40),
   (pg_temp.approval('clean'), pg_temp.id('company_a'), 'publish_post', '{"channel": "X", "text": "Ten minutes a day", "reason": "Signups like it"}', 40),
-  (pg_temp.approval('pricey'), pg_temp.id('company_a'), 'publish_post', '{"channel": "X", "text": "Hello again"}', 5000),
+  -- More than company A's 1,000 credits plus its 5,000 cohort headroom.
+  (pg_temp.approval('pricey'), pg_temp.id('company_a'), 'publish_post', '{"channel": "X", "text": "Hello again"}', 7000),
   (pg_temp.approval('over_cap'), pg_temp.id('company_a'), 'ad_spend', '{"platform": "Meta Ads", "amount_gbp": 80, "daily_budget": 80, "duration": "per day", "audience": "All", "creative": "Reel"}', 10),
   (pg_temp.approval('email'), pg_temp.id('company_a'), 'send_email', '{"to": "a@example.com", "subject": "Hi", "body": "We guarantee results"}', 10),
   (pg_temp.approval('b_clean'), pg_temp.id('company_b'), 'publish_post', '{"channel": "X", "text": "Hello from B"}', 40);

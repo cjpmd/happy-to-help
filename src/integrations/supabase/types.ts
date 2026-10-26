@@ -292,7 +292,14 @@ export type Database = {
           created_at: string;
           decided_at: string | null;
           decided_by: string | null;
+          decision_note: string | null;
           estimated_credits: number;
+          executed_at: string | null;
+          execution_attempts: number;
+          execution_error: string | null;
+          execution_result: Json | null;
+          execution_run_id: string | null;
+          execution_status: Database["public"]["Enums"]["execution_status"];
           id: string;
           original_payload: Json | null;
           payload: NonNullable<Json>;
@@ -308,7 +315,14 @@ export type Database = {
           created_at?: string;
           decided_at?: string | null;
           decided_by?: string | null;
+          decision_note?: string | null;
           estimated_credits?: number;
+          executed_at?: string | null;
+          execution_attempts?: number;
+          execution_error?: string | null;
+          execution_result?: Json | null;
+          execution_run_id?: string | null;
+          execution_status?: Database["public"]["Enums"]["execution_status"];
           id?: string;
           original_payload?: Json | null;
           payload: NonNullable<Json>;
@@ -323,7 +337,14 @@ export type Database = {
           created_at?: string;
           decided_at?: string | null;
           decided_by?: string | null;
+          decision_note?: string | null;
           estimated_credits?: number;
+          executed_at?: string | null;
+          execution_attempts?: number;
+          execution_error?: string | null;
+          execution_result?: Json | null;
+          execution_run_id?: string | null;
+          execution_status?: Database["public"]["Enums"]["execution_status"];
           id?: string;
           original_payload?: Json | null;
           payload?: NonNullable<Json>;
@@ -345,6 +366,13 @@ export type Database = {
             columns: ["decided_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "approvals_execution_run_id_fkey";
+            columns: ["execution_run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
             referencedColumns: ["id"];
           },
           {
@@ -1783,6 +1811,37 @@ export type Database = {
           isSetofReturn: true;
         };
       };
+      claim_approval_execution: {
+        Args: { p_worker: string };
+        Returns: {
+          action_type: Database["public"]["Enums"]["approval_action"];
+          company_id: string;
+          created_at: string;
+          decided_at: string | null;
+          decided_by: string | null;
+          decision_note: string | null;
+          estimated_credits: number;
+          executed_at: string | null;
+          execution_attempts: number;
+          execution_error: string | null;
+          execution_result: Json | null;
+          execution_run_id: string | null;
+          execution_status: Database["public"]["Enums"]["execution_status"];
+          id: string;
+          original_payload: Json | null;
+          payload: NonNullable<Json>;
+          requested_by: string | null;
+          run_id: string | null;
+          status: Database["public"]["Enums"]["approval_status"];
+          updated_at: string;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "approvals";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
       complete_task: { Args: { p_task: string }; Returns: undefined };
       create_company: {
         Args: {
@@ -1801,7 +1860,11 @@ export type Database = {
       credit_summary: { Args: { p_company: string }; Returns: Json };
       credits_for_usd: { Args: { p_cost_usd: number }; Returns: number };
       decide_approval: {
-        Args: { p_approval: string; p_decision: Database["public"]["Enums"]["approval_status"] };
+        Args: {
+          p_approval: string;
+          p_decision: Database["public"]["Enums"]["approval_status"];
+          p_note?: string;
+        };
         Returns: Database["public"]["Enums"]["approval_status"];
       };
       draft_outreach: {
@@ -1848,6 +1911,10 @@ export type Database = {
         Returns: number;
       };
       settle_run: { Args: { p_cost_usd: number; p_note?: string; p_run: string }; Returns: number };
+      settle_run_credits: {
+        Args: { p_credits: number; p_note?: string; p_run: string };
+        Returns: number;
+      };
       usd_for_credits: { Args: { p_credits: number }; Returns: number };
     };
     Enums: {
@@ -1864,6 +1931,7 @@ export type Database = {
       email_direction: "received" | "sent" | "draft";
       email_mode: "support" | "outreach";
       evidence_type: "assumption" | "interview" | "waitlist" | "preorder";
+      execution_status: "not_started" | "queued" | "executing" | "done" | "blocked" | "failed";
       gate_status: "locked" | "in_progress" | "ready" | "approved";
       investor_stage:
         "researching" | "contacted" | "meeting" | "diligence" | "committed" | "passed";
@@ -2007,6 +2075,7 @@ export const Constants = {
       email_direction: ["received", "sent", "draft"],
       email_mode: ["support", "outreach"],
       evidence_type: ["assumption", "interview", "waitlist", "preorder"],
+      execution_status: ["not_started", "queued", "executing", "done", "blocked", "failed"],
       gate_status: ["locked", "in_progress", "ready", "approved"],
       investor_stage: ["researching", "contacted", "meeting", "diligence", "committed", "passed"],
       job_status: ["queued", "running", "done", "failed"],
