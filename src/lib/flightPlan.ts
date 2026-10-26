@@ -370,7 +370,7 @@ export function buildMilestones(
       day,
       label: gateName(g.stage),
       kind: "gate",
-      status: g.status === "approved" ? "done" : "upcoming",
+      status: g.status === "approved" || g.status === "imported" ? "done" : "upcoming",
     });
   }
   for (const t of tasks) {

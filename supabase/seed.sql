@@ -26,7 +26,8 @@ from (values
   ('a0000000-0000-4000-8000-000000000002'::uuid, 'morag.fraser@example.com', 'Dr Morag Fraser'),
   ('a0000000-0000-4000-8000-000000000003'::uuid, 'admin@example.com', 'Platform Admin'),
   ('a0000000-0000-4000-8000-000000000004'::uuid, 'callum.reid@example.com', 'Callum Reid'),
-  ('a0000000-0000-4000-8000-000000000005'::uuid, 'jamie.lowe@example.com', 'Jamie Lowe')
+  ('a0000000-0000-4000-8000-000000000005'::uuid, 'jamie.lowe@example.com', 'Jamie Lowe'),
+  ('a0000000-0000-4000-8000-000000000006'::uuid, 'rory.mackay@example.com', 'Rory MacKay')
 ) as people (id, email, full_name);
 
 insert into auth.identities (provider_id, user_id, identity_data, provider, created_at, updated_at)
@@ -57,7 +58,19 @@ insert into public.companies (
   ('c0000000-0000-4000-8000-000000000004', 'croft-care', 'Croft Care',
    'Rota and visit-logging for rural home-care agencies. Works offline in remote areas.',
    'B2B', 'idea', 'starter', 'general', '{LinkedIn,"Email outreach","Trust page"}', null,
-   null, '/site/croft-care', '/site/croft-care?preview=1', 'a0000000-0000-4000-8000-000000000004', now() - interval '5 days');
+   null, '/site/croft-care', '/site/croft-care?preview=1', 'a0000000-0000-4000-8000-000000000004', now() - interval '5 days'),
+  ('c0000000-0000-4000-8000-000000000005', 'harbour-bakes', 'Harbour Bakes',
+   'Sourdough, pastries and celebration cakes from a harbourside bakery in Taybridge. Click and collect, and local delivery on Saturdays.',
+   'B2C', 'grow', 'founder', 'general', '{Instagram,TikTok,Waitlist}', 'Local families and cafés',
+   'Grow weekly click-and-collect orders to 200', 'https://harbourbakes.example', '/site/harbour-bakes?preview=1', 'a0000000-0000-4000-8000-000000000006', now() - interval '21 days');
+
+-- Harbour Bakes joined already trading (the Keep going path).
+update public.companies
+set entry_path = 'keep_going',
+    existing_website_url = 'https://harbourbakes.example',
+    social_handles = '{"instagram": "@harbourbakes", "facebook": "https://facebook.com/harbourbakes.example"}',
+    google_business_url = 'https://business.google.com/harbourbakes.example'
+where slug = 'harbour-bakes';
 
 insert into public.company_members (company_id, user_id, role) values
   ('c0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'founder'),
@@ -65,7 +78,8 @@ insert into public.company_members (company_id, user_id, role) values
   ('c0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000001', 'founder'),
   ('c0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000004', 'founder'),
   ('c0000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000004', 'founder'),
-  ('c0000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000004', 'founder');
+  ('c0000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000004', 'founder'),
+  ('c0000000-0000-4000-8000-000000000005', 'a0000000-0000-4000-8000-000000000006', 'founder');
 
 -- Cohort ----------------------------------------------------------------------------------
 
@@ -118,6 +132,11 @@ from (values
 ) as c (id, current_idx, current_ready, evidence_criteria, build_criteria)
 join public.companies co on co.id = c.id
 cross join (values ('idea'::public.stage, 1, 8), ('evidence', 2, 18), ('build', 3, 42), ('launch', 4, 80)) as s (stage, idx, target_day);
+
+-- Harbour Bakes was already trading: its gates before Grow are imported.
+insert into public.stage_gates (company_id, stage, criteria, status, target_date)
+select 'c0000000-0000-4000-8000-000000000005', s, '[]', 'imported', (now() - interval '21 days')::date
+from unnest(array['idea', 'evidence', 'build', 'launch']::public.stage[]) s;
 
 insert into public.gate_comments (company_id, author_id, body, created_at) values
   ('c0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000002',
@@ -271,7 +290,8 @@ insert into public.credit_ledger (company_id, entry_type, amount, note, bucket, 
   ('c0000000-0000-4000-8000-000000000001', 'topup', 10000, 'Launch Pack (build credits)', 'topup', now() + interval '12 months' - interval '18 days', now() - interval '18 days'),
   ('c0000000-0000-4000-8000-000000000002', 'grant', 1500, 'Starter plan — monthly grant', 'plan', now() + interval '10 days', now() - interval '20 days'),
   ('c0000000-0000-4000-8000-000000000003', 'grant', 12000, 'Growth plan — monthly grant', 'plan', now() + interval '10 days', now() - interval '20 days'),
-  ('c0000000-0000-4000-8000-000000000004', 'grant', 1500, 'Starter plan — monthly grant', 'plan', now() + interval '10 days', now() - interval '20 days');
+  ('c0000000-0000-4000-8000-000000000004', 'grant', 1500, 'Starter plan — monthly grant', 'plan', now() + interval '10 days', now() - interval '20 days'),
+  ('c0000000-0000-4000-8000-000000000005', 'grant', 5000, 'Founder plan — monthly grant', 'plan', now() + interval '10 days', now() - interval '20 days');
 
 do $$
 declare
@@ -290,6 +310,7 @@ begin
   perform private.debit('c0000000-0000-4000-8000-000000000002', 'usage', 1260, null, 'Research and landing page', now() - interval '9 days');
   perform private.debit('c0000000-0000-4000-8000-000000000003', 'usage', 7400, null, 'Month to date', now() - interval '3 days');
   perform private.debit('c0000000-0000-4000-8000-000000000004', 'usage', 90, null, 'Idea brief', now() - interval '19 days');
+  perform private.debit('c0000000-0000-4000-8000-000000000005', 'usage', 640, null, 'Import, voice analysis and first posts', now() - interval '18 days');
 end;
 $$;
 
@@ -375,7 +396,8 @@ from (values
   ('c0000000-0000-4000-8000-000000000001'::uuid, 140, 4, 7, 4.99, 0.06),
   ('c0000000-0000-4000-8000-000000000002'::uuid, 40, 2, 0, 0, 0.03),
   ('c0000000-0000-4000-8000-000000000003'::uuid, 320, 9, 14, 39, 0.04),
-  ('c0000000-0000-4000-8000-000000000004'::uuid, 8, 0, 0, 0, 0.01)
+  ('c0000000-0000-4000-8000-000000000004'::uuid, 8, 0, 0, 0, 0.01),
+  ('c0000000-0000-4000-8000-000000000005'::uuid, 260, 6, 140, 18.5, 0.02)
 ) as c (id, visitors, signups, paying, price, growth)
 cross join generate_series(0, 13) as i;
 
@@ -443,3 +465,40 @@ insert into public.ad_accounts (company_id, status, daily_budget, hard_cap, spen
 select id, 'not_connected', 0, 50, 0, 0, 0 from public.companies where slug <> 'studybuddy';
 insert into public.ad_accounts (company_id, status, daily_budget, hard_cap, spend, clicks, signups) values
   ('c0000000-0000-4000-8000-000000000001', 'demo', 6, 50, 30, 122, 20);
+
+-- Harbour Bakes: customers and leads imported at onboarding, an inbox with enquiries waiting,
+-- posts, and the writing Sol learned its voice from.
+
+insert into public.contacts (company_id, name, email, kind, value, source, last_contact_at) values
+  ('c0000000-0000-4000-8000-000000000005', 'Sarah Patel', 'sarah.patel@example.com', 'customer', 'Weekly sourdough', 'import', now() - interval '2 days'),
+  ('c0000000-0000-4000-8000-000000000005', 'Tom Gillespie', 'tom.gillespie@example.com', 'customer', 'Cinnamon buns, Saturdays', 'import', now() - interval '6 days'),
+  ('c0000000-0000-4000-8000-000000000005', 'The Quay Café', 'orders@quaycafe.example.com', 'customer', 'Wholesale, 3 days a week', 'import', now() - interval '1 day'),
+  ('c0000000-0000-4000-8000-000000000005', 'Fiona Reid', 'fiona.reid@example.com', 'lead', 'Wedding cake enquiry', 'form', now() - interval '5 hours'),
+  ('c0000000-0000-4000-8000-000000000005', 'Ahmed Khan', 'ahmed.khan@example.com', 'lead', 'Office breakfast order', 'form', now() - interval '20 hours'),
+  ('c0000000-0000-4000-8000-000000000005', 'Lucy Moore', 'lucy.moore@example.com', 'lead', 'Birthday cake', 'import', now() - interval '3 days');
+
+with thread as (
+  insert into public.email_threads (company_id, subject, contact_name, address, mode, created_at) values
+    ('c0000000-0000-4000-8000-000000000005', 'Wedding cake for 80 guests', 'Fiona Reid', 'fiona.reid@example.com', 'support', now() - interval '5 hours'),
+    ('c0000000-0000-4000-8000-000000000005', 'Breakfast for our team on Friday', 'Ahmed Khan', 'ahmed.khan@example.com', 'support', now() - interval '20 hours'),
+    ('c0000000-0000-4000-8000-000000000005', 'Gluten-free options?', 'Sarah Patel', 'sarah.patel@example.com', 'support', now() - interval '2 days')
+  returning id, company_id, subject, created_at
+)
+insert into public.email_messages (thread_id, company_id, direction, body, created_at)
+select thread.id, thread.company_id, m.direction, m.body, thread.created_at + m.after
+from thread
+join (values
+  ('Wedding cake for 80 guests', 'received'::public.email_direction, 'Hello! We''re getting married in June and would love a three-tier cake for 80 guests. Do you do tastings?', interval '0'),
+  ('Breakfast for our team on Friday', 'received', 'Could you deliver pastries for 25 people to our office on Friday at 8:30?', interval '0'),
+  ('Gluten-free options?', 'received', 'Do you have anything gluten-free? My daughter is coeliac.', interval '0'),
+  ('Gluten-free options?', 'sent', E'Hi Sarah,\n\nThanks for asking. We bake in a kitchen that uses flour, so we can''t promise anything is safe for coeliacs. Our almond cake has no gluten ingredients, but it''s made alongside wheat.\n\nBest wishes\nRory', interval '3 hours')
+) as m (subject, direction, body, after) on m.subject = thread.subject;
+
+insert into public.social_posts (company_id, channel, text, angle, status, scheduled_for, metrics) values
+  ('c0000000-0000-4000-8000-000000000005', 'Instagram', 'Saturday''s sourdough, fresh from the oven. Order by Thursday for click and collect.', 'Behind the scenes', 'published', now() - interval '3 days', '{"clicks": 210, "signups": 14}'),
+  ('c0000000-0000-4000-8000-000000000005', 'TikTok', 'How we laminate 200 croissants before 6am', 'Behind the scenes', 'published', now() - interval '6 days', '{"clicks": 380, "signups": 9}'),
+  ('c0000000-0000-4000-8000-000000000005', 'Instagram', 'Cinnamon bun season is back.', 'Product', 'scheduled', now() + interval '1 day', '{"clicks": 0, "signups": 0}');
+
+insert into public.voice_sources (company_id, kind, content, added_by) values
+  ('c0000000-0000-4000-8000-000000000005', 'website', 'Sourdough, pastries and celebration cakes, baked every morning by the harbour. Fresh from the oven, as always. Pop in and say hello.', 'a0000000-0000-4000-8000-000000000006'),
+  ('c0000000-0000-4000-8000-000000000005', 'email', E'Hi Tom,\n\nYour cinnamon buns are back this Saturday. Fresh from the oven, as always.\n\nBest wishes\nRory', 'a0000000-0000-4000-8000-000000000006');

@@ -544,13 +544,16 @@ export type Database = {
           created_by: string | null;
           customer_type: Database["public"]["Enums"]["customer_type"];
           description: string;
+          entry_path: Database["public"]["Enums"]["entry_path"];
           existing_website_url: string | null;
           goal_90d: string | null;
+          google_business_url: string | null;
           id: string;
           name: string;
           plan: Database["public"]["Enums"]["company_plan"];
           sector: Database["public"]["Enums"]["sector_pack"];
           slug: string;
+          social_handles: NonNullable<Json>;
           stage: Database["public"]["Enums"]["stage"];
           started_at: string;
           starting_stage: string | null;
@@ -567,13 +570,16 @@ export type Database = {
           created_by?: string | null;
           customer_type: Database["public"]["Enums"]["customer_type"];
           description?: string;
+          entry_path?: Database["public"]["Enums"]["entry_path"];
           existing_website_url?: string | null;
           goal_90d?: string | null;
+          google_business_url?: string | null;
           id?: string;
           name: string;
           plan?: Database["public"]["Enums"]["company_plan"];
           sector?: Database["public"]["Enums"]["sector_pack"];
           slug: string;
+          social_handles?: NonNullable<Json>;
           stage?: Database["public"]["Enums"]["stage"];
           started_at?: string;
           starting_stage?: string | null;
@@ -589,13 +595,16 @@ export type Database = {
           created_by?: string | null;
           customer_type?: Database["public"]["Enums"]["customer_type"];
           description?: string;
+          entry_path?: Database["public"]["Enums"]["entry_path"];
           existing_website_url?: string | null;
           goal_90d?: string | null;
+          google_business_url?: string | null;
           id?: string;
           name?: string;
           plan?: Database["public"]["Enums"]["company_plan"];
           sector?: Database["public"]["Enums"]["sector_pack"];
           slug?: string;
+          social_handles?: NonNullable<Json>;
           stage?: Database["public"]["Enums"]["stage"];
           started_at?: string;
           starting_stage?: string | null;
@@ -747,6 +756,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["contact_kind"];
           last_contact_at: string | null;
           name: string;
+          source: string;
           value: string;
         };
         ComputedFields: never;
@@ -758,6 +768,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["contact_kind"];
           last_contact_at?: string | null;
           name: string;
+          source?: string;
           value?: string;
         };
         Update: {
@@ -768,6 +779,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["contact_kind"];
           last_contact_at?: string | null;
           name?: string;
+          source?: string;
           value?: string;
         };
         Relationships: [
@@ -1752,6 +1764,49 @@ export type Database = {
           },
         ];
       };
+      voice_sources: {
+        Row: {
+          added_by: string | null;
+          company_id: string;
+          content: string;
+          created_at: string;
+          id: string;
+          kind: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          added_by?: string | null;
+          company_id: string;
+          content: string;
+          created_at?: string;
+          id?: string;
+          kind: string;
+        };
+        Update: {
+          added_by?: string | null;
+          company_id?: string;
+          content?: string;
+          created_at?: string;
+          id?: string;
+          kind?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "voice_sources_added_by_fkey";
+            columns: ["added_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "voice_sources_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       company_credit_balance: {
@@ -1848,10 +1903,13 @@ export type Database = {
           p_cohort_code?: string;
           p_customer_type: Database["public"]["Enums"]["customer_type"];
           p_description: string;
+          p_entry_path?: Database["public"]["Enums"]["entry_path"];
           p_existing_website_url?: string;
           p_goal_90d?: string;
+          p_google_business_url?: string;
           p_name: string;
           p_sector?: Database["public"]["Enums"]["sector_pack"];
+          p_social_handles?: Json;
           p_starting_stage?: string;
           p_target_customer?: string;
         };
@@ -1897,6 +1955,7 @@ export type Database = {
         Returns: string;
       };
       heartbeat_agent_job: { Args: { p_job: string; p_worker: string }; Returns: boolean };
+      import_contacts: { Args: { p_company: string; p_rows: Json }; Returns: number };
       join_cohort: { Args: { p_code: string; p_company: string }; Returns: string };
       post_chat_message: { Args: { p_company: string; p_content: string }; Returns: string };
       reap_stale_runs: { Args: { p_stale?: string }; Returns: number };
@@ -1930,9 +1989,10 @@ export type Database = {
       customer_type: "B2B" | "B2C";
       email_direction: "received" | "sent" | "draft";
       email_mode: "support" | "outreach";
+      entry_path: "start_up" | "keep_going";
       evidence_type: "assumption" | "interview" | "waitlist" | "preorder";
       execution_status: "not_started" | "queued" | "executing" | "done" | "blocked" | "failed";
-      gate_status: "locked" | "in_progress" | "ready" | "approved";
+      gate_status: "locked" | "in_progress" | "ready" | "approved" | "imported";
       investor_stage:
         "researching" | "contacted" | "meeting" | "diligence" | "committed" | "passed";
       job_status: "queued" | "running" | "done" | "failed";
@@ -2074,9 +2134,10 @@ export const Constants = {
       customer_type: ["B2B", "B2C"],
       email_direction: ["received", "sent", "draft"],
       email_mode: ["support", "outreach"],
+      entry_path: ["start_up", "keep_going"],
       evidence_type: ["assumption", "interview", "waitlist", "preorder"],
       execution_status: ["not_started", "queued", "executing", "done", "blocked", "failed"],
-      gate_status: ["locked", "in_progress", "ready", "approved"],
+      gate_status: ["locked", "in_progress", "ready", "approved", "imported"],
       investor_stage: ["researching", "contacted", "meeting", "diligence", "committed", "passed"],
       job_status: ["queued", "running", "done", "failed"],
       ledger_entry_type: ["grant", "topup", "hold", "release", "usage", "refund", "expiry"],
