@@ -53,3 +53,25 @@ Built: Checkout for the three plans, three top-ups and the Launch Pack, the Cust
 5. Set the function secrets: `npx supabase secrets set STRIPE_SECRET_KEY=sk_test_… STRIPE_WEBHOOK_SECRET=whsec_… APP_URL=https://<your app domain>`, then deploy: `npx supabase functions deploy billing-checkout billing-portal stripe-webhook` (the webhook needs `--no-verify-jwt`, set in `supabase/config.toml`).
 6. Build the app with `VITE_BILLING_ENABLED=true`, buy a top-up with Stripe's test card 4242 4242 4242 4242, and check the credits appear in the ledger once.
 7. Locally with the Stripe CLI: `stripe listen --forward-to http://127.0.0.1:54321/functions/v1/stripe-webhook` and put the `whsec_…` it prints in `supabase/functions/.env`.
+
+## 6. Turn on real email, social publishing and site analytics
+
+Built: Resend, Ayrshare and PostHog adapters in `agent-service/src/integrations/`, the `resend-inbound` and `unsubscribe` Edge Functions, and per-company switches in Settings → Integrations. A provider is real only when the platform key below is set **and** the company's founder switches it on; Settings shows "Not set up yet" until the worker reports the key.
+
+**Unsubscribe links (do this first).** Pick a long random secret and set it in both places: `UNSUBSCRIBE_SECRET` on the agent service and `npx supabase secrets set UNSUBSCRIBE_SECRET=...` for the functions. Deploy `npx supabase functions deploy unsubscribe --no-verify-jwt`. Without it the executor refuses to send real marketing email.
+
+**Email (Resend).**
+1. Create a Resend account and verify a sending domain (e.g. `mail.<your domain>`: add the SPF, DKIM and DMARC records Resend shows).
+2. Create an API key with sending access. Set on the agent service: `RESEND_API_KEY`, `RESEND_SENDING_DOMAIN=mail.<your domain>`.
+3. Inbound: set up Resend inbound for a receiving domain (e.g. `in.<your domain>`, MX records as Resend shows), add a webhook for `email.received` pointing at `https://<project>.supabase.co/functions/v1/resend-inbound`, and set `npx supabase secrets set RESEND_WEBHOOK_SECRET=whsec_... INBOUND_DOMAIN=in.<your domain> RESEND_API_KEY=re_...` (the key lets the function fetch the message body). Deploy with `--no-verify-jwt`. Set `VITE_INBOUND_DOMAIN` for the app.
+4. Switch Email on for one test company, approve a reply to your own address, and check it arrives from `<slug>@mail.<your domain>` with replies going to the founder.
+
+**Social (Ayrshare).**
+1. Create an Ayrshare Business account (profiles per company). Set `AYRSHARE_API_KEY` on the agent service.
+2. For each company: create a profile, have the founder link their social accounts through Ayrshare's linking page, then store the profile key: `insert into public.integration_secrets (company_id, provider, secret) values ('<company id>', 'ayrshare', '<profile key>');`
+3. The founder switches Social on; approved posts publish, and the worker pulls post analytics hourly into Grow.
+
+**Site analytics (PostHog).**
+1. Create a PostHog project on EU Cloud. Set the project's public key as `VITE_POSTHOG_KEY` for the app (events are sent only after a visitor allows analytics on the hub page).
+2. Create a personal API key with query access; set `POSTHOG_PROJECT_ID` and `POSTHOG_PERSONAL_API_KEY` on the agent service.
+3. The founder switches Site analytics on; the worker fills `metrics_daily` (visitors, signups) every six hours. Add PostHog to the privacy notice as a sub-processor.

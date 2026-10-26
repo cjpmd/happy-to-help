@@ -6,6 +6,7 @@ import { BrandLogo } from "@/components/mission/primitives";
 import { useStore } from "@/lib/store";
 import type { PublicHub } from "@/lib/links";
 import { pageHead } from "@/lib/seo";
+import { track } from "@/lib/analytics";
 
 // A company's public hub page (link-in-bio): who they are, their links and a contact form.
 export const Route = createFileRoute("/h/$slug")({
@@ -22,7 +23,11 @@ function Hub() {
   const { fetchHub } = useStore();
   const [hub, setHub] = useState<PublicHub | null | undefined>(undefined);
   useEffect(() => {
-    void fetchHub(slug).then(setHub);
+    void fetchHub(slug).then((h) => {
+      setHub(h);
+      // Counted only if the visitor already allowed analytics.
+      if (h) track("$pageview", { company_slug: h.slug });
+    });
   }, [slug, fetchHub]);
   if (hub === undefined) return <main className="min-h-screen bg-background" aria-busy="true" />;
   if (!hub)
@@ -70,13 +75,18 @@ function Hub() {
       )}
       {hub.form && (
         <div className="mt-8">
-          <LeadFormView form={hub.form} linkCode={l} page={`/h/${hub.slug}`} />
+          <LeadFormView
+            form={hub.form}
+            linkCode={l}
+            page={`/h/${hub.slug}`}
+            companySlug={hub.slug}
+          />
         </div>
       )}
       <footer className="mt-10 flex justify-center opacity-60">
         <BrandLogo />
       </footer>
-      <CookieBanner />
+      <CookieBanner onAccept={() => track("$pageview", { company_slug: hub.slug })} />
     </main>
   );
 }

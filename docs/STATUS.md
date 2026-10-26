@@ -21,8 +21,8 @@ Restyle first, then the remaining Phase 1 groups, then the engine, then the v2 d
 | 12 | Capture v1 | `phase-12-capture` | Done |
 | 13 | Link layer and lead capture | `phase-13-link-layer` | Done |
 | 6 | Stripe billing (test mode) | `phase-6-stripe` | Done |
-| 7 | Real integrations (flagged, mocked by default) | `phase-7-integrations` | Next |
-| 8 | Scheduler, routines, Auto Mode | `phase-8-scheduler` | |
+| 7 | Real integrations (flagged, mocked by default) | `phase-7-integrations` | Done |
+| 8 | Scheduler, routines, Auto Mode | `phase-8-scheduler` | Next |
 | 9 | More skills and hardening | `phase-9-hardening` | |
 | 14 | Customers: inbox and contacts | `phase-14-inbox` | |
 | 15 | Campaigns | `phase-15-campaigns` | |
@@ -143,6 +143,16 @@ Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, con
 - `scripts/dev/replay-stripe-webhooks.mjs` replays signed test events, each twice, and checks the second is a duplicate.
 - Tests: `14_billing.test.sql`, Stripe tables in the read-access matrix (customer ids and raw events service-role only), `src/test/billing.test.ts` (signatures, event mapping, checkout parameters, key checks), a price-list parity test, and `src/test/integration/billing.test.ts` (mock checkout, founder-only, idempotent invoice, forged signature).
 - **Mocked / owner steps:** Stripe itself (HANDOFF 5). The monthly reconciliation of SDK cost against the Anthropic invoice is Phase 9.
+
+### Phase 7 (finished 27 Oct 2026)
+
+- `20261028120000_integrations.sql`: `integration_settings` (a founder's switch per provider, off by default; founders and teammates read), `integration_secrets` (per-company provider secrets, service role only), `platform_integrations` (what the platform has keys for, reported by the worker); `social_posts` gain provider, external id and sync time; `email_messages` a provider message id. RPCs: `set_integration` (founders), service-role `receive_inbound_email` (threads replies, records the sender, idempotent) and `unsubscribe_contact`.
+- Agent service (`src/integrations/`): Resend (sends from `<slug>@<sending domain>`, replies to the founder, idempotency key per approval), Ayrshare (publishes to the company's profile; hourly analytics into `social_posts.metrics`), PostHog (six-hourly visitors and signups into `metrics_daily`). `providersFor` picks real or mock per company (D54); the executor uses it.
+- Marketing email (D55): one email per recipient with a signed unsubscribe link and `List-Unsubscribe` headers; anyone who opted out is skipped; real marketing email is refused without `UNSUBSCRIBE_SECRET`.
+- Edge Functions: `resend-inbound` (Svix signature, company from the inbound address) and `unsubscribe` (signed link, GET or one-click POST).
+- App: Settings → Integrations (switches with platform status, "send as" and reply-to); hub pages send PostHog page views and form signups only after the visitor allows analytics (D56).
+- Tests: `15_integrations.test.sql`, the new tables in the read-access matrix, `agent-service/test/integrations.test.ts` (adapters with a fake fetch, per-company selection, analytics sync, unsubscribe links and opt-outs), `src/test/webhooks.test.ts`, and `src/test/integration/integrations.test.ts` (inbound email and unsubscribe through the functions).
+- **Mocked / owner steps:** every provider until its keys are set (HANDOFF 6). Inbound email lands in the inbox; triage and drafted replies are Phase 14.
 
 ## Phase 0 audit and Phase 1 history
 

@@ -421,3 +421,10 @@ verify_jwt = false
 # Stripe calls this; its signature is checked in the function (Phase 6).
 [functions.stripe-webhook]
 verify_jwt = false
+
+# Linked from marketing emails, and called by Resend (Phase 7): checked in the functions.
+[functions.unsubscribe]
+verify_jwt = false
+
+[functions.resend-inbound]
+verify_jwt = false

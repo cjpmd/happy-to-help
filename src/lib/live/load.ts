@@ -242,14 +242,21 @@ export const loaders = {
       })),
     };
   },
-  billing: async (sb) => ({
-    subscriptions: must(
-      await sb
+  billing: async (sb) => {
+    const [subs, settings, platform] = await Promise.all([
+      sb
         .from("subscriptions")
         .select("company_id, status, plan, current_period_end, cancel_at_period_end"),
-      "subscription",
-    ),
-  }),
+      sb.from("integration_settings").select("company_id, provider, enabled, config"),
+      sb.from("platform_integrations").select("provider, configured"),
+    ]);
+    return {
+      subscriptions: must(subs, "subscription"),
+      // Providers and config keys are checked by set_integration.
+      integration_settings: must(settings, "integrations") as unknown as DB["integration_settings"],
+      platform_integrations: must(platform, "platform integrations"),
+    };
+  },
   settings: async (sb, userId) => {
     const [prefs, layout, sharing, invites] = await Promise.all([
       sb.from("user_preferences").select("*").maybeSingle(),
@@ -295,6 +302,7 @@ export const TABLE_GROUPS: Partial<Record<keyof Database["public"]["Tables"], Gr
   leads: "links",
   tracked_links: "links",
   subscriptions: "billing",
+  integration_settings: "billing",
 };
 
 export async function loadGroups(sb: Client, userId: string, groups: Group[]) {
@@ -345,6 +353,8 @@ export function emptyDb(): DB {
     leads: [],
     current_consents: [],
     subscriptions: [],
+    integration_settings: [],
+    platform_integrations: [],
     routines: [],
     documents: [],
     media: [],

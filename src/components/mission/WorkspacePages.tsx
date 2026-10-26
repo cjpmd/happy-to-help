@@ -34,6 +34,7 @@ import {
 import { gbp } from "@/lib/format";
 import { PageHeader, Pill, StatusPill } from "./primitives";
 import { CostButton, ClaimsCheck, Why } from "./WorkControls";
+import { IntegrationsSection } from "./Integrations";
 
 const selectClass = "h-9 rounded-md border bg-background px-2 text-sm";
 /** A page's title, or just its description when it's shown inside another page's tab. */
@@ -668,6 +669,7 @@ export function SettingsPage() {
             </Button>
           </div>
         ))}
+        <IntegrationsSection />
       </section>
     </>
   );

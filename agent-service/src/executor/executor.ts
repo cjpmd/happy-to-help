@@ -15,12 +15,18 @@ import {
   type FounderRules,
 } from "./rules.js";
 import type { Providers } from "./providers.js";
+import { unsubscribeUrl } from "../../../supabase/functions/_shared/unsubscribe.js";
 
 export type Approval = Tables<"approvals">;
 
 export interface ExecutorDeps {
   db: Db;
+  /** The default providers (the mocks), used unless providersFor picks per company. */
   providers: Providers;
+  /** Phase 7: real providers where the company switched them on and the platform has keys. */
+  providersFor?: (companyId: string) => Promise<Providers>;
+  /** Signs unsubscribe links in marketing email. Required before real marketing email is sent. */
+  unsubscribe?: Unsubscribe;
   workerId: string;
   limits?: ExecutorLimits;
   maxAttempts?: number;
@@ -28,6 +34,39 @@ export interface ExecutorDeps {
 }
 
 export type ExecutionOutcome = "done" | "blocked" | "retry" | "failed";
+
+export interface Unsubscribe {
+  secret: string;
+  /** The Supabase project URL the unsubscribe function is served from. */
+  base: string;
+}
+
+/** Addresses whose current marketing consent isn't withdrawn. */
+async function withoutOptOuts(db: Db, companyId: string, emails: string[]) {
+  const { data: contacts } = await db
+    .from("contacts")
+    .select("id, email")
+    .eq("company_id", companyId)
+    .in(
+      "email",
+      emails.map((e) => e.toLowerCase()),
+    );
+  const ids = (contacts ?? []).map((c) => c.id);
+  const { data: out } = ids.length
+    ? await db
+        .from("current_consents")
+        .select("contact_id")
+        .in("contact_id", ids)
+        .eq("purpose", "marketing")
+        .eq("status", "withdrawn")
+    : { data: [] };
+  const gone = new Set(
+    (contacts ?? [])
+      .filter((c) => out?.some((o) => o.contact_id === c.id))
+      .map((c) => c.email.toLowerCase()),
+  );
+  return emails.filter((e) => !gone.has(e.toLowerCase()));
+}
 
 const PILLAR: Record<Approval["action_type"], "grow" | "run" | "build" | "legal"> = {
   publish_post: "grow",
@@ -157,6 +196,7 @@ async function perform(
   db: Db,
   providers: Providers,
   a: Approval,
+  unsubscribe: Unsubscribe | undefined,
 ): Promise<Record<string, unknown>> {
   const p = a.payload as Record<string, unknown>;
   const now = new Date().toISOString();
@@ -174,10 +214,16 @@ async function perform(
         .select("id")
         .eq("approval_id", a.id)
         .maybeSingle();
+      const via = providers.name.includes("ayrshare") ? "ayrshare" : "mock";
       if (post)
         await db
           .from("social_posts")
-          .update({ status: r.status, scheduled_for: now })
+          .update({
+            status: r.status,
+            scheduled_for: now,
+            provider: via,
+            external_id: r.externalId,
+          })
           .eq("id", post.id);
       else
         await db.from("social_posts").insert({
@@ -188,6 +234,8 @@ async function perform(
           angle: String(p["angle"] ?? ""),
           status: r.status,
           scheduled_for: now,
+          provider: via,
+          external_id: r.externalId,
         });
       return {
         provider: providers.name,
@@ -199,13 +247,40 @@ async function perform(
     case "send_email": {
       const { emails, count } = recipients(String(p["to"]));
       const body = await withDisclosure(db, a);
-      const r = await providers.email.send({
-        companyId: a.company_id,
-        approvalId: a.id,
-        to: emails.length ? emails : [String(p["to"])],
-        subject: String(p["subject"]),
-        body,
-      });
+      let r: { messageIds: string[] };
+      if (p["outreach"]) {
+        // Marketing: one email each, with its own unsubscribe link (PECR), and never to anyone
+        // who has opted out.
+        const to = await withoutOptOuts(db, a.company_id, emails);
+        r = { messageIds: [] };
+        for (const addr of to) {
+          const url = await unsubscribeUrl(
+            unsubscribe?.base ?? "http://127.0.0.1:54321",
+            unsubscribe?.secret ?? "local-only-unsubscribe-secret",
+            a.company_id,
+            addr,
+          );
+          const sent = await providers.email.send({
+            companyId: a.company_id,
+            approvalId: a.id,
+            to: [addr],
+            subject: String(p["subject"]),
+            body: `${body}\n\n—\nDon't want these emails? Unsubscribe: ${url}`,
+            headers: {
+              "List-Unsubscribe": `<${url}>`,
+              "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+            },
+          });
+          r.messageIds.push(...sent.messageIds);
+        }
+      } else
+        r = await providers.email.send({
+          companyId: a.company_id,
+          approvalId: a.id,
+          to: emails.length ? emails : [String(p["to"])],
+          subject: String(p["subject"]),
+          body,
+        });
       let threadId = typeof p["thread_id"] === "string" ? p["thread_id"] : null;
       if (!threadId) {
         const { data: thread } = await db
@@ -377,7 +452,8 @@ async function autoSendContext(db: Db, a: Approval) {
 
 /** Carries out one claimed approval. */
 export async function executeApproval(deps: ExecutorDeps, a: Approval): Promise<ExecutionOutcome> {
-  const { db, providers } = deps;
+  const { db } = deps;
+  const providers = deps.providersFor ? await deps.providersFor(a.company_id) : deps.providers;
   const maxAttempts = deps.maxAttempts ?? 2;
   const log = deps.log ?? (() => {});
 
@@ -409,6 +485,18 @@ export async function executeApproval(deps: ExecutorDeps, a: Approval): Promise<
         deps.limits ?? DEFAULT_LIMITS,
       );
   if (!rule.ok) return block(db, a, rule.reason, rule.needsFounder);
+  if (
+    a.action_type === "send_email" &&
+    (a.payload as Record<string, unknown>)["outreach"] &&
+    providers.name !== "mock" &&
+    !deps.unsubscribe
+  )
+    return block(
+      db,
+      a,
+      "marketing email needs a working unsubscribe link, and the platform's UNSUBSCRIBE_SECRET isn't set.",
+      false,
+    );
 
   // 2. Credits: reserve the action's price on its own run.
   const run = must(
@@ -446,7 +534,7 @@ export async function executeApproval(deps: ExecutorDeps, a: Approval): Promise<
   // 3. The provider.
   let result: Record<string, unknown>;
   try {
-    result = await perform(db, providers, a);
+    result = await perform(db, providers, a, deps.unsubscribe);
   } catch (e) {
     const reason = e instanceof Error ? e.message : String(e);
     await db.rpc("refund_run", { p_run: run.id, p_reason: reason });

@@ -202,6 +202,8 @@ begin
     insert into public.stripe_customers (company_id, customer_id) values (c, 'cus_' || c);
     insert into public.subscriptions (company_id, subscription_id, customer_id, status) values (c, 'sub_' || c, 'cus_' || c, 'active');
     insert into public.stripe_events (id, type, company_id) values ('evt_' || c, 'invoice.paid', c);
+    insert into public.integration_settings (company_id, provider) values (c, 'resend');
+    insert into public.integration_secrets (company_id, provider, secret) values (c, 'ayrshare', 'profile-key');
   end loop;
 end;
 $$;

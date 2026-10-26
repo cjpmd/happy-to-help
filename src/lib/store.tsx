@@ -1163,6 +1163,25 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
     },
     [db],
   );
+  const setIntegration = useCallback<Ctx["setIntegration"]>(
+    async (cid, provider, enabled, config) => {
+      if (!isFounder(cid)) return false;
+      setDb((d) => {
+        const cur = d.integration_settings.find(
+          (x) => x.company_id === cid && x.provider === provider,
+        );
+        return {
+          ...d,
+          integration_settings: [
+            ...d.integration_settings.filter((x) => x !== cur),
+            { company_id: cid, provider, enabled, config: config ?? cur?.config ?? {} },
+          ],
+        };
+      });
+      return true;
+    },
+    [isFounder],
+  );
   const followLink = useCallback<Ctx["followLink"]>(
     async (code) => {
       const l = db.tracked_links.find((x) => x.code === code && !x.archived);
@@ -1260,6 +1279,7 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       fetchForm,
       submitLead,
       followLink,
+      setIntegration,
       shortLinkBase: typeof window === "undefined" ? "/l" : `${window.location.origin}/l`,
       ...themeState,
     }),
@@ -1315,6 +1335,7 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       fetchForm,
       submitLead,
       followLink,
+      setIntegration,
     ],
   );
 
