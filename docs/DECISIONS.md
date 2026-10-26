@@ -57,3 +57,23 @@ Non-trivial decisions made during the autonomous build run (`docs/AUTONOMOUS-RUN
 
 ## D14. Local env and magic-link redirects
 - **Chosen:** local values go in `.env.local` (ignored by git); `.env.example` documents them. `config.toml` allows magic-link redirects to localhost dev ports.
+
+## D15. Credit lots inside the insert-only ledger
+- **Question:** consumption order, expiry and refunds need to know which credits a debit used, but the ledger can't be updated.
+- **Chosen:** every grant or top-up row is a lot; every other row carries `lot_id`, the lot it draws from or gives back to. A lot's remaining credits are its amount plus the rows pointing at it. Balance is still the sum of all rows. A constraint makes every debit point at a lot of the same company.
+- **Change it:** the model is in `20261026110000_credits_engine.sql`; `private.company_lots()` is the one place that orders lots.
+
+## D16. Consumption order with cohort pools
+- **Chosen:** plan credits first, then credits already drawn from the cohort pool, then top-ups and the Launch Pack. A cohort company draws from its pool only when its own credits run out, and only the shortfall, at reserve time, up to the smaller of its cap and what's left in the pool. Drawn credits stay with the company if the hold is released.
+- **Why:** SPEC D says plan first, then top-ups; drawing the pool just in time keeps the institution's credits unspent until needed.
+- **Change it:** reorder the `case` in `private.company_lots()`, or draw the pool earlier in `reserve_credits`.
+
+## D17. The Launch Pack is a top-up
+- **Chosen:** its 10,000 build credits are a `topup` lot that lasts 12 months, not a separate "build only" bucket.
+- **Change it:** add a `launch` bucket if build credits must only pay for build work.
+
+## D18. Settling caps at the reservation
+- **Chosen:** a run is charged `min(credits for its actual cost, what it held)`, rounded up to whole credits; `maxBudgetUsd` is set from the hold so this rarely bites. Settling twice is refused. Refunds return exactly what was charged, to the lots it came from.
+
+## D19. Conversion constants live in the database
+- **Chosen:** `credit_config` (one row: fx 0.75, markup 3, £0.01 a credit, plan expiry 1 month, top-up expiry 12 months), readable by signed-in users and changeable only by the service role. `credits_for_usd()` and `usd_for_credits()` use it, so the agent service and the database never disagree.

@@ -12,8 +12,8 @@ Restyle first, then the remaining Phase 1 groups, then the engine, then the v2 d
 |---|---|---|---|
 | 0 | Merge SPEC/PHASES additions, CLAUDE.md summary | `phase-0-docs-merge` | Done |
 | 1 | Finish Phase 1: restyle step 5 (Telemetry), 1b schema additions, 1c live data layer, 1d server-side writes, 1e bug fixes | `phase-1-finish` | Done |
-| 2 | Credits engine | `phase-2-credits` | Next |
-| 3 | Agent service | `phase-3-agent-service` | |
+| 2 | Credits engine | `phase-2-credits` | Done |
+| 3 | Agent service | `phase-3-agent-service` | Next |
 | 4 | Connect the app to the engine | `phase-4-connect` | |
 | 5 | Approvals executor | `phase-5-executor` | |
 | 10 | Two entry paths, stage-aware dashboard | `phase-10-entry-paths` | |
@@ -60,6 +60,13 @@ Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, con
 - **1e bugs:** B1 (toasts follow real outcomes), B2 (flagged drafts can be edited), B3 (decisions store ids), B4 (claims checked against the approval's company), B5 (gate approval advances the stage), B6 (onboarding keeps every answer), B7 (StudyBuddy content no longer leaks), B11 (investors move without drag) are fixed. B8 (seed run r8 shows as running forever) is left for the Phase 3 stale-run reaper.
 - **Mocked in Phase 1:** Sol's chat replies and all agent work (live mode queues `agent_jobs`; nothing processes them until Phase 3). Approving in live mode records the decision only (D13).
 - **Known issues:** mentors and viewers still see founder-only buttons; the server refuses those actions with a clear message. Team invites send no email (Phase 7).
+
+### Phase 2 (finished 26 Oct 2026)
+
+- `20261026110000_credits_engine.sql`: lots in the insert-only ledger (DECISIONS D15–D19). Service-role RPCs `grant_credits` (idempotent on a key such as the Stripe event id), `reserve_credits` (draws a cohort company's shortfall from its pool, capped), `settle_run` (charges actual cost capped at the hold, releases the rest, refuses a second settle), `release_hold`, `refund_run` (exact, once) and `expire_credits` (plan monthly, top-ups after 12 months). `credit_summary` for the app, `credits_for_usd` / `usd_for_credits` from `credit_config`. The balance view shows plan, cohort and top-up balances.
+- Billing shows the breakdown, holds and the next expiry (`useCreditSummary`; the demo approximates it).
+- Tests: 65 pgTAP checks in `07_credits_engine.test.sql` (insufficient balance, double settle, refund, expiry, cohort caps and pool size, consumption order, idempotent grants, permissions) and `src/test/integration/credits.test.ts`.
+- **Not yet wired:** nothing calls reserve/settle until the agent service (Phase 3); `expire_credits` runs once the scheduler exists (Phase 8); grants come from Stripe in Phase 6.
 
 ## Phase 0 audit and Phase 1 history
 

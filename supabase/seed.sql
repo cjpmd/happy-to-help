@@ -258,25 +258,37 @@ insert into public.activity_events (company_id, type, summary, run_id, created_a
   ('c0000000-0000-4000-8000-000000000002', 'evidence', 'Logged interview with a tenant in a Taybridge tenement', null, now() - interval '12 hours'),
   ('c0000000-0000-4000-8000-000000000003', 'grow', 'Published 3 LinkedIn posts', null, now() - interval '30 hours');
 
--- Credit ledger (inserted as the table owner here; in the app only the service role inserts) ----
+-- Credit ledger -------------------------------------------------------------------------------
+-- Inserted as the table owner with the engine's own helpers, so every debit points at the lot
+-- it came from (supabase/migrations/*_credits_engine.sql). In the app only the service role
+-- writes the ledger, through the credit RPCs.
 
-insert into public.credit_ledger (company_id, entry_type, amount, run_id, note, created_at) values
-  ('c0000000-0000-4000-8000-000000000001', 'grant', 5000, null, 'Founder plan — monthly grant', date_trunc('month', now())),
-  ('c0000000-0000-4000-8000-000000000001', 'topup', 10000, null, 'Launch Pack (build credits)', date_trunc('month', now()) + interval '2 days 10 hours'),
-  ('c0000000-0000-4000-8000-000000000001', 'usage', -6240, null, 'Landing page and quiz engine build', now() - interval '13 days'),
-  ('c0000000-0000-4000-8000-000000000001', 'usage', -2180, null, 'Week 2 overnight runs', now() - interval '6 days'),
-  ('c0000000-0000-4000-8000-000000000001', 'usage', -420, 'e0000000-0000-4000-8000-000000000004', 'Add streak counter', now() - interval '5 hours'),
-  ('c0000000-0000-4000-8000-000000000001', 'hold', -120, 'e0000000-0000-4000-8000-000000000005', 'Hold for OG images', now() - interval '4.5 hours'),
-  ('c0000000-0000-4000-8000-000000000001', 'release', 120, 'e0000000-0000-4000-8000-000000000005', 'Run failed — hold released', now() - interval '4.4 hours'),
-  ('c0000000-0000-4000-8000-000000000001', 'usage', -25, 'e0000000-0000-4000-8000-000000000006', 'Inbox summary', now() - interval '3 hours'),
-  ('c0000000-0000-4000-8000-000000000001', 'usage', -60, 'e0000000-0000-4000-8000-000000000007', 'ICO research', now() - interval '2.5 hours'),
-  ('c0000000-0000-4000-8000-000000000001', 'hold', -80, 'e0000000-0000-4000-8000-000000000008', 'Hold for investor pipeline update', now() - interval '18 minutes'),
-  ('c0000000-0000-4000-8000-000000000002', 'grant', 1500, null, 'Starter plan — monthly grant', date_trunc('month', now())),
-  ('c0000000-0000-4000-8000-000000000002', 'usage', -1260, null, 'Research and landing page', now() - interval '9 days'),
-  ('c0000000-0000-4000-8000-000000000003', 'grant', 12000, null, 'Growth plan — monthly grant', date_trunc('month', now())),
-  ('c0000000-0000-4000-8000-000000000003', 'usage', -7400, null, 'Month to date', now() - interval '3 days'),
-  ('c0000000-0000-4000-8000-000000000004', 'grant', 1500, null, 'Starter plan — monthly grant', date_trunc('month', now())),
-  ('c0000000-0000-4000-8000-000000000004', 'usage', -90, null, 'Idea brief', now() - interval '19 days');
+insert into public.credit_ledger (company_id, entry_type, amount, note, bucket, expires_at, created_at) values
+  ('c0000000-0000-4000-8000-000000000001', 'grant', 5000, 'Founder plan — monthly grant', 'plan', now() + interval '10 days', now() - interval '20 days'),
+  ('c0000000-0000-4000-8000-000000000001', 'topup', 10000, 'Launch Pack (build credits)', 'topup', now() + interval '12 months' - interval '18 days', now() - interval '18 days'),
+  ('c0000000-0000-4000-8000-000000000002', 'grant', 1500, 'Starter plan — monthly grant', 'plan', now() + interval '10 days', now() - interval '20 days'),
+  ('c0000000-0000-4000-8000-000000000003', 'grant', 12000, 'Growth plan — monthly grant', 'plan', now() + interval '10 days', now() - interval '20 days'),
+  ('c0000000-0000-4000-8000-000000000004', 'grant', 1500, 'Starter plan — monthly grant', 'plan', now() + interval '10 days', now() - interval '20 days');
+
+do $$
+declare
+  sb constant uuid := 'c0000000-0000-4000-8000-000000000001';
+begin
+  perform private.debit(sb, 'usage', 6240, null, 'Landing page and quiz engine build', now() - interval '13 days');
+  perform private.debit(sb, 'usage', 2180, null, 'Week 2 overnight runs', now() - interval '6 days');
+  perform private.debit(sb, 'usage', 420, 'e0000000-0000-4000-8000-000000000004', 'Add streak counter', now() - interval '5 hours');
+  -- The failed OG image run: held, then released when it failed before using anything.
+  perform private.debit(sb, 'hold', 120, 'e0000000-0000-4000-8000-000000000005', 'Hold for OG images', now() - interval '4.5 hours');
+  perform private.release_run_holds('e0000000-0000-4000-8000-000000000005', 'Run failed — hold released');
+  perform private.debit(sb, 'usage', 25, 'e0000000-0000-4000-8000-000000000006', 'Inbox summary', now() - interval '3 hours');
+  perform private.debit(sb, 'usage', 60, 'e0000000-0000-4000-8000-000000000007', 'ICO research', now() - interval '2.5 hours');
+  -- The investor pipeline run still running holds its reservation.
+  perform private.debit(sb, 'hold', 80, 'e0000000-0000-4000-8000-000000000008', 'Hold for investor pipeline update', now() - interval '18 minutes');
+  perform private.debit('c0000000-0000-4000-8000-000000000002', 'usage', 1260, null, 'Research and landing page', now() - interval '9 days');
+  perform private.debit('c0000000-0000-4000-8000-000000000003', 'usage', 7400, null, 'Month to date', now() - interval '3 days');
+  perform private.debit('c0000000-0000-4000-8000-000000000004', 'usage', 90, null, 'Idea brief', now() - interval '19 days');
+end;
+$$;
 
 -- Chat ------------------------------------------------------------------------------------
 
