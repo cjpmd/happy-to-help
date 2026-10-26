@@ -16,12 +16,15 @@ describe("credits engine through the API", () => {
 
   it("only the service role can move credits", async () => {
     const sb = await clientAs(AISHA);
-    const res = await sb.rpc("grant_credits" as never, {
-      p_company: STUDYBUDDY,
-      p_amount: 100,
-      p_bucket: "topup",
-      p_note: "x",
-    } as never);
+    const res = await sb.rpc(
+      "grant_credits" as never,
+      {
+        p_company: STUDYBUDDY,
+        p_amount: 100,
+        p_bucket: "topup",
+        p_note: "x",
+      } as never,
+    );
     expect(res.error).not.toBeNull();
     const admin = adminClient();
     const { data: cfg } = await admin.from("credit_config").select("*").single();

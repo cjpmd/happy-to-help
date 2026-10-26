@@ -123,11 +123,14 @@ export type Database = {
           created_by: string | null;
           estimated_credits: number;
           finished_at: string | null;
+          heartbeat_at: string | null;
           id: string;
           job_type: string;
           last_error: string | null;
+          locked_by: string | null;
           max_attempts: number;
           payload: NonNullable<Json>;
+          run_id: string | null;
           scheduled_for: string;
           started_at: string | null;
           status: Database["public"]["Enums"]["job_status"];
@@ -141,11 +144,14 @@ export type Database = {
           created_by?: string | null;
           estimated_credits?: number;
           finished_at?: string | null;
+          heartbeat_at?: string | null;
           id?: string;
           job_type: string;
           last_error?: string | null;
+          locked_by?: string | null;
           max_attempts?: number;
           payload?: NonNullable<Json>;
+          run_id?: string | null;
           scheduled_for?: string;
           started_at?: string | null;
           status?: Database["public"]["Enums"]["job_status"];
@@ -158,11 +164,14 @@ export type Database = {
           created_by?: string | null;
           estimated_credits?: number;
           finished_at?: string | null;
+          heartbeat_at?: string | null;
           id?: string;
           job_type?: string;
           last_error?: string | null;
+          locked_by?: string | null;
           max_attempts?: number;
           payload?: NonNullable<Json>;
+          run_id?: string | null;
           scheduled_for?: string;
           started_at?: string | null;
           status?: Database["public"]["Enums"]["job_status"];
@@ -181,6 +190,13 @@ export type Database = {
             columns: ["created_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agent_jobs_run_id_fkey";
+            columns: ["run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
             referencedColumns: ["id"];
           },
           {
@@ -1680,9 +1696,39 @@ export type Database = {
     };
     Functions: {
       accept_invites: { Args: Record<PropertyKey, never>; Returns: number };
+      append_run_step: { Args: { p_run: string; p_step: Json }; Returns: undefined };
       approve_gate: { Args: { p_gate: string }; Returns: Database["public"]["Enums"]["stage"] };
       ask_why: { Args: { p_approval: string }; Returns: undefined };
       check_claims: { Args: { p_company: string; p_text: string }; Returns: Json };
+      claim_agent_job: {
+        Args: { p_job_types?: string[]; p_worker: string };
+        Returns: {
+          attempts: number;
+          company_id: string;
+          created_at: string;
+          created_by: string | null;
+          estimated_credits: number;
+          finished_at: string | null;
+          heartbeat_at: string | null;
+          id: string;
+          job_type: string;
+          last_error: string | null;
+          locked_by: string | null;
+          max_attempts: number;
+          payload: NonNullable<Json>;
+          run_id: string | null;
+          scheduled_for: string;
+          started_at: string | null;
+          status: Database["public"]["Enums"]["job_status"];
+          task_id: string | null;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "agent_jobs";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
       complete_task: { Args: { p_task: string }; Returns: undefined };
       create_company: {
         Args: {
@@ -1733,8 +1779,10 @@ export type Database = {
         };
         Returns: string;
       };
+      heartbeat_agent_job: { Args: { p_job: string; p_worker: string }; Returns: boolean };
       join_cohort: { Args: { p_code: string; p_company: string }; Returns: string };
       post_chat_message: { Args: { p_company: string; p_content: string }; Returns: string };
+      reap_stale_runs: { Args: { p_stale?: string }; Returns: number };
       refund_run: { Args: { p_reason?: string; p_run: string }; Returns: number };
       release_hold: { Args: { p_note?: string; p_run: string }; Returns: number };
       request_ad_budget: {

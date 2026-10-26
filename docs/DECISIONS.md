@@ -77,3 +77,22 @@ Non-trivial decisions made during the autonomous build run (`docs/AUTONOMOUS-RUN
 
 ## D19. Conversion constants live in the database
 - **Chosen:** `credit_config` (one row: fx 0.75, markup 3, £0.01 a credit, plan expiry 1 month, top-up expiry 12 months), readable by signed-in users and changeable only by the service role. `credits_for_usd()` and `usd_for_credits()` use it, so the agent service and the database never disagree.
+
+## D20. The agent service defaults to a mock runtime
+- **Question:** real runs call the Anthropic API, which spends money and needs a key this run can't create.
+- **Chosen:** `AGENT_RUNTIME=mock` is the default. The mock follows each job's playbook through the same tools, gate, audit hook and credit flow, so everything but the model is exercised. `AGENT_RUNTIME=claude` with `ANTHROPIC_API_KEY` switches to the Agent SDK. See HANDOFF.md.
+
+## D21. The worker talks to Supabase through the API with the service role
+- **Chosen:** `@supabase/supabase-js` with the service-role key, and RPCs for anything that must be atomic (claiming with `FOR UPDATE SKIP LOCKED`, credits, step appends). Works the same against hosted Supabase as locally, with no direct database connection to manage.
+
+## D22. How much a run reserves
+- **Chosen:** each job type has an estimate (shown before running) and a cap. A run reserves `max(estimate, min(cap, balance + cohort headroom))`; `maxBudgetUsd` is the reservation in USD (and never more than `MAX_RUN_USD`, default $5). If the available credits are below the estimate, no run is created and Sol says why in chat.
+
+## D23. What an approval's credits mean now
+- **Chosen:** approvals the agent proposes carry the executor's cost of carrying the action out (`ACTION_CREDITS` in `agent-service/src/tools.ts`: e.g. 5 for a post). The drafting was already paid for when the run settled. Seeded approvals keep their old figures.
+
+## D24. Internal document updates need no approval
+- **Chosen:** `propose_document_update` saves a new document version directly (it's internal and every version is kept), so it isn't an approval. Publishing a document externally (`file_document`) still is.
+
+## D25. Chat runs through the worker until Phase 4
+- **Chosen:** in live mode a chat message queues a `chat` job; the worker writes Sol's reply as a chat message. Phase 4 adds the streaming endpoint.

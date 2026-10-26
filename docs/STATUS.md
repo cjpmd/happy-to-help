@@ -13,8 +13,8 @@ Restyle first, then the remaining Phase 1 groups, then the engine, then the v2 d
 | 0 | Merge SPEC/PHASES additions, CLAUDE.md summary | `phase-0-docs-merge` | Done |
 | 1 | Finish Phase 1: restyle step 5 (Telemetry), 1b schema additions, 1c live data layer, 1d server-side writes, 1e bug fixes | `phase-1-finish` | Done |
 | 2 | Credits engine | `phase-2-credits` | Done |
-| 3 | Agent service | `phase-3-agent-service` | Next |
-| 4 | Connect the app to the engine | `phase-4-connect` | |
+| 3 | Agent service | `phase-3-agent-service` | Done |
+| 4 | Connect the app to the engine | `phase-4-connect` | Next |
 | 5 | Approvals executor | `phase-5-executor` | |
 | 10 | Two entry paths, stage-aware dashboard | `phase-10-entry-paths` | |
 | 11 | Brand voice and response policy | `phase-11-voice-policy` | |
@@ -49,6 +49,7 @@ Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, con
 | Database (pgTAP) | `npx supabase test db` (or `scripts/db/test-local.sh`) |
 | Integration (API + RLS) | `npm run test:integration` (local stack running and reset) |
 | Live end to end | `npm run e2e:live` (set `CHROMIUM_PATH` if Playwright's browser isn't installed) |
+| Agent service | `cd agent-service && npx tsc --noEmit && npm test` (after `npx supabase db reset`) |
 | HQ fit | `npm run check:fit` |
 
 ### Phase 1 (finished 26 Oct 2026)
@@ -67,6 +68,16 @@ Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, con
 - Billing shows the breakdown, holds and the next expiry (`useCreditSummary`; the demo approximates it).
 - Tests: 65 pgTAP checks in `07_credits_engine.test.sql` (insufficient balance, double settle, refund, expiry, cohort caps and pool size, consumption order, idempotent grants, permissions) and `src/test/integration/credits.test.ts`.
 - **Not yet wired:** nothing calls reserve/settle until the agent service (Phase 3); `expire_credits` runs once the scheduler exists (Phase 8); grants come from Stripe in Phase 6.
+
+### Phase 3 (finished 26 Oct 2026)
+
+- `agent-service/` (see its README): claims jobs with `claim_agent_job` (`FOR UPDATE SKIP LOCKED`), builds a per-company workspace (CLAUDE.md generated from the database plus skills), estimates, reserves, runs with `maxBudgetUsd` from the reservation, records every tool call in `agent_runs.steps` (`append_run_step`), settles, and refunds platform failures. Two attempts, then Sol explains in chat. A reaper recovers runs a crashed worker left behind (this fixes bug B8 once the worker runs).
+- Tools: read tools plus `propose_post`, `propose_email`, `propose_ad_change`, `propose_site_change` (pending approvals only) and `propose_document_update`. The gate denies anything a job doesn't list, and shell, writes and web always.
+- Skills: `social-post` (from the prototype, now proposing instead of publishing) and `claims-check`.
+- Config: model per tier in env (Haiku routine, Sonnet planning, Opus strategy); cost constants from `credit_config`.
+- `npm run run-once` runs one StudyBuddy job end to end.
+- **Mocked:** the model (mock runtime by default, DECISIONS D20, HANDOFF 1) and media generation (a placeholder image).
+- Tests: 9 in `agent-service/test` (pipeline, chat, retry/refund/escalate, insufficient credits, claim exclusivity, reaper) and 11 pgTAP checks in `08_agent_worker.test.sql`.
 
 ## Phase 0 audit and Phase 1 history
 

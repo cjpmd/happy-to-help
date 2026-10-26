@@ -1,0 +1,125 @@
+// The job types the worker knows, with their model tier, skills, credit estimate and cap.
+// Estimates are what the founder sees before a run ("≈ N credits"); the cap is the most a run
+// may reserve (CLAUDE.md rule 3: maxBudgetUsd = min(task cap, balance in USD)).
+import type { ModelTier } from "./config.js";
+
+export type Pillar = "build" | "grow" | "run" | "legal" | "raise";
+
+export interface JobSpec {
+  label: string;
+  pillar: Pillar;
+  tier: ModelTier;
+  /** Skills loaded into the company workspace (agent-service/skills/<name>/SKILL.md). */
+  skills: string[];
+  /** The usual cost in credits, shown before running. */
+  estimate: number;
+  /** The most one run may reserve, in credits. */
+  cap: number;
+  maxTurns: number;
+  /** Tools this job may use, by short name (see tools.ts). */
+  tools: string[];
+  prompt: (input: { title?: string; message?: string; target?: string }) => string;
+}
+
+const READ = ["get_company", "get_metrics", "list_posts", "list_tasks", "check_claims"];
+
+export const JOBS: Record<string, JobSpec> = {
+  chat: {
+    label: "Chat with Sol",
+    pillar: "run",
+    tier: "routine",
+    skills: [],
+    estimate: 10,
+    cap: 30,
+    maxTurns: 4,
+    tools: READ,
+    prompt: ({ message }) =>
+      `The founder wrote in chat:\n\n"${message ?? ""}"\n\nReply as Sol in two to four short sentences, in UK English. If they ask for work that would publish, send or spend, say you'll draft it for their approval.`,
+  },
+  social_post: {
+    label: "Write social post",
+    pillar: "grow",
+    tier: "routine",
+    skills: ["social-post", "claims-check"],
+    estimate: 40,
+    cap: 120,
+    maxTurns: 12,
+    tools: [...READ, "propose_post"],
+    prompt: ({ title }) =>
+      `${title ?? "Write today's social post"}. Use the social-post skill: choose the angle from the metrics, write the post, run the claims check, then propose it for approval.`,
+  },
+  email_reply: {
+    label: "Draft email reply",
+    pillar: "run",
+    tier: "routine",
+    skills: ["claims-check"],
+    estimate: 30,
+    cap: 90,
+    maxTurns: 8,
+    tools: [...READ, "get_email_thread", "propose_email"],
+    prompt: ({ title, target }) =>
+      `${title ?? "Draft a reply"} for email thread ${target ?? "(not given)"}. Read the thread, draft a helpful reply in the company's voice, run the claims check, and propose it for approval. Never promise refunds or make claims you can't support.`,
+  },
+  document_update: {
+    label: "Update document",
+    pillar: "run",
+    tier: "planning",
+    skills: ["claims-check"],
+    estimate: 120,
+    cap: 300,
+    maxTurns: 10,
+    tools: [...READ, "get_document", "propose_document_update"],
+    prompt: ({ title, target }) =>
+      `${title ?? "Update the document"} (document ${target ?? "not given"}). Read the current version and the company's evidence, then propose a new version with a one-line summary of what changed.`,
+  },
+  task: {
+    label: "Run task",
+    pillar: "build",
+    tier: "planning",
+    skills: ["claims-check"],
+    estimate: 150,
+    cap: 600,
+    maxTurns: 20,
+    tools: [...READ, "propose_site_change", "propose_post", "propose_email"],
+    prompt: ({ title }) =>
+      `Work on this task: ${title ?? "(untitled)"}. Plan briefly, do the parts you can do safely, and propose anything that publishes, sends or spends for approval. End with a short summary of what you did and what's left.`,
+  },
+  media_image: {
+    label: "Generate image",
+    pillar: "grow",
+    tier: "routine",
+    skills: [],
+    estimate: 120,
+    cap: 200,
+    maxTurns: 4,
+    tools: ["get_company"],
+    prompt: ({ title }) => `Write a short image brief for: ${title ?? "(no prompt)"}.`,
+  },
+  media_video: {
+    label: "Generate video",
+    pillar: "grow",
+    tier: "routine",
+    skills: [],
+    estimate: 400,
+    cap: 600,
+    maxTurns: 4,
+    tools: ["get_company"],
+    prompt: ({ title }) => `Write a short video storyboard for: ${title ?? "(no prompt)"}.`,
+  },
+  auto_mode: {
+    label: "Auto Mode",
+    pillar: "run",
+    tier: "planning",
+    skills: ["social-post", "claims-check"],
+    estimate: 150,
+    cap: 1200,
+    maxTurns: 30,
+    tools: [...READ, "propose_post", "propose_email", "propose_site_change"],
+    prompt: ({ title }) =>
+      `${title ?? "Auto Mode"}: pick the highest-leverage work for the current stage goal and do it, proposing anything external for approval. Stop when the budget is nearly used.`,
+  },
+};
+
+export function jobSpec(jobType: string): JobSpec | undefined {
+  return JOBS[jobType];
+}
