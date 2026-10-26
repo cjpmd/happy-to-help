@@ -1,6 +1,5 @@
 import { createFileRoute, Link, Outlet, useMatch } from "@tanstack/react-router";
 import { useStore } from "@/lib/store";
-import { cohorts, cohort_companies } from "@/lib/seed";
 import { creditBalance } from "@/lib/credits";
 import { PageHeader, Pill, StatusPill } from "@/components/mission/primitives";
 import { STAGES } from "@/components/mission/StageBar";
@@ -14,14 +13,28 @@ export const Route = createFileRoute("/_app/cohort")({
 
 function Cohort() {
   const child = useMatch({ from: "/_app/cohort/$companyId", shouldThrow: false });
-  const { db } = useStore();
+  const { db, user, now } = useStore();
   if (child) return <Outlet />;
-  const cohort = cohorts[0];
-  if (!cohort) return null;
-  const rows = cohort_companies
+  // The cohorts this person mentors (admins see every cohort).
+  const cohort = db.cohorts.find(
+    (h) =>
+      user.role === "admin" ||
+      db.cohort_mentors.some((m) => m.cohort_id === h.id && m.user_id === user.id),
+  );
+  if (!cohort)
+    return (
+      <div>
+        <PageHeader
+          title="Cohort"
+          description="The cohort view is for programme mentors. Your programme lead can add you."
+        />
+      </div>
+    );
+  const rows = db.cohort_companies
     .filter((cc) => cc.cohort_id === cohort.id)
-    .map((cc) => {
-      const c = db.companies.find((x) => x.id === cc.company_id)!;
+    .flatMap((cc) => {
+      const c = db.companies.find((x) => x.id === cc.company_id);
+      if (!c) return [];
       const ledger = db.credit_ledger.filter((l) => l.company_id === c.id);
       const used = -ledger
         .filter((l) => l.amount < 0 && l.entry_type !== "hold")
@@ -31,21 +44,25 @@ function Cohort() {
           .filter((e) => e.company_id === c.id)
           .map((e) => e.created_at)
           .sort()
-          .pop() ?? "2026-10-02T00:00:00Z";
-      const daysQuiet = (new Date("2026-10-21").getTime() - new Date(last).getTime()) / 86400000;
+          .pop() ??
+        c.started_at ??
+        now.toISOString();
+      const daysQuiet = (now.getTime() - new Date(last).getTime()) / 86400000;
       const health = daysQuiet > 10 ? "stalled" : daysQuiet > 1 ? "needs_attention" : "on_track";
       const gatesPending = db.stage_gates.filter(
         (g) => g.company_id === c.id && g.status === "ready",
       ).length;
-      return {
-        c,
-        cc,
-        used,
-        last,
-        health,
-        gatesPending,
-        balance: creditBalance(db.credit_ledger, c.id),
-      };
+      return [
+        {
+          c,
+          cc,
+          used,
+          last,
+          health,
+          gatesPending,
+          balance: creditBalance(db.credit_ledger, c.id),
+        },
+      ];
     });
   return (
     <div>
@@ -88,7 +105,9 @@ function Cohort() {
                   <div className="mt-1 h-1 w-28 overflow-hidden rounded-full bg-muted">
                     <div
                       className="h-full bg-primary"
-                      style={{ width: `${Math.min(100, (used / cc.credit_cap) * 100)}%` }}
+                      style={{
+                        width: `${cc.credit_cap ? Math.min(100, (used / cc.credit_cap) * 100) : 0}%`,
+                      }}
                     />
                   </div>
                 </td>

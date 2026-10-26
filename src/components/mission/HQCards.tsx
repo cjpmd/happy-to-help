@@ -1,10 +1,8 @@
 import { useId, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { labelFor, useBalance, useCompany, useStore } from "@/lib/store";
-import { NOW, compliance_items, metrics_daily, social_posts } from "@/lib/seed";
+import { labelFor, useBalance, useClaimsCheck, useCompany, useStore } from "@/lib/store";
 import { actionQuote } from "@/lib/credits";
-import { checkClaims } from "@/lib/workspace";
 import { approvalText, type Approval } from "@/lib/types";
 import { gbp, num } from "@/lib/format";
 import { missionDay, stageLabel } from "@/lib/mission";
@@ -70,10 +68,10 @@ export function FlightPlanCard({
   companyId: string;
   readOnly?: boolean | undefined;
 }) {
-  const { db } = useStore();
+  const { db, now } = useStore();
   const c = useCompany(companyId);
   const navigate = useNavigate();
-  const nowDay = missionDay(c, NOW);
+  const nowDay = missionDay(c, now);
   const milestones = useMemo(
     () =>
       buildMilestones(
@@ -207,14 +205,14 @@ export function GoNoGoCard({
   onAskWhy?: (() => void) | undefined;
 }) {
   const { db, decideApproval, askWhy } = useStore();
-  const c = useCompany(companyId);
   const balance = useBalance(companyId);
   const pending = db.approvals
     .filter((a) => a.company_id === companyId && a.status === "pending")
     .sort((a, b) => a.created_at.localeCompare(b.created_at));
   const [first, ...rest] = pending;
   const affordable = !first || actionQuote(balance, first.estimated_credits).affordable;
-  const flags = (a: Approval) => checkClaims(approvalText(a), c.sector).length;
+  const check = useClaimsCheck(companyId);
+  const flags = (a: Approval) => check(approvalText(a)).length;
 
   return (
     <HQCard
@@ -257,14 +255,14 @@ export function GoNoGoCard({
                     ? "Top up to give this a GO."
                     : null
               }
-              onGo={() => {
-                decideApproval(first.id, "approved");
+              onGo={async () => {
+                if (!(await decideApproval(first.id, "approved"))) return;
                 toast.success("GO given. Sol will carry it out.", {
                   description: labelFor(first),
                 });
               }}
               onWhy={() => {
-                askWhy(first.id);
+                void askWhy(first.id);
                 onAskWhy?.();
               }}
             />
@@ -340,7 +338,7 @@ function GoButtons({
 export function TelemetryCard({ companyId }: { companyId: string }) {
   const { db } = useStore();
   const t = telemetry(
-    metrics_daily,
+    db.metrics_daily,
     companyId,
     db.ads.find((a) => a.company_id === companyId),
   );
@@ -445,7 +443,7 @@ export function ChannelsCard({ companyId }: { companyId: string }) {
   const c = useCompany(companyId);
   const rows = channelRows(
     c,
-    social_posts,
+    db.social_posts,
     db.emails,
     db.ads.find((a) => a.company_id === companyId),
   );
@@ -479,8 +477,8 @@ export function ChannelsCard({ companyId }: { companyId: string }) {
 
 /** Overnight burn: Sol's runs in the last 24 hours and the credits they used. */
 export function OvernightBurnCard({ companyId }: { companyId: string }) {
-  const { db } = useStore();
-  const burn = overnightBurn(db.agent_runs, db.credit_ledger, companyId, NOW);
+  const { db, now } = useStore();
+  const burn = overnightBurn(db.agent_runs, db.credit_ledger, companyId, now);
   return (
     <HQCard
       title="Overnight burn"
@@ -519,8 +517,8 @@ export function OvernightBurnCard({ companyId }: { companyId: string }) {
 
 /** Next windows: the soonest deadlines (compliance and dated tasks). */
 export function NextWindowsCard({ companyId }: { companyId: string }) {
-  const { db } = useStore();
-  const rows = nextWindows(compliance_items, db.tasks, companyId, NOW);
+  const { db, now } = useStore();
+  const rows = nextWindows(db.compliance_items, db.tasks, companyId, now);
   return (
     <HQCard title="Next windows">
       {rows.length === 0 ? (

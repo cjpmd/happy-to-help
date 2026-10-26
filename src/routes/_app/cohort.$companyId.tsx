@@ -57,8 +57,7 @@ function MentorCompany() {
           onSubmit={(e) => {
             e.preventDefault();
             if (text.trim()) {
-              addComment(companyId, text.trim());
-              setText("");
+              void addComment(companyId, text.trim()).then((ok) => ok && setText(""));
             }
           }}
         >

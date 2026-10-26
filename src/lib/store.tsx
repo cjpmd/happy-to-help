@@ -1,142 +1,74 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { toast } from "sonner";
 import { PRODUCT_NAME } from "./brand";
 import * as seed from "./seed";
 import type * as T from "./types";
 import { approvalText } from "./types";
-import { sendChatMessage } from "./agentClient";
+import { sendChatMessage, simulateWork } from "./agentClient";
 import { creditBalance, actionQuote, ACTION_COSTS, autoModeCost } from "./credits";
 import {
   workspaceSeed,
-  defaultLayout,
   defaultPreferences,
   defaultSharing,
   hasProof,
   checkClaims,
+  unbuiltFeatures,
   monthlyCost,
   businessDefaults,
-  type WorkspaceDB,
   type Routine,
   type LayoutItem,
   type Preferences,
   type Sharing,
-  type Sector,
 } from "./workspace";
-import { simulateWork } from "./agentClient";
-import { defaultGates, solStatus } from "./mission";
-import {
-  DEFAULT_THEME,
-  THEME_KEY,
-  applyTheme,
-  readThemePref,
-  resolveTheme,
-  type Theme,
-  type ThemePref,
-} from "./theme";
+import { STAGE_ORDER, defaultGates } from "./mission";
+import { isLiveMode } from "@/integrations/supabase/client";
+import { LiveStoreProvider } from "./live/LiveStoreProvider";
+import { StoreCtx, labelFor, type Ctx, type DB } from "./storeContext";
+import { demoDb, isValidLayout } from "./demoDb";
+import { useThemeState } from "./useThemeState";
 
-/**
- * In-memory data store shaped like the Supabase schema.
- * When the user's Supabase project is connected, replace these reads/writes with
- * queries + Realtime subscriptions; components only use the hooks below.
- */
-type DB = WorkspaceDB & {
-  companies: T.Company[];
-  approvals: T.Approval[];
-  agent_runs: T.AgentRun[];
-  activity_events: T.ActivityEvent[];
-  credit_ledger: T.LedgerEntry[];
-  chat_messages: T.ChatMessage[];
-  stage_gates: T.StageGate[];
-  investors: T.Investor[];
-  gate_comments: T.GateComment[];
-  company_members: T.CompanyMember[];
-  evidence_items: T.EvidenceItem[];
-};
+export {
+  useStore,
+  useCompany,
+  useMaybeCompany,
+  useMyCompanies,
+  useCompanyRole,
+  useBalance,
+  useSolStatus,
+  useClaimsCheck,
+  labelFor,
+  personName,
+  type Ctx,
+  type DB,
+} from "./storeContext";
 
-interface Ctx {
-  db: DB;
-  user: T.Profile;
-  setUserId: (id: string) => void;
-  companyId: string;
-  setCompanyId: (id: string) => void;
-  solTyping: boolean;
-  decideApproval: (id: string, status: "approved" | "declined") => void;
-  askWhy: (id: string) => void;
-  sendChat: (companyId: string, text: string) => Promise<void>;
-  approveGate: (gateId: string) => void;
-  addComment: (companyId: string, text: string) => void;
-  moveInvestor: (id: string, stage: T.InvestorStage) => void;
-  createCompany: (
-    c: Omit<
-      T.Company,
-      "id" | "slug" | "stage" | "website_live_url" | "website_preview_url" | "plan" | "created_by"
-    >,
-  ) => string;
-  /** The theme on screen, resolved from the preference. */
-  theme: Theme;
-  /** Light (default), dark, or match the system. Saved in this browser. */
-  themePref: ThemePref;
-  setThemePref: (pref: ThemePref) => void;
-  /** Switches to the opposite of what's on screen (an explicit light or dark). */
-  toggleTheme: () => void;
-  work: (
-    cid: string,
-    title: string,
-    cost: number,
-    kind?: string,
-    target?: string,
-  ) => Promise<boolean>;
-  saveLayout: (layout: LayoutItem[]) => void;
-  updatePreferences: (patch: Partial<Preferences>) => void;
-  updateSharing: (patch: Partial<Sharing>) => void;
-  addRoutine: (title: string, cadence: Routine["cadence"], credits: number) => void;
-  toggleRoutine: (id: string) => boolean;
-  proposeBudget: (budget: number, cap: number) => boolean;
-  draftOutreach: (body: string, recipients: string) => boolean;
-  invite: (email: string, role: T.CompanyMember["role"]) => void;
-  markDone: (id: string) => boolean;
-  stopAuto: () => void;
+/** Supabase when it's configured, otherwise the in-memory demo. */
+export function StoreProvider({ children }: { children: ReactNode }) {
+  return isLiveMode ? (
+    <LiveStoreProvider>{children}</LiveStoreProvider>
+  ) : (
+    <DemoStoreProvider>{children}</DemoStoreProvider>
+  );
 }
 
-const StoreCtx = createContext<Ctx | null>(null);
 const iso = () => new Date().toISOString();
 const uid = (p: string) => `${p}_${Math.random().toString(36).slice(2, 9)}`;
 const LAYOUTS_KEY = "gumption-hq-layouts";
 const OLD_LAYOUTS_KEY = "dawn-hq-layouts";
+/** The demo cohort's join code, as in supabase/seed.sql. */
+const DEMO_COHORT_CODE = "TAYBRIDGE-2026";
 
-export function StoreProvider({ children }: { children: ReactNode }) {
-  const [db, setDb] = useState<DB>(() => ({
-    ...workspaceSeed(seed.companies, seed.tasks),
-    companies: seed.companies.map((c) => ({
-      ...c,
-      sector: c.id === "c1" ? ("education" as const) : ("general" as const),
-      channels: businessDefaults(c.customer_type),
-    })),
-    approvals: seed.approvals,
-    agent_runs: seed.agent_runs,
-    activity_events: seed.activity_events,
-    credit_ledger: seed.credit_ledger,
-    chat_messages: seed.chat_messages,
-    stage_gates: seed.stage_gates,
-    investors: seed.investors,
-    gate_comments: seed.gate_comments,
-    company_members: seed.company_members,
-    evidence_items: seed.evidence_items,
-  }));
+/**
+ * The demo: an in-memory store seeded from src/lib/seed.ts that resets on refresh. Its rules
+ * mirror the database RPCs (supabase/migrations/*_app_rpcs.sql) closely enough to demo the
+ * flows; the database is what enforces them for real.
+ */
+function DemoStoreProvider({ children }: { children: ReactNode }) {
+  const [db, setDb] = useState<DB>(demoDb);
   const [userId, setUserId] = useState("u1");
   const [companyId, setCompanyId] = useState("c1");
   const [solTyping, setSolTyping] = useState(false);
-  const [themePref, setThemePrefState] = useState<ThemePref>(DEFAULT_THEME);
-  const [systemDark, setSystemDark] = useState(false);
-  const [themeLoaded, setThemeLoaded] = useState(false);
-  const theme = resolveTheme(themePref, systemDark);
+  const themeState = useThemeState();
   const user = seed.profiles.find((p) => p.id === userId) ?? seed.profiles[0];
   if (!user) throw new Error("Demo profiles missing");
   const [layoutLoaded, setLayoutLoaded] = useState(false);
@@ -149,15 +81,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem(OLD_LAYOUTS_KEY);
       const valid: Record<string, LayoutItem[]> = {};
       for (const [key, value] of Object.entries(saved)) {
-        if (
-          Array.isArray(value) &&
-          value.length === defaultLayout().length &&
-          new Set(value.map((x) => x.id)).size === value.length &&
-          value.every(
-            (x) => defaultLayout().some((y) => y.id === x.id) && typeof x.visible === "boolean",
-          )
-        )
-          valid[key] = value;
+        if (isValidLayout(value)) valid[key] = value;
       }
       setDb((d) => ({ ...d, layouts: valid }));
     } catch {
@@ -169,72 +93,64 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (layoutLoaded) localStorage.setItem(LAYOUTS_KEY, JSON.stringify(db.layouts));
   }, [db.layouts, layoutLoaded]);
 
-  // The <head> script has already applied the saved theme; load the same
-  // preference here and follow the system while "Match system" is chosen.
-  useEffect(() => {
-    setThemePrefState(readThemePref(window.localStorage));
-    const mql = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => setSystemDark(mql.matches);
-    onChange();
-    mql.addEventListener("change", onChange);
-    setThemeLoaded(true);
-    return () => mql.removeEventListener("change", onChange);
-  }, []);
-  useEffect(() => {
-    if (themeLoaded) applyTheme(theme);
-  }, [theme, themeLoaded]);
-  const setThemePref = useCallback((pref: ThemePref) => {
-    setThemePrefState(pref);
-    try {
-      window.localStorage.setItem(THEME_KEY, pref);
-    } catch {
-      /* Storage blocked: the choice lasts until reload. */
-    }
-  }, []);
-
   const decideApproval = useCallback(
-    (id: string, status: "approved" | "declined") => {
-      setDb((d) => {
-        const a = d.approvals.find((x) => x.id === id);
-        if (!a || a.status !== "pending") return d;
-        const c = d.companies.find((c) => c.id === a.company_id);
-        const text = approvalText(a);
+    async (id: string, status: "approved" | "declined") => {
+      const a = db.approvals.find((x) => x.id === id);
+      if (!a || a.status !== "pending") {
+        toast.error("This was already decided");
+        return false;
+      }
+      if (status === "approved") {
+        const c = db.companies.find((c) => c.id === a.company_id);
+        const flags = checkClaims(
+          approvalText(a),
+          c?.sector,
+          unbuiltFeatures(db.documents, a.company_id),
+        );
+        if (flags[0]) {
+          toast.error(`The claims check flagged "${flags[0].phrase}". Edit the draft first.`);
+          return false;
+        }
+        const balance = creditBalance(db.credit_ledger, a.company_id);
+        if (!actionQuote(balance, a.estimated_credits).affordable) {
+          toast.error(
+            `Not enough credits: this needs ${a.estimated_credits} and the balance is ${balance}.`,
+          );
+          return false;
+        }
+        const ad = db.ads.find((x) => x.company_id === a.company_id);
         if (
-          status === "approved" &&
-          (!actionQuote(creditBalance(d.credit_ledger, a.company_id), a.estimated_credits)
-            .affordable ||
-            checkClaims(text, c?.sector).length)
-        )
-          return d;
-        const ad = d.ads.find((x) => x.company_id === a.company_id);
+          a.action_type === "ad_spend" &&
+          a.payload.daily_budget !== undefined &&
+          (!ad || a.payload.daily_budget > (a.payload.hard_cap ?? ad.hard_cap))
+        ) {
+          toast.error("The daily budget is over the hard cap");
+          return false;
+        }
+      }
+      setDb((d) => {
         const adChange =
           a.action_type === "ad_spend" && a.payload.daily_budget !== undefined ? a.payload : null;
         const outreach = a.action_type === "send_email" && a.payload.outreach ? a.payload : null;
-        if (
-          status === "approved" &&
-          adChange?.daily_budget !== undefined &&
-          (!ad || adChange.daily_budget > (adChange.hard_cap ?? ad.hard_cap))
-        )
-          return d;
+        const approved = status === "approved";
         return {
           ...d,
-          credit_ledger:
-            status === "approved"
-              ? [
-                  ...d.credit_ledger,
-                  {
-                    id: uid("l"),
-                    company_id: a.company_id,
-                    entry_type: "usage",
-                    amount: -a.estimated_credits,
-                    run_id: a.run_id,
-                    note: labelFor(a),
-                    created_at: iso(),
-                  },
-                ]
-              : d.credit_ledger,
+          credit_ledger: approved
+            ? [
+                ...d.credit_ledger,
+                {
+                  id: uid("l"),
+                  company_id: a.company_id,
+                  entry_type: "usage",
+                  amount: -a.estimated_credits,
+                  run_id: a.run_id,
+                  note: labelFor(a),
+                  created_at: iso(),
+                },
+              ]
+            : d.credit_ledger,
           ads:
-            status === "approved" && adChange?.daily_budget !== undefined
+            approved && adChange?.daily_budget !== undefined
               ? d.ads.map((x) =>
                   x.company_id === a.company_id
                     ? {
@@ -246,7 +162,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 )
               : d.ads,
           emails:
-            status === "approved" && outreach
+            approved && outreach
               ? [
                   ...d.emails,
                   {
@@ -261,11 +177,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 ]
               : d.emails,
           approvals: d.approvals.map((x) =>
-            x.id === id ? { ...x, status, decided_by: user.full_name, decided_at: iso() } : x,
+            x.id === id ? { ...x, status, decided_by: user.id, decided_at: iso() } : x,
           ),
           agent_runs: d.agent_runs.map((r) =>
-            r.id === a.run_id
-              ? { ...r, status: status === "approved" ? "succeeded" : "failed" }
+            r.id === a.run_id && r.status === "needs_approval"
+              ? { ...r, status: "succeeded", finished_at: r.finished_at ?? iso() }
               : r,
           ),
           activity_events: [
@@ -273,18 +189,47 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               id: uid("ev"),
               company_id: a.company_id,
               type: "approval",
-              summary: `${user.full_name} ${status} ${labelFor(a)}`,
+              summary: `${user.full_name} ${approved ? "gave GO:" : "said NO-GO:"} ${labelFor(a)}`,
               created_at: iso(),
             },
             ...d.activity_events,
           ],
         };
       });
+      return true;
     },
-    [user.full_name],
+    [db, user],
   );
 
-  const askWhy = useCallback((id: string) => {
+  const editApproval = useCallback(
+    async (id: string, changes: Record<string, string>) => {
+      const a = db.approvals.find((x) => x.id === id);
+      const allowed =
+        a?.action_type === "publish_post"
+          ? ["text"]
+          : a?.action_type === "send_email"
+            ? ["subject", "body"]
+            : [];
+      if (!a || a.status !== "pending") {
+        toast.error("Only pending drafts can be edited");
+        return false;
+      }
+      if (!Object.entries(changes).every(([k, v]) => allowed.includes(k) && v.trim())) {
+        toast.error("You can only change the wording of this draft");
+        return false;
+      }
+      setDb((d) => ({
+        ...d,
+        approvals: d.approvals.map((x) =>
+          x.id === id ? ({ ...x, payload: { ...x.payload, ...changes } } as T.Approval) : x,
+        ),
+      }));
+      return true;
+    },
+    [db.approvals],
+  );
+
+  const askWhy = useCallback(async (id: string) => {
     setDb((d) => {
       const a = d.approvals.find((x) => x.id === id);
       if (!a) return d;
@@ -296,7 +241,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             id: uid("m"),
             company_id: a.company_id,
             sender: "founder",
-            content: `Why should I approve: ${labelFor(a)}?`,
+            content: "Why should I approve this?",
             created_at: iso(),
           },
           {
@@ -332,9 +277,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             created_at: iso(),
           },
         ],
-      }));
-      setDb((d) => ({
-        ...d,
         chat_messages: [
           ...d.chat_messages,
           { id: uid("m"), company_id: cid, sender: "founder", content: text, created_at: iso() },
@@ -354,22 +296,44 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [db.credit_ledger, solTyping],
   );
 
+  // Approving a gate moves the company to the next stage and opens the next gate (bug B5).
   const approveGate = useCallback(
-    (gateId: string) => {
+    async (gateId: string) => {
+      const g = db.stage_gates.find((x) => x.id === gateId);
+      if (!g || (g.status !== "in_progress" && g.status !== "ready")) {
+        toast.error("This gate isn't open for approval");
+        return false;
+      }
+      const next = STAGE_ORDER[STAGE_ORDER.indexOf(g.stage) + 1];
+      if (!next) return false;
       setDb((d) => ({
         ...d,
-        stage_gates: d.stage_gates.map((g) =>
-          g.id === gateId
-            ? { ...g, status: "approved", approved_by: userId, approved_at: iso() }
-            : g,
+        stage_gates: d.stage_gates.map((x) =>
+          x.id === gateId
+            ? { ...x, status: "approved", approved_by: userId, approved_at: iso() }
+            : x.company_id === g.company_id && x.stage === next && x.status === "locked"
+              ? { ...x, status: "in_progress" }
+              : x,
         ),
+        companies: d.companies.map((c) => (c.id === g.company_id ? { ...c, stage: next } : c)),
+        activity_events: [
+          {
+            id: uid("ev"),
+            company_id: g.company_id,
+            type: "gate",
+            summary: `Gate approved: ${next.charAt(0).toUpperCase() + next.slice(1)} phase begins`,
+            created_at: iso(),
+          },
+          ...d.activity_events,
+        ],
       }));
+      return true;
     },
-    [userId],
+    [db.stage_gates, userId],
   );
 
   const addComment = useCallback(
-    (cid: string, text: string) => {
+    async (cid: string, text: string) => {
       setDb((d) => ({
         ...d,
         gate_comments: [
@@ -377,92 +341,64 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           { id: uid("g"), company_id: cid, author: user.full_name, text, created_at: iso() },
         ],
       }));
+      return true;
     },
     [user.full_name],
   );
 
-  const moveInvestor = useCallback((id: string, stage: T.InvestorStage) => {
+  const moveInvestor = useCallback(async (id: string, stage: T.InvestorStage) => {
     setDb((d) => ({
       ...d,
       investors: d.investors.map((i) => (i.id === id ? { ...i, stage } : i)),
     }));
+    return true;
   }, []);
 
   const createCompany: Ctx["createCompany"] = useCallback(
-    (c) => {
+    async ({ cohort_code, ...c }) => {
+      const cohort = cohort_code?.trim()
+        ? seed.cohorts.find(() => cohort_code.trim().toUpperCase() === DEMO_COHORT_CODE)
+        : undefined;
+      if (cohort_code?.trim() && !cohort) {
+        toast.error("That cohort code isn't recognised. Check it with your programme lead.");
+        return null;
+      }
       const id = uid("c");
-      const slug = c.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const base = c.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+      const slug = db.companies.some((x) => x.slug === base) ? `${base}-${id.slice(-4)}` : base;
       const startedAt = iso();
+      const company: T.Company = {
+        ...c,
+        channels: businessDefaults(c.customer_type),
+        started_at: startedAt,
+        id,
+        slug,
+        stage: "idea",
+        plan: "starter",
+        created_by: userId,
+        website_live_url: `/site/${slug}`,
+        website_preview_url: `/site/${slug}?preview=1`,
+      };
+      const fresh = workspaceSeed([company], []);
       setDb((d) => ({
         ...d,
         stage_gates: [...d.stage_gates, ...defaultGates(id, startedAt, "idea")],
-        routines: [
-          ...d.routines,
-          ...workspaceSeed(
-            [
-              {
-                ...c,
-                id,
-                slug,
-                stage: "idea",
-                plan: "starter",
-                created_by: userId,
-                website_live_url: `/site/${slug}`,
-                website_preview_url: `/site/${slug}?preview=1`,
-              },
-            ],
-            [],
-          ).routines,
-        ],
-        documents: [
-          ...d.documents,
-          ...workspaceSeed(
-            [
-              {
-                ...c,
-                id,
-                slug,
-                stage: "idea",
-                plan: "starter",
-                created_by: userId,
-                website_live_url: `/site/${slug}`,
-                website_preview_url: `/site/${slug}?preview=1`,
-              },
-            ],
-            [],
-          ).documents,
-        ],
-        ads: [
-          ...d.ads,
-          {
-            company_id: id,
-            status: "not_connected",
-            daily_budget: 0,
-            hard_cap: 50,
-            spend: 0,
-            clicks: 0,
-            signups: 0,
-          },
-        ],
-        companies: [
-          ...d.companies,
-          {
-            ...c,
-            channels: businessDefaults(c.customer_type),
-            started_at: startedAt,
-            id,
-            slug,
-            stage: "idea",
-            plan: "starter",
-            created_by: userId,
-            website_live_url: `/site/${slug}`,
-            website_preview_url: `/site/${slug}?preview=1`,
-          },
-        ],
+        routines: [...d.routines, ...fresh.routines],
+        documents: [...d.documents, ...fresh.documents],
+        ads: [...d.ads, ...fresh.ads],
+        companies: [...d.companies, company],
         company_members: [
           ...d.company_members,
           { company_id: id, user_id: userId, role: "founder" },
         ],
+        cohort_companies: cohort
+          ? [...d.cohort_companies, { cohort_id: cohort.id, company_id: id, credit_cap: 5000 }]
+          : d.cohort_companies,
+        // The demo starts new companies with Starter credits so the flows can be tried.
+        // Live companies get credits from billing or their cohort.
         credit_ledger: [
           ...d.credit_ledger,
           {
@@ -471,7 +407,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             entry_type: "grant",
             amount: 1500,
             run_id: null,
-            note: "Starter plan — welcome grant",
+            note: "Starter plan — welcome grant (demo)",
             created_at: iso(),
           },
         ],
@@ -489,7 +425,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setCompanyId(id);
       return id;
     },
-    [userId],
+    [db.companies, userId],
   );
 
   const work: Ctx["work"] = useCallback(
@@ -521,7 +457,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             task_id: kind === "task" ? (target ?? null) : null,
             task: title,
             pillar: kind === "image" || kind === "video" ? "build" : "run",
-            model: "Sol mock",
+            model: "Sol (demo)",
             status: "running",
             started_at: iso(),
             finished_at: null,
@@ -692,18 +628,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [companyId],
   );
   const addRoutine = useCallback(
-    (title: string, cadence: Routine["cadence"], credits: number) =>
+    async (title: string, cadence: Routine["cadence"], credits: number) => {
       setDb((d) => ({
         ...d,
         routines: [
           ...d.routines,
           { id: uid("routine"), company_id: companyId, title, cadence, credits, enabled: false },
         ],
-      })),
+      }));
+      return true;
+    },
     [companyId],
   );
   const toggleRoutine = useCallback(
-    (id: string) => {
+    async (id: string) => {
       const r = db.routines.find((r) => r.id === id);
       if (
         !r ||
@@ -723,7 +661,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [db.routines, db.credit_ledger],
   );
   const proposeBudget = useCallback(
-    (budget: number, cap: number) => {
+    async (budget: number, cap: number) => {
       if (
         !Number.isFinite(budget) ||
         !Number.isFinite(cap) ||
@@ -743,6 +681,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             estimated_credits: 90,
             status: "pending",
             created_at: iso(),
+            requested_by: userId,
             payload: {
               platform: "Meta Ads",
               amount_gbp: budget,
@@ -751,8 +690,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               duration: "per day",
               audience: "Current audience",
               creative: "Current creative",
-              reason:
-                "A capped test limits downside while measuring acquisition. Existing demo results provide the comparison baseline.",
+              reason: "A capped test limits downside while measuring acquisition.",
             },
           },
           ...d.approvals,
@@ -760,10 +698,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }));
       return true;
     },
-    [companyId],
+    [companyId, userId],
   );
   const draftOutreach = useCallback(
-    (body: string, recipients: string) => {
+    async (body: string, recipients: string) => {
       if (!body.trim() || !recipients.trim()) return false;
       setDb((d) => ({
         ...d,
@@ -776,6 +714,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             status: "pending",
             estimated_credits: 30,
             created_at: iso(),
+            requested_by: userId,
             payload: {
               outreach: true,
               to: recipients,
@@ -790,26 +729,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }));
       return true;
     },
-    [companyId],
+    [companyId, userId],
   );
   const invite = useCallback(
-    (email: string, role: T.CompanyMember["role"]) =>
+    async (email: string, role: T.CompanyMember["role"]) => {
       setDb((d) => ({
         ...d,
         team: [
           ...d.team,
           { id: uid("invite"), company_id: companyId, email, role, status: "invited" },
         ],
-      })),
+      }));
+      return true;
+    },
     [companyId],
   );
   const markDone = useCallback(
-    (id: string) => {
+    async (id: string) => {
       const task = db.tasks.find((t) => t.id === id);
-      if (!hasProof(task?.proof)) return false;
+      if (!task || ((task.actor ?? "sol") === "sol" && !hasProof(task.proof))) {
+        toast.error("Sol's work needs proof before it's done.");
+        return false;
+      }
       setDb((d) => ({
         ...d,
-        tasks: d.tasks.map((t) => (t.id === id ? { ...t, status: "done" } : t)),
+        tasks: d.tasks.map((t) =>
+          t.id === id ? { ...t, status: "done", completed_at: iso() } : t,
+        ),
       }));
       return true;
     },
@@ -834,13 +780,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Ctx>(
     () => ({
+      mode: "demo",
+      auth: "signed_in",
+      loading: false,
+      now: seed.NOW,
       db,
       user,
       setUserId,
       companyId,
       setCompanyId,
+      signIn: async () => null,
+      signOut: async () => {},
       solTyping,
       decideApproval,
+      editApproval,
       askWhy,
       sendChat,
       approveGate,
@@ -858,10 +811,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       invite,
       markDone,
       stopAuto,
-      theme,
-      themePref,
-      setThemePref,
-      toggleTheme: () => setThemePref(theme === "light" ? "dark" : "light"),
+      ...themeState,
     }),
     [
       db,
@@ -869,15 +819,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       companyId,
       solTyping,
       decideApproval,
+      editApproval,
       askWhy,
       sendChat,
       approveGate,
       addComment,
       moveInvestor,
       createCompany,
-      theme,
-      themePref,
-      setThemePref,
+      themeState,
       work,
       saveLayout,
       updatePreferences,
@@ -893,57 +842,4 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
-}
-
-export function useStore() {
-  const c = useContext(StoreCtx);
-  if (!c) throw new Error("useStore outside StoreProvider");
-  return c;
-}
-
-export function useCompany(id?: string) {
-  const { db, companyId } = useStore();
-  const cid = id ?? companyId;
-  const c = db.companies.find((c) => c.id === cid) ?? db.companies[0];
-  if (!c) throw new Error("No companies");
-  return c;
-}
-
-export function useMyCompanies() {
-  const { db, user } = useStore();
-  const ids = new Set(
-    db.company_members.filter((m) => m.user_id === user.id).map((m) => m.company_id),
-  );
-  return db.companies.filter((c) => ids.has(c.id));
-}
-
-export function useBalance(id?: string) {
-  const { db, companyId } = useStore();
-  return creditBalance(db.credit_ledger, id ?? companyId);
-}
-
-export function useSolStatus(id?: string) {
-  const { db, companyId, solTyping } = useStore();
-  return solStatus({
-    companyId: id ?? companyId,
-    runs: db.agent_runs,
-    approvals: db.approvals,
-    events: db.activity_events,
-    solTyping,
-  });
-}
-
-export function labelFor(a: T.Approval) {
-  switch (a.action_type) {
-    case "publish_post":
-      return `${a.payload.channel} post`;
-    case "send_email":
-      return `email "${a.payload.subject}"`;
-    case "ad_spend":
-      return `£${a.payload.amount_gbp} ${a.payload.platform} ad spend`;
-    case "file_document":
-      return `filing: ${a.payload.document}`;
-    case "publish_site":
-      return `site change: ${a.payload.change}`;
-  }
 }

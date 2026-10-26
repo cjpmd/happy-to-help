@@ -1,12 +1,14 @@
+import { useState } from "react";
 import { Megaphone, Mail, PoundSterling, FileText, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useStore, labelFor, useBalance, useCompany } from "@/lib/store";
+import { useStore, labelFor, useClaimsCheck, useCompanyRole, personName } from "@/lib/store";
 import { approvalText, type Approval } from "@/lib/types";
 import { fmtDateTime, num } from "@/lib/format";
 import { Pill, StatusPill } from "./primitives";
 import { ClaimsCheck, Why, CostButton } from "./WorkControls";
-import { checkClaims } from "@/lib/workspace";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const icons = {
@@ -102,16 +104,25 @@ export function ApprovalCard({
   compact?: boolean | undefined;
   readOnly?: boolean | undefined;
 }) {
-  const { decideApproval, askWhy } = useStore();
-  const c = useCompany(a.company_id);
+  const { db, decideApproval, askWhy } = useStore();
+  const role = useCompanyRole(a.company_id);
   const text = approvalText(a);
-  const flagged = checkClaims(text, c.sector).length > 0;
+  const flagged = useClaimsCheck(a.company_id)(text).length > 0;
+  const editable =
+    a.status === "pending" &&
+    !readOnly &&
+    role !== "viewer" &&
+    (a.action_type === "publish_post" || a.action_type === "send_email");
+  const [editing, setEditing] = useState(false);
   const Icon = icons[a.action_type];
-  const decide = (s: "approved" | "declined") => {
-    decideApproval(a.id, s);
+  // The toast only follows a decision that really happened (bug B1).
+  const decide = async (s: "approved" | "declined") => {
+    if (!(await decideApproval(a.id, s))) return;
     toast.success(
-      s === "approved" ? "Approved — Sol will carry it out" : "Declined — Sol won't proceed",
-      { description: labelFor(a) },
+      s === "approved" ? "GO given. Sol will carry it out." : "NO-GO. Sol won't proceed.",
+      {
+        description: labelFor(a),
+      },
     );
   };
   return (
@@ -140,7 +151,11 @@ export function ApprovalCard({
         </div>
       )}
       {compact && <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{summary(a)}</p>}
-      {text && <ClaimsCheck text={text} />}
+      {editing ? (
+        <DraftEditor a={a} onDone={() => setEditing(false)} />
+      ) : (
+        text && <ClaimsCheck text={text} companyId={a.company_id} />
+      )}
       <Why
         reason={
           a.payload.reason
@@ -148,8 +163,10 @@ export function ApprovalCard({
             : undefined
         }
       />
-      {flagged && a.status === "pending" && (
-        <p className="mt-2 text-xs text-warning">Resolve flagged claims before approval.</p>
+      {flagged && a.status === "pending" && !editing && (
+        <p className="mt-2 text-xs text-warning">
+          Resolve flagged claims before approval{editable ? ": edit the wording." : "."}
+        </p>
       )}
       {a.status === "pending" && !readOnly ? (
         <div className={cn("mt-3 flex flex-wrap items-start gap-2", !compact && "mt-5")}>
@@ -171,18 +188,79 @@ export function ApprovalCard({
           >
             NO-GO
           </Button>
-          <Button size="sm" variant="outline" onClick={() => askWhy(a.id)} aria-label="Ask Sol why">
+          {editable && !editing && (
+            <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+              Edit
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void askWhy(a.id)}
+            aria-label="Ask Sol why"
+          >
             Why
           </Button>
         </div>
       ) : a.status !== "pending" ? (
         <p className="mt-3 text-xs text-muted-foreground">
-          {a.status === "approved" ? "Approved" : "Declined"} by {a.decided_by} ·{" "}
+          {a.status === "approved" ? "Approved" : "Declined"} by {personName(db, a.decided_by)} ·{" "}
           {a.decided_at && fmtDateTime(a.decided_at)}
         </p>
       ) : (
         <Pill className="mt-3">Awaiting founder</Pill>
       )}
     </article>
+  );
+}
+
+/** Rewords a pending draft. Only the public text can change; recipients and channels can't. */
+function DraftEditor({ a, onDone }: { a: Approval; onDone: () => void }) {
+  const { editApproval } = useStore();
+  const [subject, setSubject] = useState(a.action_type === "send_email" ? a.payload.subject : "");
+  const [body, setBody] = useState(
+    a.action_type === "send_email"
+      ? a.payload.body
+      : a.action_type === "publish_post"
+        ? a.payload.text
+        : "",
+  );
+  const [saving, setSaving] = useState(false);
+  const save = async () => {
+    setSaving(true);
+    const ok = await editApproval(
+      a.id,
+      a.action_type === "send_email" ? { subject, body } : { text: body },
+    );
+    setSaving(false);
+    if (ok) {
+      toast.success("Draft updated. The claims check has run again.");
+      onDone();
+    }
+  };
+  return (
+    <div className="mt-3 space-y-2">
+      {a.action_type === "send_email" && (
+        <Input aria-label="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
+      )}
+      <Textarea
+        aria-label={a.action_type === "send_email" ? "Email body" : "Post text"}
+        value={body}
+        rows={5}
+        onChange={(e) => setBody(e.target.value)}
+      />
+      <ClaimsCheck
+        text={a.action_type === "send_email" ? `${subject}\n${body}` : body}
+        companyId={a.company_id}
+      />
+      <div className="flex gap-2">
+        <Button size="sm" onClick={() => void save()} disabled={saving || !body.trim()}>
+          Save draft
+        </Button>
+        <Button size="sm" variant="outline" onClick={onDone}>
+          Cancel
+        </Button>
+      </div>
+    </div>
   );
 }

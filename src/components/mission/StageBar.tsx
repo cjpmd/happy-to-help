@@ -81,7 +81,7 @@ export function StageBar({
               <Button
                 size="sm"
                 className="mt-2 h-7 w-full text-xs"
-                onClick={() => approveGate(g.id)}
+                onClick={() => void approveGate(g.id)}
               >
                 Approve gate
               </Button>

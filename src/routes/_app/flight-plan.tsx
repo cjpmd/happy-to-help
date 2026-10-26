@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCompany, useStore } from "@/lib/store";
-import { NOW } from "@/lib/seed";
 import { missionDay, stageLabel } from "@/lib/mission";
 import { buildMilestones, inDays } from "@/lib/flightPlan";
 import { PageHeader, Panel, Pill } from "@/components/mission/primitives";
@@ -24,9 +23,9 @@ export const Route = createFileRoute("/_app/flight-plan")({
 
 // Step 5 of 1a-design adds gate detail, the evidence for each milestone and an Evidence tab.
 function FlightPlan() {
-  const { db, companyId } = useStore();
+  const { db, companyId, now } = useStore();
   const c = useCompany(companyId);
-  const nowDay = missionDay(c, NOW);
+  const nowDay = missionDay(c, now);
   const milestones = useMemo(
     () =>
       buildMilestones(

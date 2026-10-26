@@ -1,10 +1,9 @@
 import { useState, type ReactNode } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Check, ChevronsUpDown, LogOut, Menu, Moon, Plus, Sun } from "lucide-react";
 import { useBalance, useCompany, useMyCompanies, useStore } from "@/lib/store";
 import { isLowBalance, PLANS } from "@/lib/credits";
 import { num } from "@/lib/format";
-import { profiles } from "@/lib/seed";
 import { BrandLogo } from "./primitives";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -189,7 +188,8 @@ function FuelBox({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
 }
 
 function AccountMenu({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
-  const { user, setUserId, theme, toggleTheme } = useStore();
+  const { db, mode, user, setUserId, theme, toggleTheme, signOut } = useStore();
+  const navigate = useNavigate();
   const initials = user.full_name
     .split(" ")
     .map((p) => p[0])
@@ -218,28 +218,35 @@ function AccountMenu({ onNavigate }: { onNavigate?: (() => void) | undefined }) 
             </Link>
           </DropdownMenuItem>
         ))}
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-          Demo: view as
-        </DropdownMenuLabel>
-        {profiles
-          .filter((p) => p.id !== "u4")
-          .map((p) => (
-            <DropdownMenuItem key={p.id} onClick={() => setUserId(p.id)}>
-              <span className="flex-1">{p.full_name}</span>
-              <span className="text-xs capitalize text-muted-foreground">{p.role}</span>
-            </DropdownMenuItem>
-          ))}
+        {/* Switching people is a demo convenience; live sessions are real sign-ins. */}
+        {mode === "demo" && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+              Demo: view as
+            </DropdownMenuLabel>
+            {db.profiles
+              .filter((p) => p.id !== "u4")
+              .map((p) => (
+                <DropdownMenuItem key={p.id} onClick={() => setUserId(p.id)}>
+                  <span className="flex-1">{p.full_name}</span>
+                  <span className="text-xs capitalize text-muted-foreground">{p.role}</span>
+                </DropdownMenuItem>
+              ))}
+          </>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={toggleTheme}>
           {theme === "light" ? <Moon className="size-4" /> : <Sun className="size-4" />}
           {theme === "light" ? "Dark theme" : "Light theme"}
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/">
-            <LogOut className="size-4" />
-            Sign out
-          </Link>
+        <DropdownMenuItem
+          onClick={() => {
+            void signOut().then(() => navigate({ to: "/" }));
+          }}
+        >
+          <LogOut className="size-4" />
+          Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

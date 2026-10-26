@@ -50,7 +50,7 @@ export interface EmailThread {
 }
 export interface AdAccount {
   company_id: string;
-  status: "not_connected" | "demo";
+  status: "not_connected" | "demo" | "connected";
   daily_budget: number;
   hard_cap: number;
   spend: number;
@@ -138,7 +138,13 @@ export function hasProof(proof?: Proof) {
     !!proof.pr
   );
 }
-export function checkClaims(text: string, sector: Sector = "general") {
+/**
+ * The claims checker for public-facing text (CLAUDE.md rule 7). The same rules run in the
+ * database (private.claims_flags in supabase/migrations/*_app_rpcs.sql), which is what blocks
+ * approval; keep the two in step. `unbuilt` lists features the company hasn't built yet
+ * (its unfinished roadmap outcomes), which public text mustn't promise.
+ */
+export function checkClaims(text: string, sector: Sector = "general", unbuilt: string[] = []) {
   const rules = [
     {
       pattern: /\b(best|number one|world.leading|most effective)\b/gi,
@@ -148,15 +154,16 @@ export function checkClaims(text: string, sector: Sector = "general") {
       pattern: /\b(guarantee\w*|will improve|double your|100% success|cuts bills)\b/gi,
       reason: "Promises results",
     },
-    {
-      pattern: /\b(weak-spots report|teacher dashboard|personalised learning)\b/gi,
-      reason: "Feature not built yet",
-    },
   ];
   if (sector !== "general")
     rules.push({
       pattern: /\b(actually works|proven|clinically|risk.free|approved|certified)\b/gi,
       reason: "Regulated claim needs supporting evidence",
+    });
+  for (const feature of unbuilt.map((f) => f.trim()).filter(Boolean))
+    rules.push({
+      pattern: new RegExp(`\\b(${feature.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&")})\\b`, "gi"),
+      reason: "Feature not built yet",
     });
   return rules
     .flatMap((r) =>
@@ -169,6 +176,17 @@ export function checkClaims(text: string, sector: Sector = "general") {
     )
     .sort((a, b) => a.start - b.start);
 }
+
+/** A company's unfinished roadmap outcomes: features public text mustn't promise yet. */
+export function unbuiltFeatures(documents: CompanyDocument[], companyId: string): string[] {
+  return (
+    documents
+      .find((d) => d.company_id === companyId && d.title === "Product roadmap")
+      ?.outcomes?.filter((o) => !o.complete)
+      .map((o) => o.title) ?? []
+  );
+}
+
 export function workspaceSeed(companies: Company[], tasks: Task[]): WorkspaceDB {
   return {
     layouts: {},
@@ -235,65 +253,83 @@ export function workspaceSeed(companies: Company[], tasks: Task[]): WorkspaceDB 
         ],
         ...(i === 1
           ? {
-              outcomes: [
-                "Quiz engine",
-                "Waitlist",
-                "Daily streaks",
-                "Pricing page",
-                "Teacher dashboard",
-                "Accessibility review",
-                "Beta launch",
-              ].map((title, j) => ({ title, complete: j < 2 })),
+              outcomes: (c.id !== "c1"
+                ? []
+                : [
+                    "Quiz engine",
+                    "Waitlist",
+                    "Daily streaks",
+                    "Pricing page",
+                    "Teacher dashboard",
+                    "Weak-spots report",
+                    "Accessibility review",
+                    "Beta launch",
+                  ]
+              ).map((title, j) => ({ title, complete: j < 2 })),
             }
           : {}),
       })),
     ),
     media: [],
-    emails: companies.flatMap((c) => [
-      {
-        id: `${c.id}-mail-1`,
-        company_id: c.id,
-        subject: "Classroom beta access",
-        name: "Ms Khan",
-        address: "teacher@example.com",
-        mode: "support" as const,
-        messages: [
-          {
-            direction: "received" as const,
-            text: `Could we try ${c.name} with our S5 class? What information do you collect?`,
-            date: "2026-10-21",
+    emails: companies
+      .filter((c) => c.id === "c1")
+      .flatMap((c) => [
+        {
+          id: `${c.id}-mail-1`,
+          company_id: c.id,
+          subject: "Classroom beta access",
+          name: "Ms Khan",
+          address: "teacher@example.com",
+          mode: "support" as const,
+          messages: [
+            {
+              direction: "received" as const,
+              text: `Could we try ${c.name} with our S5 class? What information do you collect?`,
+              date: "2026-10-21",
+            },
+            {
+              direction: "sent" as const,
+              text: "Thanks for your interest. We are reviewing the classroom beta and privacy requirements before inviting schools.",
+              date: "2026-10-21",
+            },
+          ],
+        },
+        {
+          id: `${c.id}-mail-2`,
+          company_id: c.id,
+          subject: "Pilot invitation draft",
+          name: "School pilot batch",
+          address: "5 reviewed contacts",
+          mode: "outreach" as const,
+          messages: [
+            {
+              direction: "sent" as const,
+              text: "Draft only — not sent. Would your team be interested in a short conversation about the pilot?",
+              date: "2026-10-21",
+            },
+          ],
+        },
+      ]),
+    ads: companies.map((c) =>
+      c.id === "c1"
+        ? {
+            company_id: c.id,
+            status: "demo",
+            daily_budget: 6,
+            hard_cap: 50,
+            spend: 30,
+            clicks: 122,
+            signups: 20,
+          }
+        : {
+            company_id: c.id,
+            status: "not_connected",
+            daily_budget: 0,
+            hard_cap: 50,
+            spend: 0,
+            clicks: 0,
+            signups: 0,
           },
-          {
-            direction: "sent" as const,
-            text: "Thanks for your interest. We are reviewing the classroom beta and privacy requirements before inviting schools.",
-            date: "2026-10-21",
-          },
-        ],
-      },
-      {
-        id: `${c.id}-mail-2`,
-        company_id: c.id,
-        subject: "Pilot invitation draft",
-        name: "School pilot batch",
-        address: "5 reviewed contacts",
-        mode: "outreach" as const,
-        messages: [
-          {
-            direction: "sent" as const,
-            text: "Draft only — not sent. Would your team be interested in a short conversation about the pilot?",
-            date: "2026-10-21",
-          },
-        ],
-      },
-    ]),
-    ads: companies.map((c) => ({
-      company_id: c.id,
-      status: "not_connected",
-      daily_budget: 6,
-      hard_cap: 50,
-      spend: 30,
-      clicks: 122,
-      signups: 20,
-    })),
+    ),
   };
 }
