@@ -276,6 +276,20 @@ $$;
 
 -- RPCs ---------------------------------------------------------------------------------------
 
+-- What a capture will cost before it's sent: extraction plus transcription by the started minute.
+create function public.capture_estimate(p_duration_seconds integer default null)
+returns integer
+language sql
+stable
+set search_path = ''
+as $$
+  select (select estimate_credits from public.job_types where job_type = 'capture_process')
+    + case when coalesce(p_duration_seconds, 0) > 0
+        then ceil(p_duration_seconds / 60.0)::integer * public.credits_for_usd(c.transcription_usd_per_minute)
+        else 0 end
+  from public.credit_config c
+$$;
+
 -- Starts a capture: text (typed note, debrief or pasted transcript) or uploaded audio. Checks
 -- credits for transcription plus extraction and queues the processing job.
 create function public.create_capture(
@@ -295,7 +309,6 @@ set search_path = ''
 as $$
 declare
   me uuid := private.require_signed_in();
-  per_minute integer;
   estimate integer;
   v_id uuid;
   v_job uuid;
@@ -324,9 +337,7 @@ begin
     raise exception 'Confirm everyone knew the meeting was recorded' using errcode = 'P0001', hint = 'consent_required';
   end if;
 
-  select public.credits_for_usd(c.transcription_usd_per_minute) into per_minute from public.credit_config c;
-  estimate := (select estimate_credits from public.job_types where job_type = 'capture_process')
-    + case when p_audio_path is not null then ceil(p_duration_seconds / 60.0)::integer * per_minute else 0 end;
+  estimate := public.capture_estimate(case when p_audio_path is not null then p_duration_seconds end);
   if private.company_balance(p_company) + coalesce(private.cohort_headroom(p_company), 0) < estimate then
     raise exception 'Not enough credits: this needs about % credits.', estimate
       using errcode = 'P0001', hint = 'insufficient_credits';
@@ -769,6 +780,8 @@ revoke execute on function public.create_capture(uuid, text, text, text, text, t
   public.decide_extracted_item(uuid, text, jsonb, boolean), public.accept_all_items(uuid),
   public.share_extracted_item(uuid, boolean), public.update_capture_settings(uuid, integer, boolean),
   public.set_idea_status(uuid, text), public.complete_commitment(uuid, text) from public, anon;
+revoke execute on function public.capture_estimate(integer) from public, anon;
+grant execute on function public.capture_estimate(integer) to authenticated, service_role;
 grant execute on function public.create_capture(uuid, text, text, text, text, text, integer, text[]),
   public.decide_extracted_item(uuid, text, jsonb, boolean), public.accept_all_items(uuid),
   public.share_extracted_item(uuid, boolean), public.update_capture_settings(uuid, integer, boolean),

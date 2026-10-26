@@ -6,6 +6,7 @@ import { checkClaims, unbuiltFeatures } from "./workspace";
 import { solStatus } from "./mission";
 import type { Theme, ThemePref } from "./theme";
 import type * as V from "./voicePolicy";
+import type * as K from "./capture";
 
 /**
  * The app's data, shaped like the Supabase tables. Two providers fill it: the demo store
@@ -42,7 +43,40 @@ export type DB = WorkspaceDB & {
   voice_examples: V.VoiceExample[];
   response_policies: V.ResponsePolicy[];
   response_settings: V.ResponseSettings[];
+  /** Capture from conversation (SPEC part P). Transcripts load on demand. */
+  captures: K.Capture[];
+  extracted_items: K.ExtractedItem[];
+  ideas: K.Idea[];
+  commitments: K.Commitment[];
+  capture_settings: CaptureSettings[];
 };
+
+export interface CaptureSettings {
+  company_id: string;
+  keep_audio_days: number;
+  auto_accept_own_notes: boolean;
+}
+
+export interface NewCapture {
+  companyId: string;
+  source: K.CaptureSource;
+  /** Notes and debriefs are the founder's own voice; meetings need everyone to have known. */
+  consent: "own_voice" | "participants_informed" | "platform_transcript";
+  title?: string;
+  text?: string;
+  audio?: Blob;
+  durationSeconds?: number;
+  participants?: string[];
+}
+
+export interface ItemChanges {
+  text?: string;
+  owner?: K.Owner;
+  owner_id?: string;
+  owner_name?: string;
+  due_date?: string;
+  department?: K.Department;
+}
 
 export interface JobType {
   job_type: string;
@@ -141,6 +175,27 @@ export interface Ctx {
     companyId: string,
     patch: { disclosure_text?: string; disclosure_on_approved?: boolean; mark_reviewed?: boolean },
   ) => Promise<boolean>;
+  /** Resolves to the new capture's id, or null. */
+  createCapture: (c: NewCapture) => Promise<string | null>;
+  decideItem: (
+    id: string,
+    decision: "accept" | "dismiss",
+    changes?: ItemChanges,
+    fileSensitive?: boolean,
+  ) => Promise<boolean>;
+  /** Resolves to how many were accepted, or null. */
+  acceptAllItems: (captureId: string) => Promise<number | null>;
+  shareItem: (id: string, shared: boolean) => Promise<boolean>;
+  updateCaptureSettings: (
+    companyId: string,
+    patch: { keep_audio_days?: number; auto_accept_own_notes?: boolean },
+  ) => Promise<boolean>;
+  setIdeaStatus: (id: string, status: K.Idea["status"]) => Promise<boolean>;
+  completeCommitment: (id: string, status?: "done" | "cancelled") => Promise<boolean>;
+  /** Credits a capture will cost: extraction plus transcription by the started minute. */
+  estimateCapture: (durationSeconds?: number) => Promise<number>;
+  /** The transcript of a capture (founders and teammates only). */
+  loadTranscript: (captureId: string) => Promise<string | null>;
 }
 
 export const StoreCtx = createContext<Ctx | null>(null);
@@ -215,6 +270,8 @@ export function labelFor(a: T.Approval) {
       return `site change: ${a.payload.change}`;
     case "update_voice":
       return `brand voice v${a.payload.version}`;
+    case "update_memory":
+      return `memory: ${a.payload.fact}`;
   }
 }
 
@@ -241,6 +298,7 @@ export const WORK_KINDS = {
   task: "task",
   autoHour: "auto_mode",
   voice: "voice_analysis",
+  capture: "capture_process",
 } as const;
 export type WorkKind = keyof typeof WORK_KINDS;
 
@@ -256,6 +314,7 @@ export function demoJobTypes(): JobType[] {
     task: 150,
     autoHour: ACTION_COSTS.autoHour,
     voice: 150,
+    capture: 40,
   };
   return (Object.keys(WORK_KINDS) as WorkKind[]).map((k) => ({
     job_type: WORK_KINDS[k],

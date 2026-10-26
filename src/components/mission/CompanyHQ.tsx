@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, GripVertical, RotateCcw } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { ArrowDown, ArrowUp, GripVertical, Mic, RotateCcw } from "lucide-react";
 import { useCompany, useStore } from "@/lib/store";
 import { defaultLayout, layoutFor, type Widget } from "@/lib/workspace";
 import { Button } from "@/components/ui/button";
@@ -99,6 +100,15 @@ export function CompanyHQ({
         onCustomise={readOnly ? undefined : () => setEditing(true)}
       />
       {!readOnly && <AskSolBar companyId={companyId} open={chatOpen} onOpenChange={setChatOpen} />}
+      {/* Debrief is a phone thing: straight after a meeting (SPEC P). */}
+      {!readOnly && (
+        <Button asChild variant="outline" className="tab:hidden">
+          <Link to="/debrief">
+            <Mic className="h-4 w-4" />
+            Debrief a meeting
+          </Link>
+        </Button>
+      )}
       {/* Start up companies steer by the flight plan; Keep going ones by leads and replies. */}
       {!keepGoing && <FlightPlanCard companyId={companyId} readOnly={readOnly} />}
       <div className="grid items-start gap-3 tab:grid-cols-2 desk:grid-cols-3">

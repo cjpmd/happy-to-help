@@ -21,3 +21,13 @@ Built: `supabase/functions/chat` and `supabase/functions/enqueue-job`. Chat stre
 3. Deploy: `npx supabase functions deploy chat enqueue-job`.
 4. In the app, send Sol a message and check the run in LOG shows a real cost.
 
+
+## 3. Turn on real transcription (Speechmatics, EU region)
+
+Built: recordings and voice notes are transcribed by `agent-service/src/capture/transcription.ts`. The default is a mock that returns a fixed sample transcript and sends nothing anywhere. Typed notes and pasted transcripts don't need a provider.
+
+1. Check the provider meets your data-protection needs: create a Speechmatics account, choose the EU processing region, and sign their data processing agreement. Add them to the privacy notice as a sub-processor.
+2. Create an API key in the Speechmatics portal (Settings → API keys) and set a usage limit.
+3. Check the price per minute and set it in the database: `update public.credit_config set transcription_usd_per_minute = <price>;` (default 0.01). Credits per minute follow the usual conversion.
+4. Set on the agent service: `TRANSCRIPTION_PROVIDER=speechmatics`, `SPEECHMATICS_API_KEY=...` (and `SPEECHMATICS_URL` if you use a different region).
+5. Restart the worker; its start-up line should say "speechmatics transcription". Record a 30-second debrief on your phone and check the transcript under Meetings → Show transcript, and that the audio is gone from the `captures` storage bucket.

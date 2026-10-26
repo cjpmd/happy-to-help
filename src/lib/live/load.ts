@@ -195,6 +195,22 @@ export const loaders = {
       response_settings: must(settings, "reply settings").map(M.mapResponseSettings),
     };
   },
+  captures: async (sb) => {
+    const [captures, items, ideas, commitments, settings] = await Promise.all([
+      sb.from("captures").select("*").order("created_at", { ascending: false }).limit(RECENT),
+      sb.from("extracted_items").select("*").order("created_at"),
+      sb.from("ideas").select("*").order("created_at", { ascending: false }),
+      sb.from("commitments").select("*").order("due_date"),
+      sb.from("capture_settings").select("company_id, keep_audio_days, auto_accept_own_notes"),
+    ]);
+    return {
+      captures: must(captures, "meetings").map(M.mapCapture),
+      extracted_items: must(items, "meeting items").map(M.mapItem),
+      ideas: must(ideas, "ideas").map(M.mapIdea),
+      commitments: must(commitments, "promises").map(M.mapCommitment),
+      capture_settings: must(settings, "capture settings"),
+    };
+  },
   settings: async (sb, userId) => {
     const [prefs, layout, sharing, invites] = await Promise.all([
       sb.from("user_preferences").select("*").maybeSingle(),
@@ -234,6 +250,9 @@ export const TABLE_GROUPS: Partial<Record<keyof Database["public"]["Tables"], Gr
   job_types: "job_types",
   voice_profiles: "voice",
   response_policies: "voice",
+  captures: "captures",
+  extracted_items: "captures",
+  commitments: "captures",
 };
 
 export async function loadGroups(sb: Client, userId: string, groups: Group[]) {
@@ -272,6 +291,11 @@ export function emptyDb(): DB {
     voice_examples: [],
     response_policies: [],
     response_settings: [],
+    captures: [],
+    extracted_items: [],
+    ideas: [],
+    commitments: [],
+    capture_settings: [],
     routines: [],
     documents: [],
     media: [],

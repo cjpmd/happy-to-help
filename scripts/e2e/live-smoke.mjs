@@ -214,6 +214,43 @@ try {
       .eq("company_id", "c0000000-0000-4000-8000-000000000005")
       .single();
     check(!!settings?.policy_reviewed_at, "marking the policy reviewed is saved");
+
+    // Meetings: paste a transcript; the review card appears and Accept all files the items.
+    await page.goto(`${base}/meetings`);
+    await page.getByLabel("Meeting title").fill("Call with the Quay Café");
+    await page.getByLabel("Transcript").fill("Rory: We agreed to deliver on Tuesdays too.");
+    await page.getByText("Everyone in the meeting knew it was being recorded").click();
+    await page.getByRole("button", { name: /Send to Sol/ }).click();
+    await page.getByText("Sol is reading").first().waitFor({ timeout: 10_000 });
+    const { data: cap } = await admin
+      .from("captures")
+      .select("id, status, consent")
+      .eq("title", "Call with the Quay Café")
+      .single();
+    check(
+      cap?.consent === "participants_informed",
+      "a pasted transcript records how people were told",
+    );
+    // The worker isn't running here: the service role stands in for Sol's extraction.
+    await admin.rpc("save_extraction", {
+      p_capture: cap.id,
+      p_run: null,
+      p_items: [
+        { kind: "decision", text: "Deliver on Tuesdays too", confidence: 0.9 },
+        { kind: "action", text: "Tell the van driver", owner: "unknown", confidence: 0.8 },
+      ],
+    });
+    await page.getByRole("button", { name: /Accept all \(1\)/ }).click();
+    await page.getByText("Accepted 1 item").waitFor({ timeout: 10_000 });
+    const { data: items } = await admin
+      .from("extracted_items")
+      .select("text, status")
+      .eq("capture_id", cap.id)
+      .order("text");
+    check(
+      items?.map((i) => i.status).join() === "accepted,pending",
+      "Accept all files the decision and leaves the action with no owner",
+    );
     await page.context().close();
   }
 

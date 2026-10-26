@@ -22,6 +22,7 @@ const mainNav = [
   { to: "/approvals", label: "GO / NO-GO", count: true },
   { to: "/telemetry", label: "Telemetry" },
   { to: "/activity", label: "Log" },
+  { to: "/meetings", label: "Meetings" },
 ] as const;
 
 const departments = [
@@ -52,9 +53,9 @@ function useActive() {
 function MainNav({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
   const { db, companyId } = useStore();
   const active = useActive();
-  const pending = db.approvals.filter(
-    (a) => a.company_id === companyId && a.status === "pending",
-  ).length;
+  const pending =
+    db.approvals.filter((a) => a.company_id === companyId && a.status === "pending").length +
+    db.captures.filter((c) => c.company_id === companyId && c.status === "review").length;
   return (
     <div className="label-caps flex flex-col gap-0.5 text-[13px] font-semibold tracking-[0.1em]">
       {mainNav.map((i) => (

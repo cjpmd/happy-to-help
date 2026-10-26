@@ -2699,6 +2699,7 @@ export type Database = {
       approve_gate: { Args: { p_gate: string }; Returns: Database["public"]["Enums"]["stage"] };
       ask_why: { Args: { p_approval: string }; Returns: undefined };
       begin_chat_turn: { Args: { p_company: string; p_content: string }; Returns: string };
+      capture_estimate: { Args: { p_duration_seconds?: number }; Returns: number };
       check_claims: { Args: { p_company: string; p_text: string }; Returns: Json };
       claim_agent_job: {
         Args: { p_job_types?: string[]; p_worker: string };

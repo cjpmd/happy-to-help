@@ -142,3 +142,24 @@ Non-trivial decisions made during the autonomous build run (`docs/AUTONOMOUS-RUN
 
 ## D38. Adopting a voice is an approval
 - **Chosen:** the agent's voice proposals become an `update_voice` approval (0 credits) shown on the GO / NO-GO card and the Voice tab. GO runs through the executor, which calls `adopt_voice_profile`; NO-GO declines the proposal (a trigger). A founder's own edit is saved directly as a new approved version, since it's their decision.
+
+## D39. Capture schema
+- **Chosen:** one `captures` row per note, debrief, transcript or recording, with how participants were told (`own_voice`, `participants_informed`, `platform_transcript`; meetings can't be added without one of the last two). `transcripts` hold text and speaker segments. Sol's findings are `extracted_items` (decision, action, idea, question, commitment, feedback, memory_fact, claim) with owner, due date, department, confidence, sensitivity, quote and timestamp, and they stay `pending` until the founder accepts. Feedback and memory facts got their own small tables now; Phase 16 extends feedback.
+- **Why:** SPEC P's pipeline and its rule that nothing is created until accepted.
+
+## D40. Routing accepted items in the database
+- **Chosen:** `private.route_item` does the routing in one transaction for the RPCs and for auto-accept, so a half-routed item can't happen. Sol actions become a Sol task and a queued job only if credits allow (otherwise the task waits); actions with no owner or date can't be accepted until the founder fills them in; sensitive items need an explicit "file it anyway"; facts become an approval, never a silent memory write; and for Start up companies an idea becomes an untested assumption with a standard evidence plan.
+
+## D41. Matching against what exists
+- **Chosen:** in `propose_extraction`, before saving: an action matches an open task when the Jaccard similarity of their meaningful words is at least 0.5 (it then updates that task's due date instead of creating one); a named person links to a contact only on an exact full-name match or a first name that only one contact has. The skill also asks the model to word matches like the existing task. Pure functions in `src/lib/capture.ts`, shared with the demo.
+- **Why:** cheap, predictable and testable; it errs towards creating a new item over merging two different ones.
+
+## D42. Transcription is part of the run
+- **Chosen:** a recording's transcription happens inside its `capture_process` run, so the estimate (extraction plus the started minutes at `credit_config.transcription_usd_per_minute`) is reserved up front, the provider's cost is settled with the model cost, and a failure refunds both. Audio is deleted from storage as soon as it's transcribed unless the founder keeps it (up to 90 days; the worker purges expired audio every minute).
+
+## D43. Who sees captures
+- **Chosen:** captures, transcripts, items, ideas, promises and feedback are readable by founders and teammates only. Mentors see an item only when it's an accepted action or decision a founder has shared; viewers and admins see none of it. Memory facts are readable like other company documents. Memory approvals must be given by a founder.
+
+## D44. The mic records a voice note
+- **Chosen:** holding the mic on the Ask Sol bar records a voice note that goes through the capture pipeline (transcribed by the configured provider, then a "From your note" card), rather than dictating into the chat box with the browser's speech recognition.
+- **Why:** browser speech recognition sends audio to the browser vendor, outside our UK/EU provider and consent records (SPEC M), and doesn't work in every browser. In the demo, and where recording isn't available, the mic opens Debrief to type.

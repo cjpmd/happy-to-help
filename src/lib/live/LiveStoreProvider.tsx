@@ -503,6 +503,125 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       )) !== false,
     [sb, call],
   );
+  const createCapture = useCallback<Ctx["createCapture"]>(
+    async (c) => {
+      let audioPath: string | null = null;
+      if (c.audio) {
+        const ext = c.audio.type.includes("mp4")
+          ? "m4a"
+          : c.audio.type.split("/")[1]?.split(";")[0] || "webm";
+        audioPath = `${c.companyId}/${crypto.randomUUID()}.${ext}`;
+        const { error } = await sb.storage
+          .from("captures")
+          .upload(audioPath, c.audio, { contentType: c.audio.type || "audio/webm" });
+        if (error) {
+          toast.error(`Couldn't upload the recording: ${error.message}`);
+          return null;
+        }
+      }
+      const id = await call(
+        () =>
+          sb.rpc("create_capture", {
+            p_company: c.companyId,
+            p_source: c.source,
+            p_consent: c.consent,
+            p_title: c.title ?? "",
+            ...(c.text ? { p_text: c.text } : {}),
+            ...(audioPath ? { p_audio_path: audioPath } : {}),
+            ...(c.durationSeconds ? { p_duration_seconds: Math.ceil(c.durationSeconds) } : {}),
+            p_participants: c.participants ?? [],
+          }),
+        ["captures", "agent_runs", "activity_events"],
+      );
+      return id || null;
+    },
+    [sb, call],
+  );
+  const decideItem = useCallback<Ctx["decideItem"]>(
+    async (id, decision, changes = {}, fileSensitive = false) =>
+      (await call(
+        () =>
+          sb.rpc("decide_extracted_item", {
+            p_item: id,
+            p_decision: decision,
+            p_changes: changes as Json,
+            p_file_sensitive: fileSensitive,
+          }),
+        ["captures", "tasks", "approvals", "agent_runs", "evidence_items", "activity_events"],
+      )) !== false,
+    [sb, call],
+  );
+  const acceptAllItems = useCallback<Ctx["acceptAllItems"]>(
+    async (captureId) => {
+      const n = await call(
+        () => sb.rpc("accept_all_items", { p_capture: captureId }),
+        ["captures", "tasks", "approvals", "agent_runs", "evidence_items", "activity_events"],
+      );
+      return n === false ? null : (n ?? 0);
+    },
+    [sb, call],
+  );
+  const shareItem = useCallback<Ctx["shareItem"]>(
+    async (id, shared) =>
+      (await call(
+        () => sb.rpc("share_extracted_item", { p_item: id, p_shared: shared }),
+        ["captures"],
+      )) !== false,
+    [sb, call],
+  );
+  const updateCaptureSettings = useCallback<Ctx["updateCaptureSettings"]>(
+    async (cid, patch) =>
+      (await call(
+        () =>
+          sb.rpc("update_capture_settings", {
+            p_company: cid,
+            ...(patch.keep_audio_days !== undefined
+              ? { p_keep_audio_days: patch.keep_audio_days }
+              : {}),
+            ...(patch.auto_accept_own_notes !== undefined
+              ? { p_auto_accept: patch.auto_accept_own_notes }
+              : {}),
+          }),
+        ["captures"],
+      )) !== false,
+    [sb, call],
+  );
+  const setIdeaStatus = useCallback<Ctx["setIdeaStatus"]>(
+    async (id, status) =>
+      (await call(
+        () => sb.rpc("set_idea_status", { p_idea: id, p_status: status }),
+        ["captures"],
+      )) !== false,
+    [sb, call],
+  );
+  const completeCommitment = useCallback<Ctx["completeCommitment"]>(
+    async (id, status = "done") =>
+      (await call(
+        () => sb.rpc("complete_commitment", { p_commitment: id, p_status: status }),
+        ["captures"],
+      )) !== false,
+    [sb, call],
+  );
+  const estimateCapture = useCallback<Ctx["estimateCapture"]>(
+    async (seconds) => {
+      const { data } = await sb.rpc("capture_estimate", {
+        ...(seconds ? { p_duration_seconds: Math.ceil(seconds) } : {}),
+      });
+      return data ?? 0;
+    },
+    [sb],
+  );
+  const loadTranscript = useCallback<Ctx["loadTranscript"]>(
+    async (captureId) => {
+      const { data } = await sb
+        .from("transcripts")
+        .select("text")
+        .eq("capture_id", captureId)
+        .maybeSingle();
+      return data?.text ?? null;
+    },
+    [sb],
+  );
   const signIn = useCallback<Ctx["signIn"]>(
     async (email) => {
       const { error } = await sb.auth.signInWithOtp({
@@ -560,6 +679,15 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       removeVoiceExample,
       setResponsePolicy,
       updateResponseSettings,
+      createCapture,
+      decideItem,
+      acceptAllItems,
+      shareItem,
+      updateCaptureSettings,
+      setIdeaStatus,
+      completeCommitment,
+      loadTranscript,
+      estimateCapture,
       ...themeState,
     }),
     [
@@ -601,6 +729,15 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       removeVoiceExample,
       setResponsePolicy,
       updateResponseSettings,
+      createCapture,
+      decideItem,
+      acceptAllItems,
+      shareItem,
+      updateCaptureSettings,
+      setIdeaStatus,
+      completeCommitment,
+      loadTranscript,
+      estimateCapture,
       themeState,
     ],
   );

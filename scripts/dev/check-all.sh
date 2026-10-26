@@ -22,5 +22,8 @@ step pgtap npx supabase test db
 step integration npm run test:integration
 step agent-typecheck bash -c "cd agent-service && npx tsc --noEmit -p ."
 step agent-tests bash -c "cd agent-service && npx vitest run"
+# The other suites change the seed data (the agent tests reply to Harbour Bakes' inbox), so the
+# browser test gets a fresh database.
+step e2e-reset npx supabase db reset
 step e2e env CHROMIUM_PATH="${CHROMIUM_PATH:-/opt/pw-browsers/chromium-1243/chrome-linux64/chrome}" npm run e2e:live
 exit $fail
