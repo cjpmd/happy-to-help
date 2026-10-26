@@ -8,6 +8,7 @@ import { must } from "../db/client.js";
 import type { Json, Tables } from "../db/types.js";
 import {
   checkRules,
+  checkAutoSend,
   DEFAULT_LIMITS,
   recipients,
   type ExecutorLimits,
@@ -34,6 +35,7 @@ const PILLAR: Record<Approval["action_type"], "grow" | "run" | "build" | "legal"
   ad_spend: "grow",
   publish_site: "build",
   file_document: "legal",
+  update_voice: "grow",
 };
 
 function label(a: Approval): string {
@@ -49,6 +51,8 @@ function label(a: Approval): string {
       return `site change: ${String(p["change"])}`;
     case "file_document":
       return `filing: ${String(p["document"])}`;
+    case "update_voice":
+      return `brand voice v${String(p["version"])}`;
   }
 }
 
@@ -191,12 +195,13 @@ async function perform(
     }
     case "send_email": {
       const { emails, count } = recipients(String(p["to"]));
+      const body = await withDisclosure(db, a);
       const r = await providers.email.send({
         companyId: a.company_id,
         approvalId: a.id,
         to: emails.length ? emails : [String(p["to"])],
         subject: String(p["subject"]),
-        body: String(p["body"]),
+        body,
       });
       let threadId = typeof p["thread_id"] === "string" ? p["thread_id"] : null;
       if (!threadId) {
@@ -218,7 +223,7 @@ async function perform(
           thread_id: threadId,
           company_id: a.company_id,
           direction: "sent",
-          body: String(p["body"]),
+          body,
         });
       return { provider: providers.name, message_ids: r.messageIds, recipients: count };
     }
@@ -286,7 +291,68 @@ async function perform(
       });
       return { provider: providers.name, reference: r.reference };
     }
+    case "update_voice": {
+      // Internal: adopting the proposed voice needs no provider.
+      const { error } = await db.rpc("adopt_voice_profile", {
+        p_profile: String(p["profile_id"]),
+        ...(a.decided_by ? { p_approved_by: a.decided_by } : {}),
+      } as { p_profile: string; p_approved_by: string });
+      if (error) throw new Error(`adopt voice: ${error.message}`);
+      return { provider: "internal", profile_id: String(p["profile_id"]) };
+    }
   }
+}
+
+/**
+ * Replies Sol drafted carry the company's AI disclosure (SPEC G): always when sent
+ * automatically, and on approved drafts unless the founder turned that off.
+ */
+async function withDisclosure(db: Db, a: Approval): Promise<string> {
+  const p = a.payload as Record<string, unknown>;
+  const body = String(p["body"] ?? "");
+  const drafted = a.run_id !== null || p["auto_send"] === true;
+  if (!drafted) return body;
+  const { data: settings } = await db
+    .from("response_settings")
+    .select("disclosure_text, disclosure_on_approved")
+    .eq("company_id", a.company_id)
+    .maybeSingle();
+  const text = settings?.disclosure_text ?? "Drafted with our AI assistant";
+  if (p["auto_send"] !== true && settings && !settings.disclosure_on_approved) return body;
+  return body.includes(text) ? body : `${body}\n\n— ${text}`;
+}
+
+/** What an automatic reply needs to know about the company (see checkAutoSend). */
+async function autoSendContext(db: Db, a: Approval) {
+  const p = a.payload as Record<string, unknown>;
+  const triage = (p["triage"] ?? {}) as Record<string, unknown>;
+  const category = String(triage["category"] ?? "");
+  const [{ data: policy }, { data: voice }, { data: settings }] = await Promise.all([
+    db
+      .from("response_policies")
+      .select("mode")
+      .eq("company_id", a.company_id)
+      .eq("category", category)
+      .maybeSingle(),
+    db
+      .from("voice_profiles")
+      .select("source")
+      .eq("company_id", a.company_id)
+      .eq("status", "approved")
+      .maybeSingle(),
+    db
+      .from("response_settings")
+      .select("policy_reviewed_at")
+      .eq("company_id", a.company_id)
+      .maybeSingle(),
+  ]);
+  return {
+    category,
+    triage,
+    policyMode: policy?.mode ?? null,
+    voiceApproved: !!voice && voice.source !== "default",
+    policyReviewed: !!settings?.policy_reviewed_at,
+  };
 }
 
 /** Carries out one claimed approval. */
@@ -309,15 +375,19 @@ export async function executeApproval(deps: ExecutorDeps, a: Approval): Promise<
   const flagged = (flags ?? []) as { phrase: string }[];
   if (flagged.length)
     return block(db, a, `the claims check now flags "${flagged[0]!.phrase}".`, false);
-  const rule = checkRules(
-    {
-      action_type: a.action_type,
-      payload: a.payload as Record<string, unknown>,
-      deciderRole: await deciderRole(db, a),
-    },
-    await founderRules(db, a.company_id),
-    deps.limits ?? DEFAULT_LIMITS,
-  );
+  // Automatic replies (no one decided them) follow the response policy and its hard rules.
+  const auto = (a.payload as Record<string, unknown>)["auto_send"] === true && !a.decided_by;
+  const rule = auto
+    ? checkAutoSend(await autoSendContext(db, a))
+    : checkRules(
+        {
+          action_type: a.action_type,
+          payload: a.payload as Record<string, unknown>,
+          deciderRole: await deciderRole(db, a),
+        },
+        await founderRules(db, a.company_id),
+        deps.limits ?? DEFAULT_LIMITS,
+      );
   if (!rule.ok) return block(db, a, rule.reason, rule.needsFounder);
 
   // 2. Credits: reserve the action's price on its own run.
@@ -431,6 +501,7 @@ export async function executeApproval(deps: ExecutorDeps, a: Approval): Promise<
     ad_spend: "Set",
     publish_site: "Published",
     file_document: "Filed",
+    update_voice: "Adopted",
   }[a.action_type];
   await event(db, a.company_id, PILLAR[a.action_type], `${verb} ${label(a)}`, run.id);
   log(`approval ${a.id}: done (${charged} credits)`);

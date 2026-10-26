@@ -23,6 +23,9 @@ const company = {
   updated_at: "",
   started_at: "",
   activation_definition: null,
+  entry_path: "start_up" as const,
+  social_handles: {},
+  google_business_url: null,
 };
 
 describe("company memory", () => {

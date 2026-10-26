@@ -5,6 +5,7 @@
 import { gate } from "../gate.js";
 import { callTool } from "../tools.js";
 import type { AgentRuntime, RunOutcome, RunRequest } from "./types.js";
+import { analyseVoice } from "../../../src/lib/voice.js";
 
 interface Post {
   channel: string;
@@ -129,6 +130,59 @@ export const mockRuntime: AgentRuntime = {
           summary: "Added a review note on priorities",
         });
         return done("I reviewed the document and saved a new version with a short update.");
+      }
+
+      case "voice_analysis": {
+        const sources = JSON.parse((await step("get_voice_sources")).text) as { content: string }[];
+        await step("get_voice_profile");
+        const read = analyseVoice(sources.map((x) => x.content));
+        if (!read)
+          return done(
+            "I need a few past emails or your website copy before I can learn your voice.",
+          );
+        await step("propose_voice_from_analysis", {
+          summary: read.summary.split("\n")[0]!,
+          traits: [...read.traits, "Honest", "Helpful"].slice(0, 5),
+          use_phrases: read.phrases,
+          avoid_phrases: ["guaranteed", "best", "world-leading"],
+          reading_level: read.readingLevel,
+          spelling: read.spelling === "US" ? "US" : "UK",
+          ...(read.signOff ? { sign_off: read.signOff } : {}),
+          emoji: read.usesEmoji ? "sparing" : "none",
+          changes: `Learned from ${sources.length} pieces of your own writing.`,
+        });
+        return done("I've proposed a voice profile from your writing. It's waiting for your GO.");
+      }
+
+      case "voice_update": {
+        const edits = JSON.parse((await step("get_edit_events")).text) as {
+          original: string;
+          final: string;
+        }[];
+        if (edits.length < 3)
+          return done(`Only ${edits.length} edits this week, so no change to propose.`);
+        const words = (t: string) => new Set(t.toLowerCase().match(/[a-z']+/g) ?? []);
+        const removed = new Map<string, number>();
+        for (const e of edits) {
+          const after = words(e.final);
+          for (const w of words(e.original))
+            if (!after.has(w) && w.length > 3) removed.set(w, (removed.get(w) ?? 0) + 1);
+        }
+        const avoid = [...removed.entries()].filter(([, n]) => n >= 2).map(([w]) => w);
+        if (!avoid.length)
+          return done("Your edits this week were one-off fixes, so no change to propose.");
+        const current = JSON.parse((await step("get_voice_profile")).text) as {
+          summary: string;
+          traits: string[];
+          avoid_phrases: string[];
+        } | null;
+        await step("propose_voice_from_edits", {
+          summary: current?.summary ?? "Clear, encouraging and honest.",
+          traits: (current?.traits ?? ["Clear", "Encouraging", "Honest"]).slice(0, 5),
+          avoid_phrases: [...new Set([...(current?.avoid_phrases ?? []), ...avoid])],
+          changes: `You removed ${avoid.map((w) => `"${w}"`).join(", ")} in several edits, so I'll stop using them.`,
+        });
+        return done("I've proposed a small change to the voice from your edits.");
       }
 
       case "task":

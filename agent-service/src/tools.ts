@@ -341,6 +341,109 @@ export const TOOLS: ToolDef[] = [
   }),
 ];
 
+// Brand voice (Phase 11) ----------------------------------------------------------------------
+
+const VOICE_SHAPE = {
+  summary: z.string().min(1).max(1500).describe("Two to four plain sentences describing the voice"),
+  traits: z.array(z.string().min(1).max(40)).min(3).max(5),
+  use_phrases: z.array(z.string().min(1).max(80)).max(12).optional(),
+  avoid_phrases: z.array(z.string().min(1).max(80)).max(20).optional(),
+  reading_level: z.enum(["plain", "standard", "complex"]).optional(),
+  spelling: z.enum(["UK", "US"]).optional(),
+  sign_off: z.string().max(60).optional(),
+  emoji: z.enum(["none", "sparing", "often"]).optional(),
+  channel_variants: z.record(z.string(), z.string().max(400)).optional(),
+  tone_rules: z.record(z.string(), z.string().max(400)).optional(),
+  changes: z.string().min(1).max(1000).describe("What's different from the current voice, and why"),
+};
+
+async function proposeVoice(
+  ctx: ToolContext,
+  source: "analysis" | "edits",
+  profile: Record<string, unknown>,
+) {
+  const { data, error } = await ctx.db.rpc("propose_voice_profile", {
+    p_company: ctx.companyId,
+    p_run: ctx.runId,
+    p_source: source,
+    p_profile: profile as { [key: string]: Json },
+  });
+  if (error) throw new Error(`propose voice: ${error.message}`);
+  return {
+    approvalId: undefined,
+    text: `Proposed voice profile ${String(data)} for the founder's approval. It won't be used until they give GO.`,
+  };
+}
+
+TOOLS.push(
+  def({
+    name: "get_voice_profile",
+    description: "The company's current approved voice profile.",
+    shape: {},
+    readOnly: true,
+    handler: async (ctx) => {
+      const { data } = await ctx.db
+        .from("voice_profiles")
+        .select(
+          "version, summary, traits, use_phrases, avoid_phrases, reading_level, spelling, sign_off, emoji, channel_variants, tone_rules",
+        )
+        .eq("company_id", ctx.companyId)
+        .eq("status", "approved")
+        .maybeSingle();
+      return { text: json(data) };
+    },
+  }),
+  def({
+    name: "get_voice_sources",
+    description:
+      "The company's own writing for voice analysis: website copy and past emails or posts the founder shared.",
+    shape: {},
+    readOnly: true,
+    handler: async (ctx) => {
+      const { data } = await ctx.db
+        .from("voice_sources")
+        .select("kind, content")
+        .eq("company_id", ctx.companyId)
+        .order("created_at")
+        .limit(40);
+      return { text: json(data ?? []) };
+    },
+  }),
+  def({
+    name: "get_edit_events",
+    description:
+      "Edits the founder made to Sol's drafts that haven't been learned from yet: the original and the final text.",
+    shape: {},
+    readOnly: true,
+    handler: async (ctx) => {
+      const { data } = await ctx.db
+        .from("voice_edit_events")
+        .select("channel, original, final, created_at")
+        .eq("company_id", ctx.companyId)
+        .is("used_at", null)
+        .order("created_at")
+        .limit(50);
+      return { text: json(data ?? []) };
+    },
+  }),
+  def({
+    name: "propose_voice_from_analysis",
+    description:
+      "Proposes a voice profile learned from the company's writing. The founder approves it in GO / NO-GO.",
+    shape: VOICE_SHAPE,
+    readOnly: false,
+    handler: async (ctx, profile) => proposeVoice(ctx, "analysis", profile),
+  }),
+  def({
+    name: "propose_voice_from_edits",
+    description:
+      "Proposes changes to the voice learned from the founder's edits. The founder approves it in GO / NO-GO.",
+    shape: VOICE_SHAPE,
+    readOnly: false,
+    handler: async (ctx, profile) => proposeVoice(ctx, "edits", profile),
+  }),
+);
+
 export const toolByName = (name: string) => TOOLS.find((t) => t.name === name);
 
 /** The MCP server name the tools are served under, so full names are mcp__gumption__<tool>. */
