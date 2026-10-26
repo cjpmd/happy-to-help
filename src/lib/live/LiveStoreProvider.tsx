@@ -724,6 +724,46 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
     },
     [sb],
   );
+  const startAutoMode = useCallback<Ctx["startAutoMode"]>(
+    async (cid, hours, cap) => {
+      const ok =
+        (await call(
+          () => sb.rpc("start_auto_mode", { p_company: cid, p_hours: hours, p_cap_credits: cap }),
+          ["automation", "activity_events"],
+        )) !== false;
+      if (ok) toast.success(`Auto Mode is on for ${hours} ${hours === 1 ? "hour" : "hours"}.`);
+      return ok;
+    },
+    [sb, call],
+  );
+  const stopAutoMode = useCallback<Ctx["stopAutoMode"]>(
+    async (cid) =>
+      (await call(
+        () => sb.rpc("stop_auto_mode", { p_company: cid }),
+        ["automation", "activity_events"],
+      )) !== false,
+    [sb, call],
+  );
+  const updateAutomation = useCallback<Ctx["updateAutomation"]>(
+    async (cid, patch) =>
+      (await call(
+        () =>
+          sb.rpc("update_automation", {
+            p_company: cid,
+            ...(patch.nightly_enabled !== undefined
+              ? { p_nightly_enabled: patch.nightly_enabled }
+              : {}),
+            ...(patch.nightly_cap_credits !== undefined
+              ? { p_nightly_cap: patch.nightly_cap_credits }
+              : {}),
+            ...(patch.voice_review_enabled !== undefined
+              ? { p_voice_review: patch.voice_review_enabled }
+              : {}),
+          }),
+        ["automation"],
+      )) !== false,
+    [sb, call],
+  );
   const setIntegration = useCallback<Ctx["setIntegration"]>(
     async (cid, provider, enabled, config) =>
       (await call(
@@ -835,6 +875,9 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       submitLead,
       followLink,
       setIntegration,
+      startAutoMode,
+      stopAutoMode,
+      updateAutomation,
       shortLinkBase: SHORT_LINK_BASE,
       ...themeState,
     }),
@@ -897,6 +940,9 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       submitLead,
       followLink,
       setIntegration,
+      startAutoMode,
+      stopAutoMode,
+      updateAutomation,
       themeState,
     ],
   );

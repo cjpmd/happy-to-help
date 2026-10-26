@@ -22,8 +22,8 @@ Restyle first, then the remaining Phase 1 groups, then the engine, then the v2 d
 | 13 | Link layer and lead capture | `phase-13-link-layer` | Done |
 | 6 | Stripe billing (test mode) | `phase-6-stripe` | Done |
 | 7 | Real integrations (flagged, mocked by default) | `phase-7-integrations` | Done |
-| 8 | Scheduler, routines, Auto Mode | `phase-8-scheduler` | Next |
-| 9 | More skills and hardening | `phase-9-hardening` | |
+| 8 | Scheduler, routines, Auto Mode | `phase-8-scheduler` | Done |
+| 9 | More skills and hardening | `phase-9-hardening` | Next |
 | 14 | Customers: inbox and contacts | `phase-14-inbox` | |
 | 15 | Campaigns | `phase-15-campaigns` | |
 | 16 | Listening | `phase-16-listening` | |
@@ -153,6 +153,15 @@ Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, con
 - App: Settings → Integrations (switches with platform status, "send as" and reply-to); hub pages send PostHog page views and form signups only after the visitor allows analytics (D56).
 - Tests: `15_integrations.test.sql`, the new tables in the read-access matrix, `agent-service/test/integrations.test.ts` (adapters with a fake fetch, per-company selection, analytics sync, unsubscribe links and opt-outs), `src/test/webhooks.test.ts`, and `src/test/integration/integrations.test.ts` (inbound email and unsubscribe through the functions).
 - **Mocked / owner steps:** every provider until its keys are set (HANDOFF 6). Inbound email lands in the inbox; triage and drafted replies are Phase 14.
+
+### Phase 8 (finished 27 Oct 2026)
+
+- `20261029100000_scheduler.sql`: routines gain the job they run, a UK run time and last run; `company_automation` (nightly loop with a credit cap, weekly voice review; both off), `schedule_runs` (one firing per kind, company, item and period), `briefs`, `auto_sessions`; job types `routine`, `morning_brief`, `nightly`, `investor_update`. RPCs: `update_automation`, `start_auto_mode` (1 to 8 hours, an affordable cap, one at a time), `stop_auto_mode`, service-role `claim_schedule`.
+- Agent service `src/scheduler.ts`, run by the worker every minute (D57, D58): enabled routines when due in UK time (the 07:00 morning brief is a routine); the nightly loop from 02:00 on the highest-leverage Sol task for the stage, within the company's cap (D60); the Monday voice review when there are at least three edits to learn from; daily credit expiry on the database's clock; and Auto Mode, one capped step at a time until the time or the cap runs out, then a summary in chat (D59). Jobs carrying `max_credits` reserve no more than that.
+- Morning brief: `get_brief_facts` (approvals waiting, last night's work, yesterday's meetings and actions, promises due today, customers waiting, new leads, balance) and `save_brief` (stored and sent in chat); the `morning-brief` skill; the brief shows at the top of HQ until dismissed.
+- App: Auto Mode starts a real capped session in live mode, with the spend and end time in the header and a stop button; routines show their next and last run; "While you sleep" settings for the nightly loop and voice review.
+- Batch API: not used (D61).
+- Tests: `16_scheduler.test.sql`, the new tables in the read-access matrix, `agent-service/test/scheduler.test.ts` (routine fires once from 07:00 and the brief arrives, the nightly loop within its cap, voice review skipped without edits, Auto Mode steps to the cap and the end), and `src/test/schedule.test.ts` (UK time across BST, cadences, next run, the task picker, the brief text).
 
 ## Phase 0 audit and Phase 1 history
 

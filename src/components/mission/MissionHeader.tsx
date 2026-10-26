@@ -42,7 +42,10 @@ export function MissionHeader({
   /** Opens the HQ card settings. */
   onCustomise?: (() => void) | undefined;
 }) {
-  const { db, user, solTyping, stopAuto, now } = useStore();
+  const { db, user, solTyping, stopAutoMode, now } = useStore();
+  const session = db.auto_sessions.find(
+    (s) => s.company_id === companyId && s.status === "running",
+  );
   const autoPerHour = useEstimate("autoHour");
   const c = useCompany(companyId);
   const sol = useSolStatus(companyId);
@@ -52,8 +55,9 @@ export function MissionHeader({
   const day = missionDay(c, now);
   const gDay = gate ? gateDay(gate, c) : null;
   const until = gDay === null ? null : gDay - day;
-  const solLine =
-    sol.state === "working"
+  const solLine = session
+    ? `Auto Mode · ${session.spent_credits} of ${session.cap_credits} CR · until ${new Date(session.ends_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`
+    : sol.state === "working"
       ? sol.summary
       : sol.state === "waiting"
         ? `${sol.pending} for GO / NO-GO`
@@ -90,13 +94,13 @@ export function MissionHeader({
             Sol · {solWord[sol.state]}
             {solLine && ` · ${solLine}`}
           </span>
-          {solTyping && !readOnly && (
+          {(solTyping || session) && !readOnly && (
             <Button
               size="sm"
               variant="ghost"
               className="ml-1 min-h-6 px-1.5"
               aria-label="Stop Auto Mode"
-              onClick={stopAuto}
+              onClick={() => void stopAutoMode(companyId)}
             >
               <Pause />
             </Button>

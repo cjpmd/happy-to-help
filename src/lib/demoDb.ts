@@ -47,6 +47,9 @@ export function demoDb(): DB {
     subscriptions: [],
     integration_settings: [],
     platform_integrations: [],
+    auto_sessions: [],
+    company_automation: [],
+    briefs: [],
   };
 }
 

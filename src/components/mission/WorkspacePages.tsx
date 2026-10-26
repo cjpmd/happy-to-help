@@ -31,10 +31,12 @@ import {
   type Routine,
   type Preferences,
 } from "@/lib/workspace";
-import { gbp } from "@/lib/format";
+import { fmtDateTime, gbp } from "@/lib/format";
 import { PageHeader, Pill, StatusPill } from "./primitives";
 import { CostButton, ClaimsCheck, Why } from "./WorkControls";
 import { IntegrationsSection } from "./Integrations";
+import { AutomationPanel } from "./Automation";
+import { nextRun } from "@/lib/schedule";
 
 const selectClass = "h-9 rounded-md border bg-background px-2 text-sm";
 /** A page's title, or just its description when it's shown inside another page's tab. */
@@ -52,7 +54,7 @@ function Heading({
 }
 
 export function RoutinesPage({ embedded }: { embedded?: boolean }) {
-  const { db, companyId, addRoutine, toggleRoutine } = useStore();
+  const { db, companyId, addRoutine, toggleRoutine, mode, now } = useStore();
   const balance = useBalance();
   const [title, setTitle] = useState("");
   const [cadence, setCadence] = useState<Routine["cadence"]>("weekdays");
@@ -100,11 +102,18 @@ export function RoutinesPage({ embedded }: { embedded?: boolean }) {
                   <p className="mt-1 text-xs text-muted-foreground capitalize">
                     {r.cadence} · ≈ {r.credits} credits / run · ≈ {cost} / month
                   </p>
+                  {r.enabled && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Next:{" "}
+                      {fmtDateTime(nextRun(r.cadence, r.run_at ?? "07:00", now).toISOString())}
+                      {r.last_run_at ? ` · last ran ${fmtDateTime(r.last_run_at)}` : ""}
+                    </p>
+                  )}
                   <Why reason="A recurring small task keeps progress consistent without a large one-off push. The selected cadence and per-run estimate determine the monthly budget." />
                 </div>
                 <div>
                   <Pill tone={r.enabled ? "success" : "neutral"}>
-                    {r.enabled ? "Enabled in demo" : "Paused"}
+                    {r.enabled ? (mode === "live" ? "On" : "Enabled in demo") : "Paused"}
                   </Pill>
                   {r.enabled ? (
                     <Button
@@ -124,7 +133,9 @@ export function RoutinesPage({ embedded }: { embedded?: boolean }) {
                         if (!(await toggleRoutine(r.id))) toast.error("Not enough credits");
                         else
                           toast.success(
-                            "Enabled in demo — scheduling needs your connected service",
+                            mode === "live"
+                              ? "On. Sol runs it on schedule (UK time)."
+                              : "Enabled in demo — scheduling needs your connected service",
                           );
                       }}
                     />
@@ -138,9 +149,12 @@ export function RoutinesPage({ embedded }: { embedded?: boolean }) {
           })}
       </div>
       <p className="mt-4 text-xs text-muted-foreground">
-        Schedules are demo settings; no background jobs run yet. Forecast uses 30 daily, 22 weekday
-        or 4 weekly runs.
+        {mode === "live"
+          ? "Routines run on schedule in UK time; each run's credits show in the log. "
+          : "Schedules are demo settings; no background jobs run yet. "}
+        Forecast uses 30 daily, 22 weekday or 4 weekly runs.
       </p>
+      <AutomationPanel />
     </>
   );
 }

@@ -67,6 +67,10 @@ export interface Routine {
   cadence: "daily" | "weekdays" | "weekly";
   credits: number;
   enabled: boolean;
+  /** The job it runs, and when (UK time). Phase 8. */
+  job_type?: string;
+  run_at?: string;
+  last_run_at?: string | null;
 }
 export interface CompanyDocument {
   id: string;
