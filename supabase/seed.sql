@@ -1,8 +1,9 @@
 -- Demo data for local development and the staging project. Every person, school, firm and
 -- grant here is fictional, and every email address is on example.com.
 --
--- StudyBuddy (B2C, Build stage, Founder plan) has metrics, 8 runs (one failed with its hold
--- released), 3 pending approvals, a ledger, posts, compliance items and investors. The
+-- StudyBuddy (B2C, Build stage, Founder plan) has metrics, 9 runs (one failed with its hold
+-- released), 4 pending approvals (the spec asks for 3; the fourth holds the Connect Stripe key
+-- task), a ledger, posts, compliance items, investors and seven flight plan key tasks. The
 -- "University Venture Programme" at Taybridge University adds 3 more companies and a mentor.
 --
 -- Demo accounts have no password: they sign in by magic link, or (staging only) through the
@@ -39,24 +40,24 @@ update public.profiles set is_admin = true where id = 'a0000000-0000-4000-8000-0
 
 insert into public.companies (
   id, slug, name, description, customer_type, stage, plan, sector, channels, target_customer,
-  goal_90d, website_live_url, website_preview_url, created_by
+  goal_90d, website_live_url, website_preview_url, created_by, started_at
 ) values
   ('c0000000-0000-4000-8000-000000000001', 'studybuddy', 'StudyBuddy',
    'Bite-sized revision quizzes for Highers students. Personalised daily practice that adapts to what you get wrong.',
    'B2C', 'build', 'founder', 'education', '{Instagram,TikTok,Waitlist}', 'S5–S6 students sitting Highers',
-   '500 weekly active students', '/site/studybuddy', '/site/studybuddy?preview=1', 'a0000000-0000-4000-8000-000000000001'),
+   '500 weekly active students', '/site/studybuddy', '/site/studybuddy?preview=1', 'a0000000-0000-4000-8000-000000000001', now() - interval '30 days'),
   ('c0000000-0000-4000-8000-000000000002', 'kelpie-energy', 'Kelpie Energy',
    'Smart heating controls for tenement flats. Cuts bills without landlord rewiring.',
    'B2C', 'evidence', 'starter', 'general', '{Instagram,TikTok,Waitlist}', null,
-   null, '/site/kelpie-energy', '/site/kelpie-energy?preview=1', 'a0000000-0000-4000-8000-000000000004'),
+   null, '/site/kelpie-energy', '/site/kelpie-energy?preview=1', 'a0000000-0000-4000-8000-000000000004', now() - interval '14 days'),
   ('c0000000-0000-4000-8000-000000000003', 'thrift-loop', 'Thrift Loop',
    'Inventory and resale software for charity shops. Lists donated stock online in seconds.',
    'B2B', 'launch', 'growth', 'general', '{LinkedIn,"Email outreach","Trust page"}', null,
-   null, '/site/thrift-loop', '/site/thrift-loop?preview=1', 'a0000000-0000-4000-8000-000000000004'),
+   null, '/site/thrift-loop', '/site/thrift-loop?preview=1', 'a0000000-0000-4000-8000-000000000004', now() - interval '50 days'),
   ('c0000000-0000-4000-8000-000000000004', 'croft-care', 'Croft Care',
    'Rota and visit-logging for rural home-care agencies. Works offline in remote areas.',
    'B2B', 'idea', 'starter', 'general', '{LinkedIn,"Email outreach","Trust page"}', null,
-   null, '/site/croft-care', '/site/croft-care?preview=1', 'a0000000-0000-4000-8000-000000000004');
+   null, '/site/croft-care', '/site/croft-care?preview=1', 'a0000000-0000-4000-8000-000000000004', now() - interval '5 days');
 
 insert into public.company_members (company_id, user_id, role) values
   ('c0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'founder'),
@@ -78,10 +79,13 @@ insert into public.cohort_companies (cohort_id, company_id, credit_cap) values
 insert into public.cohort_mentors (cohort_id, user_id) values
   ('b0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000002');
 
--- Stage gates: stages before the current one are approved by the mentor, the current one is
--- in progress (Kelpie's Evidence gate is ready for sign-off), later ones are locked.
+-- Stage gates: one per stage transition (GO FOR EVIDENCE on Idea, GO FOR BUILD on Evidence,
+-- GO FOR LAUNCH on Build, GO FOR GROWTH on Launch), due on days 8, 18, 42 and 80 of the
+-- mission. Stages before the current one are approved by the mentor on their target day, the
+-- current one is in progress (Kelpie's Evidence gate is ready for sign-off), later ones are
+-- locked.
 
-insert into public.stage_gates (company_id, stage, criteria, status, approved_by, approved_at)
+insert into public.stage_gates (company_id, stage, criteria, status, approved_by, approved_at, target_date)
 select
   c.id,
   s.stage,
@@ -96,7 +100,8 @@ select
     else 'locked'
   end::public.gate_status,
   case when s.idx < c.current_idx then 'a0000000-0000-4000-8000-000000000002'::uuid end,
-  case when s.idx < c.current_idx then now() - make_interval(days => 20 * (c.current_idx - s.idx)) end
+  case when s.idx < c.current_idx then co.started_at + make_interval(days => s.target_day) end,
+  (co.started_at + make_interval(days => s.target_day))::date
 from (values
   ('c0000000-0000-4000-8000-000000000001'::uuid, 3, false,
    '[{"label": "Waitlist", "current": 64, "target": 50}, {"label": "Interviews", "current": 8, "target": 8}]'::jsonb,
@@ -111,7 +116,8 @@ from (values
    '[{"label": "Waitlist", "current": 4, "target": 50}, {"label": "Interviews", "current": 1, "target": 8}]'::jsonb,
    '[{"label": "Beta users", "current": 0, "target": 40}]'::jsonb)
 ) as c (id, current_idx, current_ready, evidence_criteria, build_criteria)
-cross join (values ('idea'::public.stage, 1), ('evidence', 2), ('build', 3), ('launch', 4), ('grow', 5)) as s (stage, idx);
+join public.companies co on co.id = c.id
+cross join (values ('idea'::public.stage, 1, 8), ('evidence', 2, 18), ('build', 3, 42), ('launch', 4, 80)) as s (stage, idx, target_day);
 
 insert into public.gate_comments (company_id, author_id, body, created_at) values
   ('c0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000002',
@@ -151,6 +157,27 @@ insert into public.tasks (id, company_id, pillar, title, status, estimated_credi
   ('d0000000-0000-4000-8000-000000000008', 'c0000000-0000-4000-8000-000000000001', 'raise', 'Research 10 edtech angels', 'doing', 200, null, null),
   ('d0000000-0000-4000-8000-000000000009', 'c0000000-0000-4000-8000-000000000001', 'raise', 'Tay Founders Award application draft', 'doing', 300, current_date + 12, null);
 
+update public.tasks set actor = 'founder'
+where id in ('d0000000-0000-4000-8000-000000000005', 'd0000000-0000-4000-8000-000000000009');
+
+-- StudyBuddy's key tasks: the milestones on its flight plan, due on day N of the mission.
+insert into public.tasks (id, company_id, pillar, title, status, estimated_credits, due, completed_at, key, stage, actor, proof)
+select
+  k.id, 'c0000000-0000-4000-8000-000000000001', k.pillar, k.title, k.status, k.credits,
+  current_date + (k.day - 30),
+  case when k.status = 'done' then now() - make_interval(days => 30 - k.day) end,
+  true, k.stage, k.actor, k.proof
+from (values
+  ('d1000000-0000-4000-8000-000000000001'::uuid, 'Customer interviews', 'run'::public.pillar, 'evidence'::public.stage, 12, 'done'::public.task_status, 0, 'founder'::public.task_actor, null::jsonb),
+  ('d1000000-0000-4000-8000-000000000002', 'Approve product spec', 'build', 'build', 22, 'done', 0, 'founder', null),
+  ('d1000000-0000-4000-8000-000000000003', 'Waitlist page live', 'build', 'build', 25, 'done', 300, 'sol',
+   '{"passed": 6, "total": 6, "screenshot": "/media/revision.svg", "preview": "/site/studybuddy?preview=1", "pr": "Build #12", "source": "agent"}'),
+  ('d1000000-0000-4000-8000-000000000004', 'Daily quiz feature', 'build', 'build', 34, 'doing', 420, 'sol', null),
+  ('d1000000-0000-4000-8000-000000000005', 'Connect Stripe', 'build', 'build', 38, 'todo', 120, 'sol', null),
+  ('d1000000-0000-4000-8000-000000000006', 'First paying customer', 'grow', 'launch', 50, 'todo', 0, 'founder', null),
+  ('d1000000-0000-4000-8000-000000000007', '50 paying customers', 'grow', 'launch', 64, 'todo', 0, 'founder', null)
+) as k (id, title, pillar, stage, day, status, credits, actor, proof);
+
 -- Agent runs ------------------------------------------------------------------------------
 
 insert into public.agent_runs (
@@ -182,7 +209,9 @@ from (values
   ('e0000000-0000-4000-8000-000000000007', null, 'Check ICO registration requirements', 'legal', 'succeeded', 2.5, 2, 60,
    '[{"tool": "web_search", "summary": "Confirmed tier 1 fee applies (£52)", "credits": 20}, {"tool": "write", "summary": "Prepared filing summary", "credits": 40}]'),
   ('e0000000-0000-4000-8000-000000000008', null, 'Update investor pipeline', 'raise', 'running', 0.3, 0, 80,
-   '[{"tool": "web_search", "summary": "Searching for edtech angels…", "credits": 20}]')
+   '[{"tool": "web_search", "summary": "Searching for edtech angels…", "credits": 20}]'),
+  ('e0000000-0000-4000-8000-000000000009', 'd1000000-0000-4000-8000-000000000005', 'Prepare Stripe checkout for the pricing page', 'build', 'needs_approval', 26.0, 3, 30,
+   '[{"tool": "plan", "summary": "Planned checkout for the £4.99 monthly plan", "credits": 10}, {"tool": "propose_site_change", "summary": "Proposed Stripe checkout for approval", "credits": 20}]')
 ) as r (id, task_id, task, pillar, status, hours_ago, minutes, credits, steps);
 
 -- Approvals -------------------------------------------------------------------------------
@@ -211,7 +240,10 @@ insert into public.approvals (id, company_id, run_id, action_type, payload, esti
    40, 'declined', 'a0000000-0000-4000-8000-000000000001', now() - interval '50 hours', now() - interval '60 hours'),
   ('f0000000-0000-4000-8000-000000000006', 'c0000000-0000-4000-8000-000000000002', null, 'publish_site',
    '{"change": "New landing page hero and waitlist form", "url": "/site/kelpie-energy?preview=1", "reason": "Current page has no clear call to action."}',
-   150, 'pending', null, null, now() - interval '10 hours');
+   150, 'pending', null, null, now() - interval '10 hours'),
+  ('f0000000-0000-4000-8000-000000000007', 'c0000000-0000-4000-8000-000000000001', 'e0000000-0000-4000-8000-000000000009', 'publish_site',
+   '{"change": "Connect Stripe checkout to the pricing page (£4.99 a month, test mode)", "url": "/site/studybuddy?preview=1", "reason": "Pre-orders passed the Launch gate target (12 of 10). Checkout lets them convert to paying."}',
+   120, 'pending', null, null, now() - interval '25.5 hours');
 
 -- Activity --------------------------------------------------------------------------------
 
@@ -271,14 +303,14 @@ insert into public.social_posts (company_id, approval_id, channel, text, angle, 
 
 -- Stay legal ------------------------------------------------------------------------------
 
-insert into public.compliance_items (company_id, title, category, due_date, status) values
-  ('c0000000-0000-4000-8000-000000000001', 'Incorporate at Companies House', 'Incorporation', current_date - 49, 'done'),
-  ('c0000000-0000-4000-8000-000000000001', 'Register for Corporation Tax', 'Incorporation', current_date - 19, 'done'),
-  ('c0000000-0000-4000-8000-000000000001', 'Privacy policy (incl. under-16s)', 'Data protection', current_date - 1, 'done'),
-  ('c0000000-0000-4000-8000-000000000001', 'Cookie notice', 'Data protection', current_date + 7, 'in_progress'),
-  ('c0000000-0000-4000-8000-000000000001', 'Pay ICO data protection fee', 'Data protection', current_date + 24, 'upcoming'),
-  ('c0000000-0000-4000-8000-000000000001', 'Confirmation statement', 'Companies House', current_date + 329, 'upcoming'),
-  ('c0000000-0000-4000-8000-000000000001', 'First annual accounts', 'Companies House', current_date + 590, 'upcoming');
+insert into public.compliance_items (company_id, title, category, due_date, status, statutory) values
+  ('c0000000-0000-4000-8000-000000000001', 'Incorporate at Companies House', 'Incorporation', current_date - 49, 'done', false),
+  ('c0000000-0000-4000-8000-000000000001', 'Register for Corporation Tax', 'Incorporation', current_date - 19, 'done', true),
+  ('c0000000-0000-4000-8000-000000000001', 'Privacy policy (incl. under-16s)', 'Data protection', current_date - 1, 'done', false),
+  ('c0000000-0000-4000-8000-000000000001', 'Cookie notice', 'Data protection', current_date + 7, 'in_progress', false),
+  ('c0000000-0000-4000-8000-000000000001', 'Pay ICO data protection fee', 'Data protection', current_date + 24, 'upcoming', true),
+  ('c0000000-0000-4000-8000-000000000001', 'Confirmation statement', 'Companies House', current_date + 329, 'upcoming', true),
+  ('c0000000-0000-4000-8000-000000000001', 'First annual accounts', 'Companies House', current_date + 590, 'upcoming', true);
 
 -- Raise -----------------------------------------------------------------------------------
 
@@ -315,14 +347,15 @@ insert into public.site_versions (company_id, version, summary, preview_url, pub
 
 -- Metrics: 14 days per company, with steady growth and a little day-to-day wobble ----------
 
-insert into public.metrics_daily (company_id, date, visitors, signups, paying_customers, mrr)
+insert into public.metrics_daily (company_id, date, visitors, signups, paying_customers, mrr, activated)
 select
   c.id,
   current_date - (13 - i),
   round(c.visitors * (1 + c.growth * i) * (1 + ((i * 37) % 11) / 40.0 - 0.12)),
   greatest(0, round(c.signups * (1 + c.growth * i) * (1 + ((i * 37) % 11) / 40.0 - 0.12))),
   round(c.paying + i * case when c.paying > 0 then 0.4 else 0 end),
-  round(c.paying + i * case when c.paying > 0 then 0.4 else 0 end) * c.price
+  round(c.paying + i * case when c.paying > 0 then 0.4 else 0 end) * c.price,
+  greatest(0, round(c.signups * 0.6 * (1 + c.growth * i)))
 from (values
   ('c0000000-0000-4000-8000-000000000001'::uuid, 140, 4, 7, 4.99, 0.06),
   ('c0000000-0000-4000-8000-000000000002'::uuid, 40, 2, 0, 0, 0.03),
@@ -348,7 +381,7 @@ with docs as (
     c.id,
     d.title,
     case when d.title = 'Product roadmap' and c.slug = 'studybuddy' then
-      '[{"title": "Quiz engine", "complete": true}, {"title": "Waitlist", "complete": true}, {"title": "Daily streaks", "complete": false}, {"title": "Pricing page", "complete": false}, {"title": "Teacher dashboard", "complete": false}, {"title": "Accessibility review", "complete": false}, {"title": "Beta launch", "complete": false}]'::jsonb
+      '[{"title": "Quiz engine", "complete": true}, {"title": "Waitlist", "complete": true}, {"title": "Daily streaks", "complete": false}, {"title": "Pricing page", "complete": false}, {"title": "Teacher dashboard", "complete": false}, {"title": "Weak-spots report", "complete": false}, {"title": "Accessibility review", "complete": false}, {"title": "Beta launch", "complete": false}]'::jsonb
     end
   from public.companies c
   cross join unnest(array['Company profile', 'Product roadmap', 'Brand & voice guide', 'Privacy policy', 'Pitch one-pager']) as d (title)
