@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { PLANS, TOP_UPS, LAUNCH_PACK, creditBalance, isLowBalance } from "@/lib/credits";
+import {
+  PLANS,
+  TOP_UPS,
+  LAUNCH_PACK,
+  creditBalance,
+  demoCreditSummary,
+  isLowBalance,
+} from "@/lib/credits";
 import type { LedgerEntry } from "@/lib/types";
 
 describe("pricing", () => {
@@ -34,5 +41,29 @@ describe("credits", () => {
   it("low balance below 20% of plan allowance", () => {
     expect(isLowBalance(999, "founder")).toBe(true);
     expect(isLowBalance(1000, "founder")).toBe(false);
+  });
+});
+
+describe("demo credit summary", () => {
+  const row = (entry_type: import("@/lib/types").LedgerType, amount: number) => ({
+    id: entry_type + amount,
+    company_id: "c",
+    entry_type,
+    amount,
+    run_id: null,
+    note: "",
+    created_at: "2026-10-01",
+  });
+  it("spends plan credits before top-ups and shows holds", () => {
+    const s = demoCreditSummary(
+      [row("grant", 1000), row("topup", 500), row("usage", -1200), row("hold", -100)],
+      "c",
+    );
+    expect(s).toMatchObject({ balance: 200, held: 100, plan: 0, topup: 200 });
+  });
+  it("leaves top-ups untouched while plan credits last", () => {
+    expect(
+      demoCreditSummary([row("grant", 1000), row("topup", 500), row("usage", -300)], "c"),
+    ).toMatchObject({ plan: 700, topup: 500 });
   });
 });

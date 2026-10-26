@@ -10,6 +10,7 @@ import { pageHead } from "@/lib/seo";
 import { fmtDate, gbp, num } from "@/lib/format";
 import type { Plan, LedgerType } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useCreditSummary } from "@/lib/useCreditSummary";
 
 export const Route = createFileRoute("/_app/billing")({
   head: () =>
@@ -40,6 +41,7 @@ function Billing() {
     .filter((l) => l.company_id === companyId)
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
   const pct = Math.min(100, Math.round((balance / plan.credits) * 100));
+  const summary = useCreditSummary(companyId);
   return (
     <div>
       <PageHeader
@@ -58,8 +60,31 @@ function Billing() {
             {plan.name} plan · {num(plan.credits)} credits/month
           </p>
           <Progress value={pct} className="mt-4 h-1.5" />
+          <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+            <dt className="text-muted-foreground">Plan credits</dt>
+            <dd className="text-right tabular">{num(summary.plan)}</dd>
+            {summary.cohort + summary.cohort_headroom > 0 && (
+              <>
+                <dt className="text-muted-foreground">Cohort credits</dt>
+                <dd className="text-right tabular">
+                  {num(summary.cohort)}
+                  {summary.cohort_headroom > 0 && ` (+${num(summary.cohort_headroom)} in pool)`}
+                </dd>
+              </>
+            )}
+            <dt className="text-muted-foreground">Top-ups and Launch Pack</dt>
+            <dd className="text-right tabular">{num(summary.topup)}</dd>
+            {summary.held > 0 && (
+              <>
+                <dt className="text-muted-foreground">Held for running work</dt>
+                <dd className="text-right tabular">{num(summary.held)}</dd>
+              </>
+            )}
+          </dl>
           <p className="mt-2 text-xs text-muted-foreground">
-            Includes Launch Pack build credits where purchased.
+            Plan credits are used first and expire at the end of each month; top-ups last 12 months.
+            {summary.next_expiry &&
+              ` ${num(summary.next_expiry.credits)} credits expire on ${fmtDate(summary.next_expiry.at)}.`}
           </p>
         </Panel>
         <Panel title="Plans" className="lg:col-span-2">

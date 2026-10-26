@@ -736,41 +736,101 @@ export type Database = {
           },
         ];
       };
+      credit_config: {
+        Row: {
+          credit_value_gbp: number;
+          fx_gbp: number;
+          id: boolean;
+          markup: number;
+          plan_expiry: string;
+          topup_expiry: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          credit_value_gbp?: number;
+          fx_gbp?: number;
+          id?: boolean;
+          markup?: number;
+          plan_expiry?: string;
+          topup_expiry?: string;
+          updated_at?: string;
+        };
+        Update: {
+          credit_value_gbp?: number;
+          fx_gbp?: number;
+          id?: boolean;
+          markup?: number;
+          plan_expiry?: string;
+          topup_expiry?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       credit_ledger: {
         Row: {
           amount: number;
+          bucket: Database["public"]["Enums"]["credit_bucket"] | null;
+          cohort_id: string | null;
           company_id: string;
           created_at: string;
           entry_type: Database["public"]["Enums"]["ledger_entry_type"];
+          expires_at: string | null;
           id: string;
+          idempotency_key: string | null;
+          lot_id: string | null;
           note: string;
           run_id: string | null;
         };
         ComputedFields: never;
         Insert: {
           amount: number;
+          bucket?: Database["public"]["Enums"]["credit_bucket"] | null;
+          cohort_id?: string | null;
           company_id: string;
           created_at?: string;
           entry_type: Database["public"]["Enums"]["ledger_entry_type"];
+          expires_at?: string | null;
           id?: string;
+          idempotency_key?: string | null;
+          lot_id?: string | null;
           note?: string;
           run_id?: string | null;
         };
         Update: {
           amount?: number;
+          bucket?: Database["public"]["Enums"]["credit_bucket"] | null;
+          cohort_id?: string | null;
           company_id?: string;
           created_at?: string;
           entry_type?: Database["public"]["Enums"]["ledger_entry_type"];
+          expires_at?: string | null;
           id?: string;
+          idempotency_key?: string | null;
+          lot_id?: string | null;
           note?: string;
           run_id?: string | null;
         };
         Relationships: [
           {
+            foreignKeyName: "credit_ledger_cohort_id_fkey";
+            columns: ["cohort_id"];
+            isOneToOne: false;
+            referencedRelation: "cohorts";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "credit_ledger_company_id_fkey";
             columns: ["company_id"];
             isOneToOne: false;
             referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "credit_ledger_lot_id_fkey";
+            columns: ["lot_id"];
+            isOneToOne: false;
+            referencedRelation: "credit_ledger";
             referencedColumns: ["id"];
           },
           {
@@ -1600,8 +1660,11 @@ export type Database = {
       company_credit_balance: {
         Row: {
           balance: number | null;
+          cohort_balance: number | null;
           company_id: string;
           held: number | null;
+          plan_balance: number | null;
+          topup_balance: number | null;
         };
         ComputedFields: never;
         Relationships: [
@@ -1635,6 +1698,8 @@ export type Database = {
         };
         Returns: string;
       };
+      credit_summary: { Args: { p_company: string }; Returns: Json };
+      credits_for_usd: { Args: { p_cost_usd: number }; Returns: number };
       decide_approval: {
         Args: { p_approval: string; p_decision: Database["public"]["Enums"]["approval_status"] };
         Returns: Database["public"]["Enums"]["approval_status"];
@@ -1654,13 +1719,34 @@ export type Database = {
         };
         Returns: string;
       };
+      expire_credits: { Args: { p_at?: string }; Returns: number };
       get_public_progress: { Args: { p_slug: string }; Returns: Json };
+      grant_credits: {
+        Args: {
+          p_amount: number;
+          p_bucket: Database["public"]["Enums"]["credit_bucket"];
+          p_cohort?: string;
+          p_company: string;
+          p_expires_at?: string;
+          p_idempotency_key?: string;
+          p_note: string;
+        };
+        Returns: string;
+      };
       join_cohort: { Args: { p_code: string; p_company: string }; Returns: string };
       post_chat_message: { Args: { p_company: string; p_content: string }; Returns: string };
+      refund_run: { Args: { p_reason?: string; p_run: string }; Returns: number };
+      release_hold: { Args: { p_note?: string; p_run: string }; Returns: number };
       request_ad_budget: {
         Args: { p_company: string; p_daily_budget: number; p_hard_cap: number };
         Returns: string;
       };
+      reserve_credits: {
+        Args: { p_amount: number; p_company: string; p_note?: string; p_run: string };
+        Returns: number;
+      };
+      settle_run: { Args: { p_cost_usd: number; p_note?: string; p_run: string }; Returns: number };
+      usd_for_credits: { Args: { p_credits: number }; Returns: number };
     };
     Enums: {
       approval_action:
@@ -1671,6 +1757,7 @@ export type Database = {
       company_plan: "starter" | "founder" | "growth";
       compliance_status: "done" | "in_progress" | "upcoming" | "overdue";
       contact_kind: "customer" | "lead";
+      credit_bucket: "plan" | "cohort" | "topup";
       customer_type: "B2B" | "B2C";
       email_direction: "received" | "sent" | "draft";
       email_mode: "support" | "outreach";
@@ -1813,6 +1900,7 @@ export const Constants = {
       company_plan: ["starter", "founder", "growth"],
       compliance_status: ["done", "in_progress", "upcoming", "overdue"],
       contact_kind: ["customer", "lead"],
+      credit_bucket: ["plan", "cohort", "topup"],
       customer_type: ["B2B", "B2C"],
       email_direction: ["received", "sent", "draft"],
       email_mode: ["support", "outreach"],

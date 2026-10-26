@@ -44,3 +44,39 @@ export function autoModeCost(hours: number) {
   if (!Number.isInteger(hours) || hours < 1 || hours > 8) throw new Error("Choose 1–8 hours");
   return hours * ACTION_COSTS.autoHour;
 }
+
+export interface CreditSummary {
+  balance: number;
+  held: number;
+  plan: number;
+  cohort: number;
+  topup: number;
+  /** What a cohort company can still draw from its pool. */
+  cohort_headroom: number;
+  next_expiry: { at: string; credits: number } | null;
+}
+
+/**
+ * The demo's version of the database's credit_summary(): grants and top-ups are lots, and
+ * everything else is taken from plan credits first, then top-ups. The live app reads the real
+ * figures from the ledger's lots (supabase/migrations/*_credits_engine.sql).
+ */
+export function demoCreditSummary(ledger: LedgerEntry[], companyId: string): CreditSummary {
+  const rows = ledger.filter((l) => l.company_id === companyId);
+  const sum = (types: LedgerEntry["entry_type"][]) =>
+    rows.filter((l) => types.includes(l.entry_type)).reduce((n, l) => n + l.amount, 0);
+  const balance = rows.reduce((n, l) => n + l.amount, 0);
+  const plan = sum(["grant"]);
+  const topup = sum(["topup"]);
+  const spent = -sum(["hold", "release", "usage", "refund", "expiry"]);
+  const fromPlan = Math.min(plan, Math.max(0, spent));
+  return {
+    balance,
+    held: -sum(["hold", "release"]),
+    plan: plan - fromPlan,
+    cohort: 0,
+    topup: Math.max(0, topup - (spent - fromPlan)),
+    cohort_headroom: 0,
+    next_expiry: null,
+  };
+}
