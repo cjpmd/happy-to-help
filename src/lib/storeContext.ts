@@ -5,6 +5,7 @@ import { ACTION_COSTS, creditBalance } from "./credits";
 import { checkClaims, unbuiltFeatures } from "./workspace";
 import { solStatus } from "./mission";
 import type { Theme, ThemePref } from "./theme";
+import type * as V from "./voicePolicy";
 
 /**
  * The app's data, shaped like the Supabase tables. Two providers fill it: the demo store
@@ -36,6 +37,11 @@ export type DB = WorkspaceDB & {
   cohort_mentors: T.CohortMentor[];
   /** Credit estimates per job type (the job_types table). */
   job_types: JobType[];
+  /** Brand voice and response policy (SPEC part G). */
+  voice_profiles: V.VoiceProfile[];
+  voice_examples: V.VoiceExample[];
+  response_policies: V.ResponsePolicy[];
+  response_settings: V.ResponseSettings[];
 };
 
 export interface JobType {
@@ -120,6 +126,21 @@ export interface Ctx {
     kind: "website" | "email" | "post" | "other",
     content: string,
   ) => Promise<boolean>;
+  /** Asks Sol to propose a voice from the company's writing (an update_voice approval). */
+  learnVoice: (companyId: string) => Promise<boolean>;
+  /** A founder's direct change to the voice: a new approved version. */
+  saveVoiceProfile: (companyId: string, edit: V.VoiceEdit) => Promise<boolean>;
+  addVoiceExample: (companyId: string, situation: V.Situation, body: string) => Promise<boolean>;
+  removeVoiceExample: (id: string) => Promise<boolean>;
+  setResponsePolicy: (
+    companyId: string,
+    category: V.PolicyCategory,
+    mode: V.ResponseMode,
+  ) => Promise<boolean>;
+  updateResponseSettings: (
+    companyId: string,
+    patch: { disclosure_text?: string; disclosure_on_approved?: boolean; mark_reviewed?: boolean },
+  ) => Promise<boolean>;
 }
 
 export const StoreCtx = createContext<Ctx | null>(null);
@@ -192,6 +213,8 @@ export function labelFor(a: T.Approval) {
       return `filing: ${a.payload.document}`;
     case "publish_site":
       return `site change: ${a.payload.change}`;
+    case "update_voice":
+      return `brand voice v${a.payload.version}`;
   }
 }
 
@@ -217,6 +240,7 @@ export const WORK_KINDS = {
   document: "document_update",
   task: "task",
   autoHour: "auto_mode",
+  voice: "voice_analysis",
 } as const;
 export type WorkKind = keyof typeof WORK_KINDS;
 
@@ -231,6 +255,7 @@ export function demoJobTypes(): JobType[] {
     document: ACTION_COSTS.document,
     task: 150,
     autoHour: ACTION_COSTS.autoHour,
+    voice: 150,
   };
   return (Object.keys(WORK_KINDS) as WorkKind[]).map((k) => ({
     job_type: WORK_KINDS[k],

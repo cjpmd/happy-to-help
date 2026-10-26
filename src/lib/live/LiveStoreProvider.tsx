@@ -27,6 +27,7 @@ const JOB_TYPES: Record<string, string> = {
   email: "email_reply",
   social: "social_post",
   auto: "auto_mode",
+  voice: "voice_analysis",
 };
 
 /**
@@ -441,6 +442,67 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       )) !== false,
     [sb, call],
   );
+  const learnVoice = useCallback<Ctx["learnVoice"]>(
+    async (cid) => {
+      try {
+        await enqueueJob(cid, "voice_analysis", { title: "Learn the brand voice" });
+      } catch (e) {
+        toast.error(e instanceof AgentError ? e.message : "Couldn't queue the voice analysis");
+        return false;
+      }
+      void reload(["agent_runs"]);
+      toast.success("Sol is reading your writing. The proposed voice will come to you for a GO.");
+      return true;
+    },
+    [reload],
+  );
+  const saveVoiceProfile = useCallback<Ctx["saveVoiceProfile"]>(
+    async (cid, edit) =>
+      (await call(
+        () => sb.rpc("save_voice_profile", { p_company: cid, p_profile: edit as Json }),
+        ["voice", "activity_events"],
+      )) !== false,
+    [sb, call],
+  );
+  const addVoiceExample = useCallback<Ctx["addVoiceExample"]>(
+    async (cid, situation, body) =>
+      (await call(
+        () => sb.from("voice_examples").insert({ company_id: cid, situation, body: body.trim() }),
+        ["voice"],
+      )) !== false,
+    [sb, call],
+  );
+  const removeVoiceExample = useCallback<Ctx["removeVoiceExample"]>(
+    async (id) =>
+      (await call(() => sb.from("voice_examples").delete().eq("id", id), ["voice"])) !== false,
+    [sb, call],
+  );
+  const setResponsePolicy = useCallback<Ctx["setResponsePolicy"]>(
+    async (cid, category, mode) =>
+      (await call(
+        () => sb.rpc("set_response_policy", { p_company: cid, p_category: category, p_mode: mode }),
+        ["voice"],
+      )) !== false,
+    [sb, call],
+  );
+  const updateResponseSettings = useCallback<Ctx["updateResponseSettings"]>(
+    async (cid, patch) =>
+      (await call(
+        () =>
+          sb.rpc("update_response_settings", {
+            p_company: cid,
+            ...(patch.disclosure_text !== undefined
+              ? { p_disclosure_text: patch.disclosure_text }
+              : {}),
+            ...(patch.disclosure_on_approved !== undefined
+              ? { p_disclosure_on_approved: patch.disclosure_on_approved }
+              : {}),
+            ...(patch.mark_reviewed ? { p_mark_reviewed: true } : {}),
+          }),
+        ["voice"],
+      )) !== false,
+    [sb, call],
+  );
   const signIn = useCallback<Ctx["signIn"]>(
     async (email) => {
       const { error } = await sb.auth.signInWithOtp({
@@ -492,6 +554,12 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       stopAuto,
       importContacts,
       addVoiceSource,
+      learnVoice,
+      saveVoiceProfile,
+      addVoiceExample,
+      removeVoiceExample,
+      setResponsePolicy,
+      updateResponseSettings,
       ...themeState,
     }),
     [
@@ -527,6 +595,12 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       stopAuto,
       importContacts,
       addVoiceSource,
+      learnVoice,
+      saveVoiceProfile,
+      addVoiceExample,
+      removeVoiceExample,
+      setResponsePolicy,
+      updateResponseSettings,
       themeState,
     ],
   );

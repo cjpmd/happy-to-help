@@ -166,6 +166,8 @@ function approvalLabel(a: Approval) {
       return "Filing";
     case "publish_site":
       return "Site change";
+    case "update_voice":
+      return "Brand voice";
   }
 }
 
@@ -181,6 +183,8 @@ function approvalTitle(a: Approval) {
       return a.payload.document;
     case "publish_site":
       return a.payload.change;
+    case "update_voice":
+      return `Brand voice v${a.payload.version}`;
   }
 }
 
@@ -196,6 +200,8 @@ function approvalPreview(a: Approval) {
       return `${a.payload.document} to ${a.payload.destination}.`;
     case "publish_site":
       return a.payload.change;
+    case "update_voice":
+      return a.payload.changes || a.payload.summary;
   }
 }
 

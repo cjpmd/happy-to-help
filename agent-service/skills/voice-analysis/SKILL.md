@@ -5,7 +5,7 @@ description: Learn how a company sounds from its own website copy and past email
 
 # Voice analysis
 
-The voice says *how* Sol speaks. It never changes silently: you propose, the founder approves.
+The voice says _how_ Sol speaks. It never changes silently: you propose, the founder approves.
 
 1. Call `get_voice_profile` (the current voice) and `get_voice_sources` (their own writing). If there are no sources, propose nothing and say what you need: a few past emails or the website's copy.
 2. Read the sources as a copywriter would. Note:

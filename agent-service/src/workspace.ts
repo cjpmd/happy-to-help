@@ -38,6 +38,12 @@ export async function loadMemoryInput(db: Db, companyId: string): Promise<Memory
     .eq("company_id", companyId)
     .eq("status", "approved")
     .maybeSingle();
+  const { data: examples } = await db
+    .from("voice_examples")
+    .select("situation, body")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false })
+    .limit(5);
   const voiceDoc = docRows.find((d) => d.title === "Brand & voice guide");
   const voice = voiceDoc
     ? await db
@@ -59,7 +65,9 @@ export async function loadMemoryInput(db: Db, companyId: string): Promise<Memory
       .map((m) => (m.profiles as { full_name: string } | null)?.full_name ?? "")
       .filter(Boolean),
     gates: must(gates, "gates"),
-    voiceGuide: profile ? voiceText(profile) : (voice?.data?.content ?? null),
+    voiceGuide: profile
+      ? voiceText(profile) + examplesText(examples ?? [])
+      : (voice?.data?.content ?? null),
     unbuilt: outcomes.filter((o) => !o.complete).map((o) => o.title),
     openTasks: must(tasks, "tasks"),
     declined: must(declined, "declined approvals").map((a) => {
@@ -127,4 +135,14 @@ export function voiceText(v: {
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+/** The founder's example replies, as models for drafts in the same situation. */
+export function examplesText(examples: { situation: string; body: string }[]): string {
+  if (!examples.length) return "";
+  return [
+    "",
+    "- Example replies the founder approved (match their style for the same situation):",
+    ...examples.map((e) => `  - ${e.situation.replace(/_/g, " ")}: "${e.body.slice(0, 600)}"`),
+  ].join("\n");
 }

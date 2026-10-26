@@ -181,6 +181,20 @@ export const loaders = {
   ads: async (sb) => ({
     ads: must(await sb.from("ad_accounts").select("*"), "ads").map(M.mapAd),
   }),
+  voice: async (sb) => {
+    const [profiles, examples, policies, settings] = await Promise.all([
+      sb.from("voice_profiles").select("*").order("version"),
+      sb.from("voice_examples").select("*").order("created_at"),
+      sb.from("response_policies").select("*"),
+      sb.from("response_settings").select("*"),
+    ]);
+    return {
+      voice_profiles: must(profiles, "voice").map(M.mapVoiceProfile),
+      voice_examples: must(examples, "voice examples").map(M.mapVoiceExample),
+      response_policies: must(policies, "reply policy").map(M.mapPolicy),
+      response_settings: must(settings, "reply settings").map(M.mapResponseSettings),
+    };
+  },
   settings: async (sb, userId) => {
     const [prefs, layout, sharing, invites] = await Promise.all([
       sb.from("user_preferences").select("*").maybeSingle(),
@@ -218,6 +232,8 @@ export const TABLE_GROUPS: Partial<Record<keyof Database["public"]["Tables"], Gr
   document_versions: "documents",
   email_messages: "emails",
   job_types: "job_types",
+  voice_profiles: "voice",
+  response_policies: "voice",
 };
 
 export async function loadGroups(sb: Client, userId: string, groups: Group[]) {
@@ -252,6 +268,10 @@ export function emptyDb(): DB {
     cohort_companies: [],
     cohort_mentors: [],
     job_types: [],
+    voice_profiles: [],
+    voice_examples: [],
+    response_policies: [],
+    response_settings: [],
     routines: [],
     documents: [],
     media: [],
