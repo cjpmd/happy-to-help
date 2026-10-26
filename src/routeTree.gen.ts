@@ -21,6 +21,7 @@ import { Route as AppCohortRouteImport } from './routes/_app/cohort'
 import { Route as AppDocumentsRouteImport } from './routes/_app/documents'
 import { Route as AppEmailRouteImport } from './routes/_app/email'
 import { Route as AppEvidenceRouteImport } from './routes/_app/evidence'
+import { Route as AppFlightPlanRouteImport } from './routes/_app/flight-plan'
 import { Route as AppGrowRouteImport } from './routes/_app/grow'
 import { Route as AppHqRouteImport } from './routes/_app/hq'
 import { Route as AppLegalRouteImport } from './routes/_app/legal'
@@ -31,6 +32,7 @@ import { Route as AppRoutinesRouteImport } from './routes/_app/routines'
 import { Route as AppRunRouteImport } from './routes/_app/run'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppTeamRouteImport } from './routes/_app/team'
+import { Route as AppTelemetryRouteImport } from './routes/_app/telemetry'
 import { Route as ProgressSlugRouteImport } from './routes/progress.$slug'
 import { Route as SiteSlugRouteImport } from './routes/site.$slug'
 import { Route as AppCohortCompanyIdRouteImport } from './routes/_app/cohort.$companyId'
@@ -94,6 +96,11 @@ const AppEvidenceRoute = AppEvidenceRouteImport.update({
   path: '/evidence',
   getParentRoute: () => AppRoute,
 } as any)
+const AppFlightPlanRoute = AppFlightPlanRouteImport.update({
+  id: '/flight-plan',
+  path: '/flight-plan',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppGrowRoute = AppGrowRouteImport.update({
   id: '/grow',
   path: '/grow',
@@ -144,6 +151,11 @@ const AppTeamRoute = AppTeamRouteImport.update({
   path: '/team',
   getParentRoute: () => AppRoute,
 } as any)
+const AppTelemetryRoute = AppTelemetryRouteImport.update({
+  id: '/telemetry',
+  path: '/telemetry',
+  getParentRoute: () => AppRoute,
+} as any)
 const ProgressSlugRoute = ProgressSlugRouteImport.update({
   id: '/progress/$slug',
   path: '/progress/$slug',
@@ -172,6 +184,7 @@ export interface FileRoutesByFullPath {
   '/documents': typeof AppDocumentsRoute
   '/email': typeof AppEmailRoute
   '/evidence': typeof AppEvidenceRoute
+  '/flight-plan': typeof AppFlightPlanRoute
   '/grow': typeof AppGrowRoute
   '/hq': typeof AppHqRoute
   '/legal': typeof AppLegalRoute
@@ -182,6 +195,7 @@ export interface FileRoutesByFullPath {
   '/run': typeof AppRunRoute
   '/settings': typeof AppSettingsRoute
   '/team': typeof AppTeamRoute
+  '/telemetry': typeof AppTelemetryRoute
   '/progress/$slug': typeof ProgressSlugRoute
   '/site/$slug': typeof SiteSlugRoute
   '/cohort/$companyId': typeof AppCohortCompanyIdRoute
@@ -198,6 +212,7 @@ export interface FileRoutesByTo {
   '/documents': typeof AppDocumentsRoute
   '/email': typeof AppEmailRoute
   '/evidence': typeof AppEvidenceRoute
+  '/flight-plan': typeof AppFlightPlanRoute
   '/grow': typeof AppGrowRoute
   '/hq': typeof AppHqRoute
   '/legal': typeof AppLegalRoute
@@ -208,6 +223,7 @@ export interface FileRoutesByTo {
   '/run': typeof AppRunRoute
   '/settings': typeof AppSettingsRoute
   '/team': typeof AppTeamRoute
+  '/telemetry': typeof AppTelemetryRoute
   '/progress/$slug': typeof ProgressSlugRoute
   '/site/$slug': typeof SiteSlugRoute
   '/cohort/$companyId': typeof AppCohortCompanyIdRoute
@@ -226,6 +242,7 @@ export interface FileRoutesById {
   '/_app/documents': typeof AppDocumentsRoute
   '/_app/email': typeof AppEmailRoute
   '/_app/evidence': typeof AppEvidenceRoute
+  '/_app/flight-plan': typeof AppFlightPlanRoute
   '/_app/grow': typeof AppGrowRoute
   '/_app/hq': typeof AppHqRoute
   '/_app/legal': typeof AppLegalRoute
@@ -236,6 +253,7 @@ export interface FileRoutesById {
   '/_app/run': typeof AppRunRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/team': typeof AppTeamRoute
+  '/_app/telemetry': typeof AppTelemetryRoute
   '/progress/$slug': typeof ProgressSlugRoute
   '/site/$slug': typeof SiteSlugRoute
   '/_app/cohort/$companyId': typeof AppCohortCompanyIdRoute
@@ -254,6 +272,7 @@ export interface FileRouteTypes {
     | '/documents'
     | '/email'
     | '/evidence'
+    | '/flight-plan'
     | '/grow'
     | '/hq'
     | '/legal'
@@ -264,6 +283,7 @@ export interface FileRouteTypes {
     | '/run'
     | '/settings'
     | '/team'
+    | '/telemetry'
     | '/progress/$slug'
     | '/site/$slug'
     | '/cohort/$companyId'
@@ -280,6 +300,7 @@ export interface FileRouteTypes {
     | '/documents'
     | '/email'
     | '/evidence'
+    | '/flight-plan'
     | '/grow'
     | '/hq'
     | '/legal'
@@ -290,6 +311,7 @@ export interface FileRouteTypes {
     | '/run'
     | '/settings'
     | '/team'
+    | '/telemetry'
     | '/progress/$slug'
     | '/site/$slug'
     | '/cohort/$companyId'
@@ -307,6 +329,7 @@ export interface FileRouteTypes {
     | '/_app/documents'
     | '/_app/email'
     | '/_app/evidence'
+    | '/_app/flight-plan'
     | '/_app/grow'
     | '/_app/hq'
     | '/_app/legal'
@@ -317,6 +340,7 @@ export interface FileRouteTypes {
     | '/_app/run'
     | '/_app/settings'
     | '/_app/team'
+    | '/_app/telemetry'
     | '/progress/$slug'
     | '/site/$slug'
     | '/_app/cohort/$companyId'
@@ -416,6 +440,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEvidenceRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/flight-plan': {
+      id: '/_app/flight-plan'
+      path: '/flight-plan'
+      fullPath: '/flight-plan'
+      preLoaderRoute: typeof AppFlightPlanRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/grow': {
       id: '/_app/grow'
       path: '/grow'
@@ -486,6 +517,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTeamRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/telemetry': {
+      id: '/_app/telemetry'
+      path: '/telemetry'
+      fullPath: '/telemetry'
+      preLoaderRoute: typeof AppTelemetryRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/progress/$slug': {
       id: '/progress/$slug'
       path: '/progress/$slug'
@@ -532,6 +570,7 @@ interface AppRouteChildren {
   AppDocumentsRoute: typeof AppDocumentsRoute
   AppEmailRoute: typeof AppEmailRoute
   AppEvidenceRoute: typeof AppEvidenceRoute
+  AppFlightPlanRoute: typeof AppFlightPlanRoute
   AppGrowRoute: typeof AppGrowRoute
   AppHqRoute: typeof AppHqRoute
   AppLegalRoute: typeof AppLegalRoute
@@ -542,6 +581,7 @@ interface AppRouteChildren {
   AppRunRoute: typeof AppRunRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppTeamRoute: typeof AppTeamRoute
+  AppTelemetryRoute: typeof AppTelemetryRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -554,6 +594,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDocumentsRoute: AppDocumentsRoute,
   AppEmailRoute: AppEmailRoute,
   AppEvidenceRoute: AppEvidenceRoute,
+  AppFlightPlanRoute: AppFlightPlanRoute,
   AppGrowRoute: AppGrowRoute,
   AppHqRoute: AppHqRoute,
   AppLegalRoute: AppLegalRoute,
@@ -564,6 +605,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppRunRoute: AppRunRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppTeamRoute: AppTeamRoute,
+  AppTelemetryRoute: AppTelemetryRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

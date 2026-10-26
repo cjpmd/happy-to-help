@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { MediaPage } from "@/components/dawn/WorkspacePages";
-import { pageHead } from "@/lib/seo";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+
+// Moved in 1a-design: kept so old links and bookmarks still work.
 export const Route = createFileRoute("/_app/media")({
-  head: () => pageHead("Media", "Generated company creative assets."),
-  component: MediaPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/grow", search: { tab: "media" }, replace: true });
+  },
 });

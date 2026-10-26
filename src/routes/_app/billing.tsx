@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { Rocket } from "lucide-react";
 import { useStore, useCompany, useBalance } from "@/lib/store";
 import { PLANS, TOP_UPS, LAUNCH_PACK, isLowBalance } from "@/lib/credits";
-import { PageHeader, Panel, Pill, humanise } from "@/components/dawn/primitives";
+import { PageHeader, Panel, Pill, humanise } from "@/components/mission/primitives";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { pageHead } from "@/lib/seo";
@@ -109,7 +109,6 @@ function Billing() {
           </div>
         </Panel>
         <Panel className="relative overflow-hidden">
-          <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-dawn opacity-30 blur-2xl" />
           <Rocket className="h-5 w-5 text-primary" />
           <p className="mt-3 font-medium">Launch Pack</p>
           <p className="text-sm text-muted-foreground tabular">

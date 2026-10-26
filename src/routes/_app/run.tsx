@@ -1,22 +1,54 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RouteTabs } from "@/components/mission/RouteTabs";
+import { DocumentsPage, EmailPage } from "@/components/mission/WorkspacePages";
 import { useStore } from "@/lib/store";
 import { contacts } from "@/lib/seed";
-import { PageHeader, Panel, Pill, SolAvatar, StatusPill } from "@/components/dawn/primitives";
+import { PageHeader, Panel, Pill, SolAvatar, StatusPill } from "@/components/mission/primitives";
 import { pageHead } from "@/lib/seo";
 import { fmtDate } from "@/lib/format";
 
+type RunTab = "overview" | "email" | "documents";
+const RUN_TABS: RunTab[] = ["overview", "email", "documents"];
+
 export const Route = createFileRoute("/_app/run")({
   head: () => pageHead("Run", "Inbox summary, customers and leads, and day-to-day tasks."),
+  // ?tab=email|documents; the overview has no param.
+  validateSearch: (search: Record<string, unknown>): { tab?: Exclude<RunTab, "overview"> } =>
+    search["tab"] === "email" || search["tab"] === "documents" ? { tab: search["tab"] } : {},
   component: Run,
 });
 
 function Run() {
+  const { tab = "overview" } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  return (
+    <div>
+      <PageHeader
+        title="Run"
+        description="The day-to-day: inbox, customers, email and documents."
+      />
+      <RouteTabs<RunTab>
+        label="Run"
+        value={RUN_TABS.includes(tab) ? tab : "overview"}
+        onValueChange={(t) =>
+          void navigate({ search: t === "overview" ? {} : { tab: t }, replace: true })
+        }
+        tabs={[
+          { value: "overview", label: "Overview", content: <RunOverview /> },
+          { value: "email", label: "Email", content: <EmailPage embedded /> },
+          { value: "documents", label: "Documents", content: <DocumentsPage embedded /> },
+        ]}
+      />
+    </div>
+  );
+}
+
+function RunOverview() {
   const { companyId, db } = useStore();
   const people = contacts.filter((c) => c.company_id === companyId);
   const todo = db.tasks.filter((t) => t.company_id === companyId && t.pillar === "run");
   return (
     <div>
-      <PageHeader title="Run" description="The day-to-day: inbox, customers and tasks." />
       <div className="grid gap-4 lg:grid-cols-3">
         <Panel title="Inbox summary" className="lg:col-span-1">
           <div className="flex gap-3">

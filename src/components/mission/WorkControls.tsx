@@ -79,12 +79,16 @@ export function CostButton({
   onConfirm,
   disabled = false,
   icon,
+  variant = "outline",
 }: {
   cost: number;
   label: string;
   onConfirm: () => void | Promise<unknown>;
   disabled?: boolean;
-  icon?: ReactNode;
+  /** Pass null for no icon. */
+  icon?: ReactNode | null;
+  /** "default" makes it the primary (ink) button, e.g. GO. */
+  variant?: "default" | "outline";
 }) {
   const balance = useBalance();
   const { solTyping } = useStore();
@@ -94,29 +98,29 @@ export function CostButton({
     <>
       <Button
         size="sm"
-        variant="outline"
+        variant={variant}
         disabled={disabled || solTyping}
         onClick={() => setOpen(true)}
       >
-        {icon ?? <Zap className="h-3.5 w-3.5" />}
+        {icon === null ? null : (icon ?? <Zap className="h-3.5 w-3.5" />)}
         <span>
-          {label} · ≈ {cost} credits
+          {label} · ≈ {cost} CR
         </span>
       </Button>
       <span className="block mt-1 text-[11px] text-muted-foreground">
         {q.affordable
-          ? `${q.after.toLocaleString("en-GB")} left after`
-          : "Insufficient credits — top up to continue"}
+          ? `${q.after.toLocaleString("en-GB")} CR left after`
+          : "Not enough credits. Top up to continue."}
       </span>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{q.affordable ? label : "Top up to continue"}</DialogTitle>
             <DialogDescription>
-              ≈ {cost} credits · balance {balance.toLocaleString("en-GB")} ·{" "}
+              ≈ {cost} CR · balance {balance.toLocaleString("en-GB")} CR ·{" "}
               {q.affordable
-                ? `${q.after.toLocaleString("en-GB")} left after`
-                : `${cost - balance} more needed`}
+                ? `${q.after.toLocaleString("en-GB")} CR left after`
+                : `${cost - balance} CR more needed`}
               . Demo work only.
             </DialogDescription>
           </DialogHeader>
@@ -127,7 +131,7 @@ export function CostButton({
                 void onConfirm();
               }}
             >
-              Confirm · ≈ {cost} credits
+              Confirm · ≈ {cost} CR
             </Button>
           ) : (
             <Button asChild>
@@ -146,18 +150,17 @@ export function ProofOfDone({ proof }: { proof?: Proof | undefined }) {
         Checks passed · {proof?.passed}/{proof?.total}
       </Pill>
       {proof?.screenshot && (
-        <img src={proof.screenshot} alt="Completion evidence" className="max-h-36 rounded border" />
+        <img
+          src={proof.screenshot}
+          alt="Completion evidence"
+          className="max-h-36 rounded-tile border"
+        />
       )}
       <div className="flex gap-4">
-        <a
-          href={proof?.preview}
-          target="_blank"
-          rel="noreferrer"
-          className="text-primary underline"
-        >
+        <a href={proof?.preview} target="_blank" rel="noreferrer" className="text-ink underline">
           Preview
         </a>
-        <a href={proof?.pr} target="_blank" rel="noreferrer" className="text-primary underline">
+        <a href={proof?.pr} target="_blank" rel="noreferrer" className="text-ink underline">
           Pull request
         </a>
       </div>

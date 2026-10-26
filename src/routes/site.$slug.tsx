@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PRODUCT_NAME } from "@/lib/brand";
 import { pageHead } from "@/lib/seo";
-import { ClaimsCheck } from "@/components/dawn/WorkControls";
+import { ClaimsCheck } from "@/components/mission/WorkControls";
 import { useStore } from "@/lib/store";
 
 // Stand-in for each company's generated website, shown in the HQ preview frame.

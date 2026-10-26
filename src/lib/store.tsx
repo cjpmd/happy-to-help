@@ -30,6 +30,16 @@ import {
   type Sector,
 } from "./workspace";
 import { simulateWork } from "./agentClient";
+import { defaultGates, solStatus } from "./mission";
+import {
+  DEFAULT_THEME,
+  THEME_KEY,
+  applyTheme,
+  readThemePref,
+  resolveTheme,
+  type Theme,
+  type ThemePref,
+} from "./theme";
 
 /**
  * In-memory data store shaped like the Supabase schema.
@@ -69,7 +79,12 @@ interface Ctx {
       "id" | "slug" | "stage" | "website_live_url" | "website_preview_url" | "plan" | "created_by"
     >,
   ) => string;
-  theme: "light" | "dark";
+  /** The theme on screen, resolved from the preference. */
+  theme: Theme;
+  /** Light (default), dark, or match the system. Saved in this browser. */
+  themePref: ThemePref;
+  setThemePref: (pref: ThemePref) => void;
+  /** Switches to the opposite of what's on screen (an explicit light or dark). */
   toggleTheme: () => void;
   work: (
     cid: string,
@@ -93,6 +108,8 @@ interface Ctx {
 const StoreCtx = createContext<Ctx | null>(null);
 const iso = () => new Date().toISOString();
 const uid = (p: string) => `${p}_${Math.random().toString(36).slice(2, 9)}`;
+const LAYOUTS_KEY = "gumption-hq-layouts";
+const OLD_LAYOUTS_KEY = "dawn-hq-layouts";
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [db, setDb] = useState<DB>(() => ({
@@ -116,13 +133,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState("u1");
   const [companyId, setCompanyId] = useState("c1");
   const [solTyping, setSolTyping] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [themePref, setThemePrefState] = useState<ThemePref>(DEFAULT_THEME);
+  const [systemDark, setSystemDark] = useState(false);
+  const [themeLoaded, setThemeLoaded] = useState(false);
+  const theme = resolveTheme(themePref, systemDark);
   const user = seed.profiles.find((p) => p.id === userId) ?? seed.profiles[0];
   if (!user) throw new Error("Demo profiles missing");
   const [layoutLoaded, setLayoutLoaded] = useState(false);
   useEffect(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem("dawn-hq-layouts") ?? "{}");
+      // Layouts saved before the rename used the old key: read it once, then drop it.
+      const saved = JSON.parse(
+        localStorage.getItem(LAYOUTS_KEY) ?? localStorage.getItem(OLD_LAYOUTS_KEY) ?? "{}",
+      );
+      localStorage.removeItem(OLD_LAYOUTS_KEY);
       const valid: Record<string, LayoutItem[]> = {};
       for (const [key, value] of Object.entries(saved)) {
         if (
@@ -142,12 +166,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setLayoutLoaded(true);
   }, []);
   useEffect(() => {
-    if (layoutLoaded) localStorage.setItem("dawn-hq-layouts", JSON.stringify(db.layouts));
+    if (layoutLoaded) localStorage.setItem(LAYOUTS_KEY, JSON.stringify(db.layouts));
   }, [db.layouts, layoutLoaded]);
 
+  // The <head> script has already applied the saved theme; load the same
+  // preference here and follow the system while "Match system" is chosen.
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-  }, [theme]);
+    setThemePrefState(readThemePref(window.localStorage));
+    const mql = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => setSystemDark(mql.matches);
+    onChange();
+    mql.addEventListener("change", onChange);
+    setThemeLoaded(true);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+  useEffect(() => {
+    if (themeLoaded) applyTheme(theme);
+  }, [theme, themeLoaded]);
+  const setThemePref = useCallback((pref: ThemePref) => {
+    setThemePrefState(pref);
+    try {
+      window.localStorage.setItem(THEME_KEY, pref);
+    } catch {
+      /* Storage blocked: the choice lasts until reload. */
+    }
+  }, []);
 
   const decideApproval = useCallback(
     (id: string, status: "approved" | "declined") => {
@@ -349,8 +392,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     (c) => {
       const id = uid("c");
       const slug = c.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const startedAt = iso();
       setDb((d) => ({
         ...d,
+        stage_gates: [...d.stage_gates, ...defaultGates(id, startedAt, "idea")],
         routines: [
           ...d.routines,
           ...workspaceSeed(
@@ -404,6 +449,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           {
             ...c,
             channels: businessDefaults(c.customer_type),
+            started_at: startedAt,
             id,
             slug,
             stage: "idea",
@@ -813,7 +859,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       markDone,
       stopAuto,
       theme,
-      toggleTheme: () => setTheme((t) => (t === "light" ? "dark" : "light")),
+      themePref,
+      setThemePref,
+      toggleTheme: () => setThemePref(theme === "light" ? "dark" : "light"),
     }),
     [
       db,
@@ -828,6 +876,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       moveInvestor,
       createCompany,
       theme,
+      themePref,
+      setThemePref,
       work,
       saveLayout,
       updatePreferences,
@@ -870,6 +920,17 @@ export function useMyCompanies() {
 export function useBalance(id?: string) {
   const { db, companyId } = useStore();
   return creditBalance(db.credit_ledger, id ?? companyId);
+}
+
+export function useSolStatus(id?: string) {
+  const { db, companyId, solTyping } = useStore();
+  return solStatus({
+    companyId: id ?? companyId,
+    runs: db.agent_runs,
+    approvals: db.approvals,
+    events: db.activity_events,
+    solTyping,
+  });
 }
 
 export function labelFor(a: T.Approval) {

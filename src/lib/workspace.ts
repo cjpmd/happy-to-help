@@ -1,20 +1,12 @@
 import type { Company, Task } from "./types";
+/** The HQ grid's cards (docs/DESIGN.md section 4). Founders can hide and reorder them. */
 export const WIDGETS = [
-  "Sol",
-  "Stage & gates",
-  "Live preview",
-  "Approvals",
-  "Overnight",
-  "Metrics",
-  "Tasks",
-  "Documents",
-  "Email",
-  "Social channels",
-  "Media",
-  "Ads",
-  "Compliance due",
-  "Investors",
-  "Credits",
+  "GO / NO-GO",
+  "Telemetry",
+  "Vehicle",
+  "Channels",
+  "Overnight burn",
+  "Next windows",
 ] as const;
 export type Widget = (typeof WIDGETS)[number];
 export type Sector = "general" | "legal" | "finance" | "health" | "education";
@@ -22,13 +14,7 @@ export interface LayoutItem {
   id: Widget;
   visible: boolean;
 }
-export const defaultLayout = (): LayoutItem[] =>
-  WIDGETS.map((id) => ({
-    id,
-    visible: ["Sol", "Stage & gates", "Live preview", "Approvals", "Overnight", "Metrics"].includes(
-      id,
-    ),
-  }));
+export const defaultLayout = (): LayoutItem[] => WIDGETS.map((id) => ({ id, visible: true }));
 export interface Routine {
   id: string;
   company_id: string;
@@ -189,7 +175,11 @@ export function workspaceSeed(companies: Company[], tasks: Task[]): WorkspaceDB 
     preferences: {},
     sharing: {},
     team: [],
-    tasks: tasks.map((t) => ({ ...t, status: t.status === "done" ? "doing" : t.status })),
+    // Seeded "done" tasks without a recorded completion are shown as still in progress.
+    tasks: tasks.map((t) => ({
+      ...t,
+      status: t.status === "done" && !t.completed_at ? "doing" : t.status,
+    })),
     routines: companies.flatMap((c) => [
       {
         id: `${c.id}-brief`,

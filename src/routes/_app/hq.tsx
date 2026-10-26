@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CompanyHQ } from "@/components/dawn/CompanyHQ";
+import { CompanyHQ } from "@/components/mission/CompanyHQ";
 import { useStore } from "@/lib/store";
 import { pageHead } from "@/lib/seo";
 

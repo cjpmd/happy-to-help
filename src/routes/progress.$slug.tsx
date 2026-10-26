@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useStore } from "@/lib/store";
 import { defaultSharing } from "@/lib/workspace";
 import { pageHead } from "@/lib/seo";
-import { BrandLogo, Pill } from "@/components/dawn/primitives";
+import { BrandLogo, Pill } from "@/components/mission/primitives";
 import { gbp } from "@/lib/format";
 export const Route = createFileRoute("/progress/$slug")({
   head: ({ params }) =>

@@ -62,9 +62,16 @@ describe("Founder guardrails", () => {
     },
   );
   it("starts public sharing off", () => expect(defaultSharing().enabled).toBe(false));
-  it("includes all fifteen dashboard widgets", () => {
-    expect(defaultLayout()).toHaveLength(15);
-    expect(defaultLayout().find((w) => w.id === "Media")?.visible).toBe(false);
+  it("shows all six HQ cards by default", () => {
+    expect(defaultLayout().map((w) => w.id)).toEqual([
+      "GO / NO-GO",
+      "Telemetry",
+      "Vehicle",
+      "Channels",
+      "Overnight burn",
+      "Next windows",
+    ]);
+    expect(defaultLayout().every((w) => w.visible)).toBe(true);
   });
   it("forecasts the cadence before activation", () => {
     expect(monthlyCost("weekdays", 40)).toBe(880);

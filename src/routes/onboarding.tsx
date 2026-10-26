@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { BrandLogo, SolAvatar } from "@/components/dawn/primitives";
+import { BrandLogo, SolAvatar } from "@/components/mission/primitives";
 import { useStore } from "@/lib/store";
 import { pageHead } from "@/lib/seo";
 import { businessDefaults, type Sector } from "@/lib/workspace";

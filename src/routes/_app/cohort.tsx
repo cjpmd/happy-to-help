@@ -2,8 +2,8 @@ import { createFileRoute, Link, Outlet, useMatch } from "@tanstack/react-router"
 import { useStore } from "@/lib/store";
 import { cohorts, cohort_companies } from "@/lib/seed";
 import { creditBalance } from "@/lib/credits";
-import { PageHeader, Pill, StatusPill } from "@/components/dawn/primitives";
-import { STAGES } from "@/components/dawn/StageBar";
+import { PageHeader, Pill, StatusPill } from "@/components/mission/primitives";
+import { STAGES } from "@/components/mission/StageBar";
 import { pageHead } from "@/lib/seo";
 import { fmtDate, num } from "@/lib/format";
 

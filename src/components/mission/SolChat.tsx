@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ArrowUp } from "lucide-react";
-import { useStore, useBalance } from "@/lib/store";
+import { useStore, useBalance, useSolStatus } from "@/lib/store";
 import { fmtTime } from "@/lib/format";
 import { SolAvatar } from "./primitives";
 import { Button } from "@/components/ui/button";
@@ -12,11 +12,15 @@ import { cn } from "@/lib/utils";
 export function SolChat({
   companyId,
   readOnly,
+  fill,
 }: {
   companyId: string;
   readOnly?: boolean | undefined;
+  /** Fill the container (in a sheet) instead of showing as a card. */
+  fill?: boolean;
 }) {
   const { db, sendChat, solTyping } = useStore();
+  const sol = useSolStatus(companyId);
   const balance = useBalance(companyId);
   const quote = actionQuote(balance, ACTION_COSTS.chat);
   const [text, setText] = useState("");
@@ -34,15 +38,25 @@ export function SolChat({
   };
 
   return (
-    <section className="flex flex-col rounded-xl border bg-card shadow-card">
+    <section
+      className={cn(
+        "flex flex-col bg-card",
+        fill ? "h-full min-h-0" : "rounded-card border shadow-card",
+      )}
+    >
       <header className="flex items-center gap-2.5 border-b px-4 py-3">
-        <SolAvatar size={28} />
+        <SolAvatar size={28} status={sol.state} />
         <div className="leading-tight">
           <p className="text-sm font-medium">Sol</p>
           <p className="text-[11px] text-muted-foreground">Your AI cofounder · powered by Claude</p>
         </div>
       </header>
-      <div className="max-h-72 min-h-40 space-y-3 overflow-y-auto px-4 py-3">
+      <div
+        className={cn(
+          "min-h-40 space-y-3 overflow-y-auto px-4 py-3",
+          fill ? "min-h-0 flex-1" : "max-h-72",
+        )}
+      >
         {msgs.map((m) => (
           <div key={m.id} className={cn("flex gap-2", m.sender === "founder" && "justify-end")}>
             {m.sender === "sol" && <SolAvatar size={20} className="mt-0.5" />}
@@ -88,16 +102,16 @@ export function SolChat({
             <Button
               type="submit"
               disabled={!text.trim() || !quote.affordable || solTyping}
-              aria-label="Send · ≈ 10 credits"
+              aria-label={`Send, about ${ACTION_COSTS.chat} credits`}
               className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-opacity disabled:opacity-30"
             >
               <ArrowUp className="h-4 w-4" />
             </Button>
           </div>
           <p className="px-2 pt-1 text-[10px] text-muted-foreground">
-            ≈ 10 credits ·{" "}
+            ≈ {ACTION_COSTS.chat} CR ·{" "}
             {quote.affordable
-              ? `${quote.after.toLocaleString("en-GB")} left after`
+              ? `${quote.after.toLocaleString("en-GB")} CR left after`
               : "Insufficient credits"}{" "}
             {!quote.affordable && (
               <Link to="/billing" className="text-primary underline">

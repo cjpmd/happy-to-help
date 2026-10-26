@@ -22,6 +22,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useStore, useCompany, useBalance } from "@/lib/store";
 import { ACTION_COSTS, actionQuote } from "@/lib/credits";
+import type { ThemePref } from "@/lib/theme";
+import { cn } from "@/lib/utils";
 import {
   defaultPreferences,
   defaultSharing,
@@ -34,14 +36,28 @@ import { PageHeader, Pill, StatusPill } from "./primitives";
 import { CostButton, ClaimsCheck, Why } from "./WorkControls";
 
 const selectClass = "h-9 rounded-md border bg-background px-2 text-sm";
-export function RoutinesPage() {
+/** A page's title, or just its description when it's shown inside another page's tab. */
+function Heading({
+  embedded,
+  title,
+  description,
+}: {
+  embedded?: boolean | undefined;
+  title: string;
+  description?: string | undefined;
+}) {
+  if (!embedded) return <PageHeader title={title} {...(description ? { description } : {})} />;
+  return description ? <p className="mb-4 text-sm text-muted-foreground">{description}</p> : null;
+}
+
+export function RoutinesPage({ embedded }: { embedded?: boolean }) {
   const { db, companyId, addRoutine, toggleRoutine } = useStore();
   const balance = useBalance();
   const [title, setTitle] = useState("");
   const [cadence, setCadence] = useState<Routine["cadence"]>("weekdays");
   return (
     <>
-      <PageHeader title="Routines" description="Your recurring work" />
+      <Heading embedded={embedded} title="Routines" description="Your recurring work" />
       <div className="mb-6 flex flex-wrap gap-2">
         <Input
           aria-label="Routine name"
@@ -113,7 +129,7 @@ export function RoutinesPage() {
                     />
                   )}
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    Monthly forecast: {balance - cost} credits left
+                    Monthly forecast: {balance - cost} CR left
                   </p>
                 </div>
               </div>
@@ -128,7 +144,7 @@ export function RoutinesPage() {
   );
 }
 
-export function EmailPage() {
+export function EmailPage({ embedded }: { embedded?: boolean }) {
   const { db, companyId, work, draftOutreach } = useStore();
   const c = useCompany();
   const [mode, setMode] = useState<"support" | "outreach">("support");
@@ -141,7 +157,8 @@ export function EmailPage() {
   const messages = db.emails.filter((e) => e.company_id === companyId).flatMap((e) => e.messages);
   return (
     <>
-      <PageHeader
+      <Heading
+        embedded={embedded}
         title="Company email"
         description={`hello@${c.slug}.app · proposed address, not connected`}
       />
@@ -266,12 +283,12 @@ export function EmailPage() {
   );
 }
 
-export function MediaPage() {
+export function MediaPage({ embedded }: { embedded?: boolean }) {
   const { db, companyId, work } = useStore();
   const [prompt, setPrompt] = useState("Daily revision quiz campaign");
   return (
     <>
-      <PageHeader title="Media library" description="Company creative assets" />
+      <Heading embedded={embedded} title="Media library" description="Company creative assets" />
       <div className="flex flex-wrap items-start gap-3 border-b pb-5">
         <Input
           className="max-w-md"
@@ -362,7 +379,7 @@ export function MediaPage() {
   );
 }
 
-export function AdsPage() {
+export function AdsPage({ embedded }: { embedded?: boolean }) {
   const { db, companyId, proposeBudget } = useStore();
   const ad = db.ads.find((a) => a.company_id === companyId);
   const [budget, setBudget] = useState(String(ad?.daily_budget ?? 0));
@@ -376,7 +393,11 @@ export function AdsPage() {
     +budget <= +cap;
   return (
     <>
-      <PageHeader title="Meta Ads" description="Acquisition with a firm spending limit" />
+      <Heading
+        embedded={embedded}
+        title="Meta Ads"
+        description="Acquisition with a firm spending limit"
+      />
       <Pill tone="warning">Not connected · sample campaign results</Pill>
       <div className="my-6 grid grid-cols-2 gap-5 border-y py-6 lg:grid-cols-4">
         {[
@@ -441,18 +462,32 @@ export function AdsPage() {
   );
 }
 
-export function DocumentsPage() {
+export function DocumentsPage({
+  embedded,
+  only,
+}: {
+  embedded?: boolean;
+  /** Show only these documents, by title, e.g. the privacy policy on Stay legal. */
+  only?: string[];
+}) {
   const { db, companyId, work } = useStore();
-  const docs = db.documents.filter((d) => d.company_id === companyId);
+  const docs = db.documents.filter(
+    (d) => d.company_id === companyId && (!only || only.includes(d.title)),
+  );
+  const single = docs.length === 1;
   const [selected, setSelected] = useState<string | null>(null);
   const [version, setVersion] = useState<number | null>(null);
   const doc = docs.find((d) => d.id === selected) ?? docs[0];
   const current = doc?.versions.find((v) => v.version === version) ?? doc?.versions.at(-1);
   return (
     <>
-      <PageHeader title="Documents" description="Company knowledge, with a version history" />
-      <div className="grid gap-6 lg:grid-cols-[250px_1fr]">
-        <div className="space-y-1">
+      <Heading
+        embedded={embedded}
+        title="Documents"
+        description={single ? undefined : "Company knowledge, with a version history"}
+      />
+      <div className={cn("grid gap-6", !single && "lg:grid-cols-[250px_1fr]")}>
+        <div className={cn("space-y-1", single && "hidden")}>
           {docs.map((d) => (
             <Button
               variant={doc?.id === d.id ? "secondary" : "ghost"}
@@ -522,8 +557,14 @@ export function DocumentsPage() {
   );
 }
 
+const themeOptions: { value: ThemePref; label: string }[] = [
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+  { value: "system", label: "Match system" },
+];
+
 export function SettingsPage() {
-  const { db, user, updatePreferences } = useStore();
+  const { db, user, updatePreferences, themePref, setThemePref } = useStore();
   const prefs = db.preferences[user.id] ?? defaultPreferences();
   const numeric = (key: keyof Preferences, label: string) => (
     <label className="flex flex-wrap items-center justify-between gap-3 border-b py-4 text-sm">
@@ -547,7 +588,25 @@ export function SettingsPage() {
     <>
       <PageHeader title="Settings" />
       <section className="max-w-2xl">
-        <h2 className="font-medium">Learning mode</h2>
+        <h2 className="font-medium" id="appearance">
+          Appearance
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Light is the default. Match system follows your device&rsquo;s setting.
+        </p>
+        <div className="my-4 flex flex-wrap gap-2" role="group" aria-labelledby="appearance">
+          {themeOptions.map((o) => (
+            <Button
+              key={o.value}
+              variant={themePref === o.value ? "default" : "outline"}
+              aria-pressed={themePref === o.value}
+              onClick={() => setThemePref(o.value)}
+            >
+              {o.label}
+            </Button>
+          ))}
+        </div>
+        <h2 className="mt-8 font-medium">Learning mode</h2>
         <div className="my-4 flex gap-2">
           <Button
             variant={prefs.explanation === "brief" ? "default" : "outline"}

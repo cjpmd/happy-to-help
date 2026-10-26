@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useStore } from "@/lib/store";
-import { CostButton, ProofOfDone, Why } from "@/components/dawn/WorkControls";
+import { CostButton, ProofOfDone, Why } from "@/components/mission/WorkControls";
 import { Button } from "@/components/ui/button";
 import { hasProof } from "@/lib/workspace";
-import { PageHeader, Panel, StatusPill } from "@/components/dawn/primitives";
-import { ApprovalCard } from "@/components/dawn/ApprovalCard";
+import { PageHeader, Panel, StatusPill } from "@/components/mission/primitives";
+import { ApprovalCard } from "@/components/mission/ApprovalCard";
 import { pageHead } from "@/lib/seo";
 import { fmtDateTime, num } from "@/lib/format";
 

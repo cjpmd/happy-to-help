@@ -1,16 +1,51 @@
 # Status
 
-Phase 0 audit, 22 Oct 2026, at commit `aad3f26`. Updated 22 Oct 2026 after Phase 1 group 1a.
+Phase 0 audit, 22 Oct 2026, at commit `aad3f26`. Updated 23 Oct 2026 during Phase 1 group 1a-design.
 
 ## Phase 1 progress
 
 | Group | Status |
 |---|---|
 | 1a. Repo hygiene | **Done.** npm only (`package-lock.json` committed; `bun.lock` and `bunfig.toml` removed). Product name in `src/lib/brand.ts` (`PRODUCT_NAME = "Gumption"`). Prettier run over `src/` and root configs in its own commit (`c3b4531`). Lint: 0 errors. |
+| 1a-design. Mission HQ design | **In progress.** Runs between 1a and 1b, from `docs/DESIGN.md` and `docs/design/hq-reference.dc.html`. Steps 1 to 4 done (see below). Step 5 to do: every other screen, the new Flight plan and Telemetry pages, the nav moves and a light/dark setting. |
 | 1b. Supabase schema, auth, RLS, seed | **In progress.** Migrations, RLS, pgTAP tests and seed are written and pass locally (see below). Still to do: apply them to the staging project, generate `src/integrations/supabase/types.ts`, and commit `.env`. Waiting on the project URL and anon key. |
 | 1c. Data layer on Supabase | Not started |
 | 1d. Server-side writes | Not started |
 | 1e. Bug fixes | Not started |
+
+### Design (group 1a-design)
+
+- **Step 1, tokens and theme: done.** `src/styles.css` holds the DESIGN.md tokens on `:root` (light, default) and `.dark`, and the shadcn variables are aliases of them. DESIGN.md's `--muted` (secondary text) is `--muted-ink` in CSS, because shadcn already uses `--muted` for the soft background; in classes it is `text-muted-foreground`. Utilities: `label-caps` (Barlow, uppercase, tracked), `display-num` (Barlow Semi Condensed, tabular), `bg-hero`, `shadow-tile`, `shadow-card`, `shadow-hero`, and radii `rounded-pill`, `rounded-tile`, `rounded-card`, `rounded-hero`. Fonts are self-hosted from `@fontsource` (latin subset).
+- **Colour rules:** green (`go`) = done or verified, amber (`hold`) = needs the founder, and one muted red only for errors and destructive confirmations. Everything else is monochrome. Declined, invalidated and passed statuses are now neutral; overdue and stalled are amber.
+- **Renamed:** `components/dawn/` is now `components/mission/`. The `dawn-hq-layouts` storage key is now `gumption-hq-layouts` (the old key is read once, then removed). The `bg-dawn` gradient is gone.
+- **Step 2, app shell: done.**
+  - `AppShell.tsx`: 236px sidebar with the GUMPTION wordmark, mission switcher, HOME, FLIGHT PLAN, GO / NO-GO (amber count), TELEMETRY, LOG and DEPARTMENTS, a fuel box (balance, bar, TOP UP to Billing) and an account menu on the avatar (Team, Ownership, Settings, Billing, demo view-as, theme, sign out). Mentors get a COHORT group at the top. Below 700px it becomes a top bar with a sheet menu (breakpoints `tab:` 700px and `desk:` 1100px).
+  - `MissionHeader.tsx`: greeting and mission, phase title, Sol's status line, the next-gate countdown, the gate's headline metric and AUTO MODE with its estimate. `AskSolBar.tsx` sends to Sol and opens the conversation in a side sheet. Auto Mode now lives in `AutoModeDialog.tsx`.
+  - Sol's orange image is replaced by an SVG mark (the flight plan's "now" marker) with a status dot: green working, muted idle, amber waiting for you.
+  - `src/lib/mission.ts` (tested): mission day, gate days and names, current gate and its metric, Sol's status, the UK greeting. The mock store now has `companies.started_at` and `stage_gates.target_date`. The demo clock is the seed's fixed `NOW` (21 Oct 2026), so StudyBuddy shows T+30 and the Launch gate in 12 days.
+  - Overdue **statutory** compliance items (confirmation statement, accounts, tax, ICO fee) are red; other overdue items are amber (`src/lib/compliance.ts`, tested).
+  - **Temporary until step 5:** `/flight-plan` and `/telemetry` are placeholders, and Evidence, Routines, Email, Media, Ads and Documents are not in the sidebar yet (still reachable by URL and from HQ widgets). The old Sol chat widget is still on HQ until step 4 rebuilds the grid.
+- **Gates (after step 2 review):** one gate per stage transition, named like a launch call for the stage it opens: GO FOR EVIDENCE (day 8), GO FOR BUILD (18), GO FOR LAUNCH (42), GO FOR GROWTH (80). The mock store had a fifth gate on the Grow stage (day 120) with nothing after it; it's removed. Onboarding now creates the default gates for every new company (`defaultGates()` in `src/lib/mission.ts`).
+- **Step 3, `FlightPlanArc`: done.** Maths in `src/lib/flightPlan.ts` (pure, tested): geometry, visibility and fade, tiers, no-overlap labels, pan limits, readout, screen-reader summary, parallax and the seeded star field. `src/components/mission/FlightPlanArc.tsx`: four parallax layers, Earlier / Now / Later, swipe or drag over 40px, eased moves, pointer parallax, fixed readout, `prefers-reduced-motion` (no parallax, instant pans), an `aria-label` summary, a visually hidden milestone list and focusable markers calling `onSelectMilestone`. Shown on `/flight-plan` for now, with a simple detail panel for the selected milestone; step 4 puts it on HQ.
+  - **Milestones** come from `buildMilestones()`: mission start, the gates and key tasks. Tasks gained `key`, `stage` and `completed_at`; StudyBuddy has seven key tasks (interviews, product spec, waitlist page, daily quiz, Stripe, first paying customer, 50 paying). Seeded done tasks keep "done" only if they have a completion date (the rest are still shown as in progress, as before). Other companies show only their start and gates until they have key tasks.
+  - **Narrow screens** (not covered by DESIGN.md): below 750px the arc keeps a readable scale and shows the middle of the arc in a taller box, with the look-ahead shrunk so now stays on screen.
+- **Step 4, HQ: done.** `CompanyHQ.tsx` is now the mission header, Ask Sol, the flight plan card and the six-card grid (`HQCards.tsx`, data from `src/lib/hq.ts`, tested).
+  - **Fit:** HQ doesn't scroll at 1440×900 or 1440×800 browser content areas, in light and dark. Check with `npm run check:fit` (`scripts/check-fit.mjs`; `playwright-core` pinned to 1.63.0, run `npx playwright-core install chromium` once or set `CHROMIUM_PATH`). Full layout needs 895px. On screens at least 1100px wide it compacts by height (`short:` and `shorter:` variants in `src/styles.css`):
+    - under 900px tall (needs 848px): no Telemetry sparkline; the flight plan tiles collapse to one line ("2 done · 1 building · 1 awaiting GO") with Show / Hide tasks.
+    - under 870px tall (needs 766px): two rows in Overnight burn, Next windows and Channels, one extra row in GO / NO-GO, no placeholder bars in Vehicle. (Grid rows take their tallest card, so Channels and GO / NO-GO must shrink too.)
+  - **The arc on HQ** is capped at about 149px tall by cropping empty sky above the labels and below the readout, not by shrinking it (shrinking dropped the next milestone's label). Crop limits are measured in pixels, so labels aren't clipped at 1024px.
+  - **Flight plan tiles:** the current phase's key tasks. Badges are worked out until `tasks.actor` exists: done with full proof = SOL · VERIFIED n/n, done otherwise = YOU · DONE, doing = SOL · BUILDING · ≈ N CR, todo = UP NEXT · ≈ N CR. HOLD · AWAITING GO shows when a pending approval's run belongs to the task: seeded run `r9` and approval `a7` (Stripe checkout) hold Connect Stripe, so StudyBuddy now has 4 approvals waiting.
+  - **GO / NO-GO:** GO is disabled while claims are flagged or credits are short (so its toast is always true, unlike bug B1 on the Approvals page). WHY asks Sol and opens the conversation. **EDIT opens the Approvals queue** until draft editing exists (bug B2, group 1e).
+  - **Removed from HQ:** the old widgets (Sol chat card, stage bar, live preview iframe, tasks, documents, email, media, ads, compliance, investors, credits) and the regulated-sector banner, replaced by a REGULATED · <SECTOR> pill by the phase title. Claims checks are still stricter for regulated sectors. Customise HQ now covers just the six cards; saved layouts from the old widget list fall back to the default.
+  - **Channels** leaves out the waitlist (its signups are in Telemetry). **Next windows** shows open compliance items and dated tasks: amber within two weeks, red for overdue statutory items.
+- **Agreed layout decisions** for steps 2 to 5: no third sidebar group. Evidence lives in Flight Plan (selected milestone plus an Evidence tab), Routines in LOG (Past and Scheduled tabs), Email and Documents in Run, Media and Ads in Grow, department pages show their relevant documents, and Team, Ownership, Settings and Billing go in an account menu on the avatar by the fuel box. Mentors get a COHORT group at the top. Old routes redirect. New `/flight-plan` and `/telemetry` pages. HQ keeps customisation for the six grid cards only.
+- **Step 5 decisions (agreed 23 Oct 2026):**
+  - Credit figures on mission screens read "≈ 40 CR"; only Billing and the ledger spell out "credits" (sentences and screen-reader labels also say credits).
+  - Telemetry's cost per signup by channel has three columns: £ ad spend per signup, credits per signup, and all-in £ per signup = ad spend + credits valued at the founder's own plan price per credit (plan price ÷ plan credits, e.g. Founder £79 / 5,000 = 1.58p), labelled as all-in at their plan price.
+  - "Activated" in the funnel is a mock figure labelled as sample data until each company defines activation.
+  - Theme: Light (default), Dark and Match system.
+  - The GO / NO-GO page's decline button says NO-GO; HQ keeps GO / EDIT / WHY.
+- **For 1b:** add `tasks.actor` (sol / founder / mentor) and switch the flight plan task badges to it (until then they are derived from status and proof). Add a target or completed date for gates and key tasks (or a view giving each milestone's day from the company start) for `FlightPlanArc`, plus `companies.started_at`. Add `compliance_items.statutory`. Add a `theme` column to `user_preferences` ('light', 'dark', 'system'; default 'light'). Flight plan setup gets a "define activation" step (Sol proposes what counts as activated, the founder confirms) and a `metrics_daily.activated` column. Add run `r9` and approval `a7` (Connect Stripe) to `supabase/seed.sql`. Add `tasks.key`, `tasks.stage` and `tasks.completed_at`, and StudyBuddy's key tasks to `supabase/seed.sql`. `supabase/seed.sql` also creates a fifth gate on the Grow stage for every company: drop it (and update any pgTAP counts) so there are four gates, one per transition. Onboarding should create the company's stage gates (it doesn't today, so a new company's header shows no countdown).
 
 ### Database (group 1b)
 
@@ -168,7 +203,7 @@ None of these exist in a database. "Type" means a TypeScript interface the mock 
 9. **B9. Fixed in 1a.** `hq.tsx` broke the rules of hooks. It calls `useStore()` inside an inline `component` arrow function, which the lint rule flags. It works today, but it is fragile.
 10. **B10. Fixed in 1a.** Tests failed on a clean install because `@testing-library/dom` is missing from `package.json`.
 11. **B11. Investor drag and drop needs a mouse.** It doesn't work on touch screens or with a keyboard.
-12. **B12. Theme choice isn't saved.** Dark mode resets on every reload.
+12. **B12. Fixed in 1a-design step 5.** Theme choice wasn't saved. Settings now has Light (default), Dark and Match system, saved in the browser and applied before the page draws.
 
 ## Risks
 

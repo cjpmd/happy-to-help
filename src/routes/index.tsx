@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Mail, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BrandLogo, SolAvatar } from "@/components/dawn/primitives";
+import { BrandLogo, SolAvatar } from "@/components/mission/primitives";
 import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/")({
@@ -77,7 +77,6 @@ function SignIn() {
         <p className="text-xs text-muted-foreground">© 2026 {PRODUCT_NAME}. Made in Glasgow.</p>
       </div>
       <div className="relative hidden overflow-hidden border-l bg-sidebar lg:block">
-        <div className="absolute -right-32 -top-32 h-[28rem] w-[28rem] rounded-full bg-dawn opacity-25 blur-3xl" />
         <div className="relative flex h-full flex-col justify-center gap-4 p-16">
           <div className="max-w-md rounded-2xl border bg-card p-5 shadow-float">
             <div className="flex items-center gap-2.5">
@@ -95,7 +94,7 @@ function SignIn() {
           </div>
           <div className="ml-12 max-w-sm rounded-2xl border bg-card p-4 shadow-float">
             <p className="text-xs text-muted-foreground">Overnight</p>
-            <p className="mt-1 text-2xl font-semibold tabular">8 runs · 795 credits</p>
+            <p className="mt-1 text-2xl font-semibold tabular">8 runs · 795 CR</p>
             <p className="text-xs text-success">1 failed run auto-refunded</p>
           </div>
         </div>

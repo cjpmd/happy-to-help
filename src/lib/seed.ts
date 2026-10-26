@@ -1,4 +1,6 @@
 import type * as T from "./types";
+import { defaultGates } from "./mission";
+import type { ExtendedTask } from "./workspace";
 
 // Fixed "now" keeps server and browser renders identical for the demo.
 export const NOW = new Date("2026-10-21T07:30:00Z");
@@ -15,6 +17,7 @@ export const profiles: T.Profile[] = [
 export const companies: T.Company[] = [
   {
     id: "c1",
+    started_at: ago(24 * 30),
     slug: "studybuddy",
     name: "StudyBuddy",
     description:
@@ -30,6 +33,7 @@ export const companies: T.Company[] = [
   },
   {
     id: "c2",
+    started_at: ago(24 * 14),
     slug: "kelpie-energy",
     name: "Kelpie Energy",
     description: "Smart heating controls for tenement flats. Cuts bills without landlord rewiring.",
@@ -42,6 +46,7 @@ export const companies: T.Company[] = [
   },
   {
     id: "c3",
+    started_at: ago(24 * 50),
     slug: "thrift-loop",
     name: "Thrift Loop",
     description:
@@ -55,6 +60,7 @@ export const companies: T.Company[] = [
   },
   {
     id: "c4",
+    started_at: ago(24 * 5),
     slug: "croft-care",
     name: "Croft Care",
     description:
@@ -96,20 +102,11 @@ export const cohort_companies: T.CohortCompany[] = [
 function gates(
   cid: string,
   stage: T.Stage,
-  ev: T.GateCriterion[],
+  evidence: T.GateCriterion[],
   build: T.GateCriterion[],
 ): T.StageGate[] {
-  const order: T.Stage[] = ["idea", "evidence", "build", "launch", "grow"];
-  const idx = order.indexOf(stage);
-  return order.map((s, i) => ({
-    id: `${cid}-${s}`,
-    company_id: cid,
-    stage: s,
-    criteria: s === "evidence" ? ev : s === "build" ? build : [],
-    status: i < idx ? "approved" : i === idx ? "in_progress" : "locked",
-    approved_by: i < idx ? "u2" : null,
-    approved_at: i < idx ? ago(24 * (20 * (idx - i))) : null,
-  }));
+  const started = companies.find((c) => c.id === cid)?.started_at ?? NOW.toISOString();
+  return defaultGates(cid, started, stage, { idea: [], evidence, build, launch: [] }, "u2");
 }
 export const stage_gates: T.StageGate[] = [
   ...gates(
@@ -240,7 +237,7 @@ export const evidence_items: T.EvidenceItem[] = [
   },
 ];
 
-export const tasks: T.Task[] = [
+export const tasks: ExtendedTask[] = [
   {
     id: "t1",
     company_id: "c1",
@@ -316,6 +313,41 @@ export const tasks: T.Task[] = [
     estimated_credits: 300,
     due: ahead(12),
   },
+  // StudyBuddy's key tasks: the milestones on its flight plan (day N from its start).
+  ...(
+    [
+      ["Customer interviews", "run", "evidence", 12, "done", 0],
+      ["Approve product spec", "build", "build", 22, "done", 0],
+      ["Waitlist page live", "build", "build", 25, "done", 300],
+      ["Daily quiz feature", "build", "build", 34, "doing", 420],
+      ["Connect Stripe", "build", "build", 38, "todo", 120],
+      ["First paying customer", "grow", "launch", 50, "todo", 0],
+      ["50 paying customers", "grow", "launch", 64, "todo", 0],
+    ] as const
+  ).map(([title, pillar, stage, day, status, credits], i) => ({
+    id: `c1-key-${i + 1}`,
+    company_id: "c1",
+    pillar,
+    title,
+    status,
+    estimated_credits: credits,
+    key: true,
+    stage,
+    due: ahead(day - 30),
+    completed_at: status === "done" ? ago(24 * (30 - day)) : null,
+    // Sol built and checked the waitlist page: 6 of 6 checks, with a screenshot, preview and PR.
+    ...(title === "Waitlist page live"
+      ? {
+          proof: {
+            passed: 6,
+            total: 6,
+            screenshot: "/media/revision.svg",
+            preview: "/site/studybuddy?preview=1",
+            pr: "Build #12",
+          },
+        }
+      : {}),
+  })),
 ];
 
 const run = (
@@ -406,6 +438,25 @@ export const agent_runs: T.AgentRun[] = [
   run("r8", "Update investor pipeline from LinkedIn", "raise", "running", 0.3, 0, 80, [
     { tool: "web_search", summary: "Searching for edtech angels…", credits: 20 },
   ]),
+  // Yesterday: Sol prepared Stripe checkout for the Connect Stripe key task; it waits for GO.
+  run(
+    "r9",
+    "Prepare Stripe checkout for the pricing page",
+    "build",
+    "needs_approval",
+    26,
+    3,
+    30,
+    [
+      { tool: "plan", summary: "Planned checkout for the £4.99 monthly plan", credits: 10 },
+      {
+        tool: "propose_site_change",
+        summary: "Proposed Stripe checkout for approval",
+        credits: 20,
+      },
+    ],
+    "c1-key-5",
+  ),
 ];
 
 export const approvals: T.Approval[] = [
@@ -502,6 +553,21 @@ export const approvals: T.Approval[] = [
       change: "New landing page hero and waitlist form",
       url: "/site/kelpie-energy?preview=1",
       reason: "Current page has no clear call to action.",
+    },
+  },
+  {
+    id: "a7",
+    company_id: "c1",
+    run_id: "r9",
+    action_type: "publish_site",
+    estimated_credits: 120,
+    status: "pending",
+    created_at: ago(25.5),
+    payload: {
+      change: "Connect Stripe checkout to the pricing page (£4.99 a month, test mode)",
+      url: "/site/studybuddy?preview=1",
+      reason:
+        "Pre-orders passed the Launch gate target (12 of 10). Checkout lets them convert to paying.",
     },
   },
 ];
@@ -827,6 +893,7 @@ export const compliance_items: T.ComplianceItem[] = [
     category: "Incorporation",
     due_date: "2026-10-02",
     status: "done",
+    statutory: true,
   },
   {
     id: "k3",
@@ -851,6 +918,7 @@ export const compliance_items: T.ComplianceItem[] = [
     category: "Data protection",
     due_date: "2026-11-14",
     status: "upcoming",
+    statutory: true,
   },
   {
     id: "k6",
@@ -859,6 +927,7 @@ export const compliance_items: T.ComplianceItem[] = [
     category: "Companies House",
     due_date: "2027-09-15",
     status: "upcoming",
+    statutory: true,
   },
   {
     id: "k7",
@@ -867,6 +936,7 @@ export const compliance_items: T.ComplianceItem[] = [
     category: "Companies House",
     due_date: "2028-06-02",
     status: "upcoming",
+    statutory: true,
   },
 ];
 

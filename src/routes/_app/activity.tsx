@@ -2,30 +2,82 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { ChevronRight, RotateCcw } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { PageHeader, Pill, StatusPill } from "@/components/dawn/primitives";
+import { PageHeader, Panel, Pill, StatusPill } from "@/components/mission/primitives";
+import { RouteTabs } from "@/components/mission/RouteTabs";
+import { RoutinesPage } from "@/components/mission/WorkspacePages";
+import { AutoModeDialog } from "@/components/mission/AutoModeDialog";
+import { Button } from "@/components/ui/button";
 import { pageHead } from "@/lib/seo";
 import { duration, fmtDateTime, num } from "@/lib/format";
-import { ProofOfDone, Why } from "@/components/dawn/WorkControls";
+import { ProofOfDone, Why } from "@/components/mission/WorkControls";
 import { cn } from "@/lib/utils";
 
+type LogTab = "past" | "scheduled";
+
 export const Route = createFileRoute("/_app/activity")({
-  head: () =>
-    pageHead("Activity & runs", "Every agent run Sol has made, with steps, duration and credits."),
-  component: Activity,
+  head: () => pageHead("Log", "Every run Sol has made, and the work scheduled next."),
+  // ?tab=scheduled; past runs have no param.
+  validateSearch: (search: Record<string, unknown>): { tab?: "scheduled" } =>
+    search["tab"] === "scheduled" ? { tab: "scheduled" } : {},
+  component: Log,
 });
 
-function Activity() {
+function Log() {
+  const { companyId } = useStore();
+  const { tab } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const [auto, setAuto] = useState(false);
+  return (
+    <div className="mx-auto max-w-4xl">
+      <PageHeader
+        title="Log"
+        description="Everything Sol has worked on, and what's scheduled next."
+      />
+      <RouteTabs<LogTab>
+        label="Log"
+        value={tab ?? "past"}
+        onValueChange={(t) =>
+          void navigate({ search: t === "past" ? {} : { tab: t }, replace: true })
+        }
+        tabs={[
+          { value: "past", label: "Past", content: <PastRuns /> },
+          {
+            value: "scheduled",
+            label: "Scheduled",
+            content: (
+              <div className="flex flex-col gap-3.5">
+                <Panel
+                  title="Auto Mode"
+                  action={
+                    <Button size="sm" variant="outline" onClick={() => setAuto(true)}>
+                      Start Auto Mode
+                    </Button>
+                  }
+                >
+                  <p className="text-muted-foreground">
+                    A time-boxed work period: Sol works for 1 to 8 hours within a credit limit you
+                    set first.
+                  </p>
+                </Panel>
+                <AutoModeDialog companyId={companyId} open={auto} onOpenChange={setAuto} />
+                <RoutinesPage embedded />
+              </div>
+            ),
+          },
+        ]}
+      />
+    </div>
+  );
+}
+
+function PastRuns() {
   const { db, companyId } = useStore();
   const [open, setOpen] = useState<string | null>(null);
   const runs = db.agent_runs
     .filter((r) => r.company_id === companyId)
     .sort((a, b) => (b.started_at ?? "").localeCompare(a.started_at ?? ""));
   return (
-    <div className="mx-auto max-w-4xl">
-      <PageHeader
-        title="Activity & runs"
-        description="A timeline of everything Sol has worked on."
-      />
+    <div>
       {runs.length === 0 && (
         <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
           No runs yet. Sol starts work tonight.
