@@ -1,5 +1,6 @@
 import * as seed from "./seed";
 import { demoJobTypes, type DB } from "./storeContext";
+import { demoLinkData } from "./demoLinks";
 import { defaultPolicies, defaultSettings, defaultVoice } from "./voicePolicy";
 import { businessDefaults, isLayout, workspaceSeed, type LayoutItem } from "./workspace";
 
@@ -42,6 +43,7 @@ export function demoDb(): DB {
     ideas: [],
     commitments: [],
     capture_settings: [],
+    ...demoLinkData(seed.companies, seed.NOW),
   };
 }
 

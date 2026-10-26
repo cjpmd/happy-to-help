@@ -72,3 +72,44 @@ describe("edge functions", () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe("short links", () => {
+  it("link redirects anyone to the tagged destination and logs the click", async () => {
+    const admin = adminClient();
+    const { count: before } = await admin
+      .from("link_clicks")
+      .select("id", { count: "exact", head: true })
+      .eq("link_id", "b1000000-0000-4000-8000-000000000002");
+    // No Authorization header: short links are public (verify_jwt = false).
+    const res = await fetch(`${localStack().API_URL}/functions/v1/link/HBflyer01`, {
+      redirect: "manual",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (iPhone) Mobile",
+        Referer: "https://www.instagram.com/x",
+      },
+    });
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toMatch(
+      /\/h\/harbour-bakes\?utm_source=print&utm_medium=qr&utm_campaign=wedding-fair&l=HBflyer01$/,
+    );
+    const { data: clicks } = await admin
+      .from("link_clicks")
+      .select("device, referrer_host")
+      .eq("link_id", "b1000000-0000-4000-8000-000000000002")
+      .order("clicked_at", { ascending: false })
+      .limit(1);
+    expect(clicks![0]).toEqual({ device: "mobile", referrer_host: "www.instagram.com" });
+    const { count: after } = await admin
+      .from("link_clicks")
+      .select("id", { count: "exact", head: true })
+      .eq("link_id", "b1000000-0000-4000-8000-000000000002");
+    expect(after).toBe((before ?? 0) + 1);
+  });
+
+  it("link answers 404 for an unknown code", async () => {
+    const res = await fetch(`${localStack().API_URL}/functions/v1/link/Nope12345`, {
+      redirect: "manual",
+    });
+    expect(res.status).toBe(404);
+  });
+});

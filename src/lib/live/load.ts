@@ -211,6 +211,37 @@ export const loaders = {
       capture_settings: must(settings, "capture settings"),
     };
   },
+  links: async (sb) => {
+    const [hubs, forms, links, stats, leads, consents] = await Promise.all([
+      sb.from("hub_pages").select("*"),
+      sb.from("forms").select("*").order("created_at"),
+      sb.from("tracked_links").select("*").order("created_at", { ascending: false }),
+      sb.from("link_stats").select("link_id, clicks, clicks_7d, leads"),
+      sb.from("leads").select("*").order("created_at", { ascending: false }).limit(RECENT),
+      sb
+        .from("current_consents")
+        .select("contact_id, purpose, status, lawful_basis")
+        .eq("channel", "email"),
+    ]);
+    return {
+      hub_pages: must(hubs, "hub pages").map(M.mapHub),
+      forms: must(forms, "forms").map(M.mapForm),
+      tracked_links: must(links, "links").map(M.mapLink),
+      link_stats: must(stats, "link stats").map((x) => ({
+        link_id: x.link_id ?? "",
+        clicks: Number(x.clicks ?? 0),
+        clicks_7d: Number(x.clicks_7d ?? 0),
+        leads: Number(x.leads ?? 0),
+      })),
+      leads: must(leads, "leads").map(M.mapLead),
+      current_consents: must(consents, "consents").map((c) => ({
+        contact_id: c.contact_id ?? "",
+        purpose: c.purpose as "marketing" | "service",
+        status: c.status as "granted" | "withdrawn" | "not_given",
+        lawful_basis: c.lawful_basis,
+      })),
+    };
+  },
   settings: async (sb, userId) => {
     const [prefs, layout, sharing, invites] = await Promise.all([
       sb.from("user_preferences").select("*").maybeSingle(),
@@ -253,6 +284,8 @@ export const TABLE_GROUPS: Partial<Record<keyof Database["public"]["Tables"], Gr
   captures: "captures",
   extracted_items: "captures",
   commitments: "captures",
+  leads: "links",
+  tracked_links: "links",
 };
 
 export async function loadGroups(sb: Client, userId: string, groups: Group[]) {
@@ -296,6 +329,12 @@ export function emptyDb(): DB {
     ideas: [],
     commitments: [],
     capture_settings: [],
+    hub_pages: [],
+    forms: [],
+    tracked_links: [],
+    link_stats: [],
+    leads: [],
+    current_consents: [],
     routines: [],
     documents: [],
     media: [],

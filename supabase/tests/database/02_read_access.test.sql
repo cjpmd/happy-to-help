@@ -12,7 +12,7 @@ language sql
 immutable
 as $$
   select array['voice_sources', 'voice_edit_events', 'captures', 'transcripts', 'extracted_items',
-    'ideas', 'commitments', 'feedback']
+    'ideas', 'commitments', 'feedback', 'consents', 'current_consents', 'leads']
 $$;
 
 -- Expected readers of each company's data.

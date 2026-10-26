@@ -7,6 +7,7 @@ import { solStatus } from "./mission";
 import type { Theme, ThemePref } from "./theme";
 import type * as V from "./voicePolicy";
 import type * as K from "./capture";
+import type * as L from "./links";
 
 /**
  * The app's data, shaped like the Supabase tables. Two providers fill it: the demo store
@@ -49,6 +50,13 @@ export type DB = WorkspaceDB & {
   ideas: K.Idea[];
   commitments: K.Commitment[];
   capture_settings: CaptureSettings[];
+  /** The link layer (SPEC part H). */
+  hub_pages: L.HubPage[];
+  forms: L.LeadForm[];
+  tracked_links: L.TrackedLink[];
+  link_stats: L.LinkStat[];
+  leads: L.Lead[];
+  current_consents: L.ConsentState[];
 };
 
 export interface CaptureSettings {
@@ -194,6 +202,29 @@ export interface Ctx {
   completeCommitment: (id: string, status?: "done" | "cancelled") => Promise<boolean>;
   /** Credits a capture will cost: extraction plus transcription by the started minute. */
   estimateCapture: (durationSeconds?: number) => Promise<number>;
+  /** Resolves to the new link, or null. */
+  createLink: (companyId: string, link: L.NewLink) => Promise<L.TrackedLink | null>;
+  updateLink: (
+    id: string,
+    patch: { label?: string; spend_gbp?: number; archived?: boolean },
+  ) => Promise<boolean>;
+  /** Publishing the hub page is public, so only founders can. */
+  saveHubPage: (
+    companyId: string,
+    patch: Partial<Omit<L.HubPage, "company_id">>,
+  ) => Promise<boolean>;
+  saveForm: (id: string, patch: Partial<Omit<L.LeadForm, "id" | "company_id">>) => Promise<boolean>;
+  setLeadStatus: (id: string, status: L.Lead["status"]) => Promise<boolean>;
+  /** Records that someone opted out of marketing. */
+  withdrawMarketing: (contactId: string) => Promise<boolean>;
+  /** Public pages (anyone, signed in or not). */
+  fetchHub: (slug: string) => Promise<L.PublicHub | null>;
+  fetchForm: (id: string) => Promise<L.PublicForm | null>;
+  submitLead: (s: L.LeadSubmission) => Promise<boolean>;
+  /** Logs a short-link click and resolves to where it goes. */
+  followLink: (code: string) => Promise<string | null>;
+  /** Where short links are served. */
+  shortLinkBase: string;
   /** The transcript of a capture (founders and teammates only). */
   loadTranscript: (captureId: string) => Promise<string | null>;
 }

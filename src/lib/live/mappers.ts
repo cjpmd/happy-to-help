@@ -19,6 +19,7 @@ import type {
 import { defaultPreferences, defaultSharing, isLayout } from "../workspace";
 import type * as V from "../voicePolicy";
 import type * as K from "../capture";
+import type * as L from "../links";
 
 type Row<K extends keyof Database["public"]["Tables"]> = Tables<K>;
 
@@ -508,5 +509,64 @@ export function mapCommitment(c: Row<"commitments">): K.Commitment {
     status: c.status as K.Commitment["status"],
     followup_draft: c.followup_draft,
     created_at: c.created_at,
+  };
+}
+
+export function mapHub(h: Row<"hub_pages">): L.HubPage {
+  return {
+    company_id: h.company_id,
+    slug: h.slug,
+    enabled: h.enabled,
+    headline: h.headline,
+    bio: h.bio,
+    // jsonb array of { label, url }, checked by save_hub_page.
+    links: h.links as unknown as L.HubLink[],
+    show_form: h.show_form,
+    show_socials: h.show_socials,
+  };
+}
+
+export function mapForm(f: Row<"forms">): L.LeadForm {
+  return {
+    id: f.id,
+    company_id: f.company_id,
+    name: f.name,
+    intro: f.intro,
+    ask_phone: f.ask_phone,
+    marketing_wording: f.marketing_wording,
+    privacy_url: f.privacy_url,
+    enabled: f.enabled,
+  };
+}
+
+export function mapLink(l: Row<"tracked_links">): L.TrackedLink {
+  return {
+    id: l.id,
+    company_id: l.company_id,
+    code: l.code,
+    destination: l.destination,
+    label: l.label,
+    channel: l.channel,
+    medium: l.medium,
+    campaign: l.campaign,
+    content: l.content,
+    spend_gbp: l.spend_gbp === null ? null : Number(l.spend_gbp),
+    created_by_sol: l.created_by_sol,
+    archived: l.archived,
+    created_at: l.created_at,
+  };
+}
+
+export function mapLead(l: Row<"leads">): L.Lead {
+  return {
+    id: l.id,
+    company_id: l.company_id,
+    contact_id: l.contact_id,
+    link_id: l.link_id,
+    channel: l.channel,
+    campaign: l.campaign,
+    message: l.message,
+    status: l.status as L.Lead["status"],
+    created_at: l.created_at,
   };
 }

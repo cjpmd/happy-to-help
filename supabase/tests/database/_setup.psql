@@ -190,6 +190,12 @@ begin
     insert into public.commitments (company_id, to_name, what, due_date) values (c, 'Jo', 'Send the deck', '2026-11-01');
     insert into public.feedback (company_id, source, body) values (c, 'capture', 'Loved it');
     insert into public.memory_facts (company_id, fact) values (c, 'We open at 8');
+    insert into public.tracked_links (company_id, code, destination, label, channel)
+      values (c, case when c = pg_temp.id('company_a') then 'AAAAAAAA' else 'BBBBBBBB' end, 'https://example.com', 'Bio', 'instagram');
+    insert into public.link_clicks (link_id, company_id) select id, c from public.tracked_links where company_id = c;
+    insert into public.consents (company_id, contact_id, purpose, status, lawful_basis, source)
+      select c, id, 'service', 'granted', 'legitimate_interests', 'form' from public.contacts where company_id = c;
+    insert into public.leads (company_id, contact_id) select c, id from public.contacts where company_id = c;
   end loop;
 end;
 $$;

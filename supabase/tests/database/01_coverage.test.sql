@@ -36,8 +36,8 @@ select is(
     where n.nspname in ('public', 'private') and has_function_privilege('anon', p.oid, 'execute')
     order by 1
   ),
-  array['get_public_progress'],
-  'the public progress page is the only function anonymous visitors can call'
+  array['follow_link', 'get_form', 'get_hub', 'get_public_progress', 'submit_lead'],
+  'anonymous visitors can call only the public pages: progress, hub, forms and short links'
 );
 
 select ok(

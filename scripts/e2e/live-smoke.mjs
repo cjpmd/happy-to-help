@@ -254,6 +254,54 @@ try {
     await page.context().close();
   }
 
+  // A visitor (not signed in) follows a short link to the hub page and sends the form.
+  {
+    // The seed points at the usual dev server; point the flyer at this test server instead.
+    await admin
+      .from("tracked_links")
+      .update({ destination: `${base}/h/harbour-bakes` })
+      .eq("code", "HBflyer01");
+    const page = await pageAs(null);
+    await page.goto(`${base}/l/HBflyer01`);
+    await page.waitForURL(/\/h\/harbour-bakes\?.*l=HBflyer01/, { timeout: 20_000 });
+    await page.getByRole("heading", { name: "Harbour Bakes" }).waitFor({ timeout: 20_000 });
+    check(
+      await page.getByRole("region", { name: "Cookies" }).isVisible(),
+      "the hub page asks before any analytics",
+    );
+    await page.getByRole("button", { name: "No thanks" }).click();
+    await page.getByLabel("Name").fill("Gail Visitor");
+    await page.getByLabel("Email").fill("gail.visitor@example.com");
+    await page.getByLabel("Message").fill("Do you make vegan birthday cakes?");
+    check(
+      !(await page.getByLabel("Marketing opt-in").isChecked()),
+      "the marketing opt-in starts unticked",
+    );
+    await page.getByRole("button", { name: "Send" }).click();
+    await page.getByText("We've got your message").waitFor({ timeout: 10_000 });
+    const { data: lead } = await admin
+      .from("leads")
+      .select("channel, campaign, contacts!inner(email)")
+      .eq("contacts.email", "gail.visitor@example.com")
+      .single();
+    check(
+      lead?.channel === "print" && lead?.campaign === "wedding-fair",
+      "the lead is attributed to the flyer's link",
+    );
+    const { data: consent } = await admin
+      .from("current_consents")
+      .select("status")
+      .eq("purpose", "marketing")
+      .eq(
+        "contact_id",
+        (await admin.from("contacts").select("id").eq("email", "gail.visitor@example.com").single())
+          .data.id,
+      )
+      .single();
+    check(consent?.status === "not_given", "no marketing consent is recorded unless ticked");
+    await page.context().close();
+  }
+
   // A new person: onboarding creates their company with every answer kept.
   {
     const email = `new.founder.${Date.now()}@example.com`;

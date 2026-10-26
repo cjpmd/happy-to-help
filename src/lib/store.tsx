@@ -29,6 +29,8 @@ import { useThemeState } from "./useThemeState";
 import { analyseVoice } from "./voice";
 import { applyVoiceDecision, applyVoiceEdit, currentVoice, isLocked } from "./voicePolicy";
 import { captureEstimate } from "./capture";
+import { demoSubmitLead } from "./demoLinks";
+import { taggedUrl, type PublicHub } from "./links";
 import { demoAcceptAll, demoCreateCapture, demoDecideItem, type DemoCtx } from "./demoCapture";
 
 export {
@@ -1039,6 +1041,142 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
     return true;
   }, []);
   const loadTranscript = useCallback<Ctx["loadTranscript"]>(async () => null, []);
+  // Link layer: the demo keeps links, hubs and leads in memory.
+  const createLink = useCallback<Ctx["createLink"]>(async (cid, l) => {
+    const code = Math.random()
+      .toString(36)
+      .slice(2, 10)
+      .replace(/[^a-z0-9]/g, "x");
+    const link = {
+      id: uid("lk"),
+      company_id: cid,
+      code,
+      destination: l.destination.trim(),
+      label: l.label.trim(),
+      channel: l.channel.trim().toLowerCase(),
+      medium: (l.medium ?? "social").toLowerCase(),
+      campaign: l.campaign?.trim() ?? "",
+      content: l.content ?? null,
+      spend_gbp: l.spend_gbp ?? null,
+      created_by_sol: false,
+      archived: false,
+      created_at: iso(),
+    };
+    setDb((d) => ({
+      ...d,
+      tracked_links: [link, ...d.tracked_links],
+      link_stats: [...d.link_stats, { link_id: link.id, clicks: 0, clicks_7d: 0, leads: 0 }],
+    }));
+    return link;
+  }, []);
+  const updateLink = useCallback<Ctx["updateLink"]>(async (id, patch) => {
+    setDb((d) => ({
+      ...d,
+      tracked_links: d.tracked_links.map((l) => (l.id === id ? { ...l, ...patch } : l)),
+    }));
+    return true;
+  }, []);
+  const saveHubPage = useCallback<Ctx["saveHubPage"]>(
+    async (cid, patch) => {
+      if (!isFounder(cid)) return false;
+      setDb((d) => ({
+        ...d,
+        hub_pages: d.hub_pages.map((h) => (h.company_id === cid ? { ...h, ...patch } : h)),
+      }));
+      return true;
+    },
+    [isFounder],
+  );
+  const saveForm = useCallback<Ctx["saveForm"]>(
+    async (id, patch) => {
+      const f = db.forms.find((x) => x.id === id);
+      if (!f || !isFounder(f.company_id)) return false;
+      setDb((d) => ({ ...d, forms: d.forms.map((x) => (x.id === id ? { ...x, ...patch } : x)) }));
+      return true;
+    },
+    [db.forms, isFounder],
+  );
+  const setLeadStatus = useCallback<Ctx["setLeadStatus"]>(async (id, status) => {
+    setDb((d) => {
+      const lead = d.leads.find((l) => l.id === id);
+      return {
+        ...d,
+        leads: d.leads.map((l) => (l.id === id ? { ...l, status } : l)),
+        contacts:
+          status === "won" && lead
+            ? d.contacts.map((c) => (c.id === lead.contact_id ? { ...c, kind: "customer" } : c))
+            : d.contacts,
+      };
+    });
+    return true;
+  }, []);
+  const withdrawMarketing = useCallback<Ctx["withdrawMarketing"]>(async (contactId) => {
+    setDb((d) => ({
+      ...d,
+      current_consents: [
+        ...d.current_consents.filter(
+          (c) => !(c.contact_id === contactId && c.purpose === "marketing"),
+        ),
+        { contact_id: contactId, purpose: "marketing", status: "withdrawn", lawful_basis: null },
+      ],
+    }));
+    return true;
+  }, []);
+  const fetchHub = useCallback<Ctx["fetchHub"]>(
+    async (slug) => {
+      const h = db.hub_pages.find((x) => x.slug === slug && x.enabled);
+      const c = h && db.companies.find((x) => x.id === h.company_id);
+      if (!h || !c) return null;
+      const f = db.forms.find((x) => x.company_id === c.id && x.enabled);
+      const hub: PublicHub = {
+        slug: h.slug,
+        name: c.name,
+        headline: h.headline,
+        bio: h.bio,
+        links: h.links,
+        website: c.website_live_url,
+        socials: h.show_socials ? (c.social_handles ?? {}) : {},
+        form: h.show_form && f ? f : null,
+      };
+      return hub;
+    },
+    [db.hub_pages, db.companies, db.forms],
+  );
+  const fetchForm = useCallback<Ctx["fetchForm"]>(
+    async (id) => {
+      const f = db.forms.find((x) => x.id === id && x.enabled);
+      return f
+        ? { ...f, company: db.companies.find((c) => c.id === f.company_id)?.name ?? "" }
+        : null;
+    },
+    [db.forms, db.companies],
+  );
+  const submitLead = useCallback<Ctx["submitLead"]>(
+    async (sub) => {
+      const r = demoSubmitLead(db, sub, { now: new Date(), uid });
+      if ("error" in r) {
+        toast.error(r.error);
+        return false;
+      }
+      setDb(r.db);
+      return true;
+    },
+    [db],
+  );
+  const followLink = useCallback<Ctx["followLink"]>(
+    async (code) => {
+      const l = db.tracked_links.find((x) => x.code === code && !x.archived);
+      if (!l) return null;
+      setDb((d) => ({
+        ...d,
+        link_stats: d.link_stats.map((x) =>
+          x.link_id === l.id ? { ...x, clicks: x.clicks + 1, clicks_7d: x.clicks_7d + 1 } : x,
+        ),
+      }));
+      return taggedUrl(l);
+    },
+    [db.tracked_links],
+  );
   // The demo uses the default rates: 40 to read it, 3 a minute to transcribe.
   const estimateCapture = useCallback<Ctx["estimateCapture"]>(
     async (seconds) => captureEstimate(seconds ?? null, 3, 40),
@@ -1112,6 +1250,17 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       completeCommitment,
       loadTranscript,
       estimateCapture,
+      createLink,
+      updateLink,
+      saveHubPage,
+      saveForm,
+      setLeadStatus,
+      withdrawMarketing,
+      fetchHub,
+      fetchForm,
+      submitLead,
+      followLink,
+      shortLinkBase: typeof window === "undefined" ? "/l" : `${window.location.origin}/l`,
       ...themeState,
     }),
     [
@@ -1156,6 +1305,16 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       completeCommitment,
       loadTranscript,
       estimateCapture,
+      createLink,
+      updateLink,
+      saveHubPage,
+      saveForm,
+      setLeadStatus,
+      withdrawMarketing,
+      fetchHub,
+      fetchForm,
+      submitLead,
+      followLink,
     ],
   );
 

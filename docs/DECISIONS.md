@@ -163,3 +163,19 @@ Non-trivial decisions made during the autonomous build run (`docs/AUTONOMOUS-RUN
 ## D44. The mic records a voice note
 - **Chosen:** holding the mic on the Ask Sol bar records a voice note that goes through the capture pipeline (transcribed by the configured provider, then a "From your note" card), rather than dictating into the chat box with the browser's speech recognition.
 - **Why:** browser speech recognition sends audio to the browser vendor, outside our UK/EU provider and consent records (SPEC M), and doesn't work in every browser. In the demo, and where recording isn't available, the mic opens Debrief to type.
+
+## D45. Short links and their domain
+- **Chosen:** codes are 8 characters from an unambiguous alphabet, made from `gen_random_uuid()` bytes. The canonical short link is the public `link` Edge Function (a real 302, works without the app loaded); the app's `/l/<code>` route does the same for the demo. A branded short domain is a purchase, so it's in HANDOFF 4 behind `VITE_SHORT_LINK_BASE`.
+- **Why:** no cost or DNS needed now, and moving to a short domain later is a proxy rule and one setting, with old links still working.
+
+## D46. Attribution without cookies
+- **Chosen:** a link to one of our hub pages or forms carries `l=<code>` with its UTM tags; the form sends that code with the submission, so the lead is tied to the link, its channel and campaign. Leads without one count as "direct". Cost per lead uses the spend the founder enters on a link (pounds and credits) until campaigns (Phase 15) carry spend.
+
+## D47. What anonymous visitors can call
+- **Chosen:** exactly five functions: the progress page, `get_hub`, `get_form`, `follow_link` and `submit_lead`. They return only what the founder published and never read back personal data; submissions are validated, rate-limited per person and per form, and a hidden field catches simple bots. The coverage test pins the list.
+
+## D48. Cookie consent on public pages
+- **Chosen:** hub pages set no cookies. A small banner asks before any analytics; the choice is kept in local storage (strictly necessary), and `analyticsAllowed()` is what Phase 7's PostHog must check before loading.
+
+## D49. Consents as a history
+- **Chosen:** each change is a new `consents` row (updates refused by a trigger; deletes allowed so erasure requests work), and `current_consents` shows the latest per contact, channel and purpose. A form records a service consent on legitimate interests (to reply) and the marketing opt-in separately; leaving the box unticked never cancels an earlier opt-in, and the team can record an opt-out but not an opt-in (PECR: it must come from the person, or a confirmed soft opt-in in Phase 14).

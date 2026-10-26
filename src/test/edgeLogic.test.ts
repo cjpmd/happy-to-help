@@ -7,6 +7,9 @@ import {
   mockReply,
   reservation,
   sse,
+  countryFrom,
+  deviceClass,
+  linkCode,
 } from "../../supabase/functions/_shared/logic";
 import { readSse } from "@/lib/agentClient";
 
@@ -79,5 +82,22 @@ describe("edge function logic", () => {
       ["delta", { text: "there" }],
       ["done", { credits: 3 }],
     ]);
+  });
+});
+
+describe("short link logging", () => {
+  it("keeps only a device class and country", () => {
+    expect(
+      deviceClass("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile/15E148"),
+    ).toBe("mobile");
+    expect(deviceClass("Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X)")).toBe("tablet");
+    expect(deviceClass("Mozilla/5.0 (Linux; Android 14; SM-X200) AppleWebKit")).toBe("tablet");
+    expect(deviceClass("Mozilla/5.0 (Windows NT 10.0; Win64; x64)")).toBe("desktop");
+    expect(deviceClass("facebookexternalhit/1.1")).toBe("bot");
+    expect(deviceClass(null)).toBe("unknown");
+    expect(countryFrom(new Headers({ "cf-ipcountry": "gb" }))).toBe("GB");
+    expect(countryFrom(new Headers({ "cf-ipcountry": "XX" }))).toBeNull();
+    expect(linkCode("/functions/v1/link/HBflyer01")).toBe("HBflyer01");
+    expect(linkCode("/functions/v1/link/../../x")).toBeNull();
   });
 });

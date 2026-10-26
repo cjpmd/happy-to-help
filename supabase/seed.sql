@@ -502,3 +502,40 @@ insert into public.social_posts (company_id, channel, text, angle, status, sched
 insert into public.voice_sources (company_id, kind, content, added_by) values
   ('c0000000-0000-4000-8000-000000000005', 'website', 'Sourdough, pastries and celebration cakes, baked every morning by the harbour. Fresh from the oven, as always. Pop in and say hello.', 'a0000000-0000-4000-8000-000000000006'),
   ('c0000000-0000-4000-8000-000000000005', 'email', E'Hi Tom,\n\nYour cinnamon buns are back this Saturday. Fresh from the oven, as always.\n\nBest wishes\nRory', 'a0000000-0000-4000-8000-000000000006');
+
+-- Harbour Bakes' hub page, tracked links, clicks and form leads (Phase 13).
+update public.hub_pages set enabled = true,
+  headline = 'Harbour Bakes',
+  bio = 'Sourdough, pastries and celebration cakes, baked every morning by the harbour in Taybridge.',
+  links = '[{"label": "Order for Saturday collection", "url": "https://harbourbakes.example/order"}, {"label": "Celebration cakes", "url": "https://harbourbakes.example/cakes"}]'
+where company_id = 'c0000000-0000-4000-8000-000000000005';
+
+insert into public.tracked_links (id, company_id, code, destination, label, channel, medium, campaign, spend_gbp, created_by, created_at) values
+  ('b1000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000005', 'HBinsta01', 'http://127.0.0.1:8080/h/harbour-bakes', 'Instagram bio', 'instagram', 'social', 'always-on', null, 'a0000000-0000-4000-8000-000000000006', now() - interval '20 days'),
+  ('b1000000-0000-4000-8000-000000000002', 'c0000000-0000-4000-8000-000000000005', 'HBflyer01', 'http://127.0.0.1:8080/h/harbour-bakes', 'Wedding fair flyer', 'print', 'qr', 'wedding-fair', 45, 'a0000000-0000-4000-8000-000000000006', now() - interval '12 days'),
+  ('b1000000-0000-4000-8000-000000000003', 'c0000000-0000-4000-8000-000000000005', 'HBtiktok1', 'https://harbourbakes.example/order', 'Croissant video', 'tiktok', 'social', 'always-on', null, 'a0000000-0000-4000-8000-000000000006', now() - interval '6 days');
+
+insert into public.link_clicks (link_id, company_id, clicked_at, country, device, referrer_host)
+select l, 'c0000000-0000-4000-8000-000000000005', now() - (n || ' hours')::interval, 'GB',
+  case when n % 4 = 0 then 'desktop' else 'mobile' end,
+  case l when 'b1000000-0000-4000-8000-000000000001' then 'l.instagram.com' when 'b1000000-0000-4000-8000-000000000003' then 'www.tiktok.com' end
+from (values ('b1000000-0000-4000-8000-000000000001'::uuid, 140), ('b1000000-0000-4000-8000-000000000002'::uuid, 38), ('b1000000-0000-4000-8000-000000000003'::uuid, 90)) as v (l, total),
+  generate_series(1, total) n;
+
+-- Fiona and Ahmed came in through the form: Fiona from the wedding fair flyer, Ahmed from Instagram.
+with f as (select id from public.forms where company_id = 'c0000000-0000-4000-8000-000000000005' limit 1),
+c as (select id, email from public.contacts where company_id = 'c0000000-0000-4000-8000-000000000005' and email in ('fiona.reid@example.com', 'ahmed.khan@example.com', 'tom.gillespie@example.com'))
+insert into public.leads (company_id, contact_id, form_id, link_id, channel, campaign, message, status, created_at)
+select 'c0000000-0000-4000-8000-000000000005', c.id, f.id, v.link, v.channel, v.campaign, v.message, v.status, now() - v.ago
+from f, c join (values
+  ('fiona.reid@example.com', 'b1000000-0000-4000-8000-000000000002'::uuid, 'print', 'wedding-fair', 'Three-tier cake for 80 guests in June.', 'new', interval '5 hours'),
+  ('ahmed.khan@example.com', 'b1000000-0000-4000-8000-000000000001'::uuid, 'instagram', 'always-on', 'Pastries for 25 on Friday.', 'contacted', interval '20 hours'),
+  ('tom.gillespie@example.com', 'b1000000-0000-4000-8000-000000000001'::uuid, 'instagram', 'always-on', 'Do you deliver on Saturdays?', 'won', interval '15 days')
+) as v (email, link, channel, campaign, message, status, ago) on v.email = c.email;
+
+insert into public.consents (company_id, contact_id, purpose, status, lawful_basis, wording, source, form_id, created_at)
+select 'c0000000-0000-4000-8000-000000000005', c.id, p.purpose, p.status, p.basis, p.wording, 'form', f.id, now() - interval '5 hours'
+from public.contacts c, (select id from public.forms where company_id = 'c0000000-0000-4000-8000-000000000005' limit 1) f,
+  (values ('service', 'granted', 'legitimate_interests', 'Replies to your enquiry'),
+          ('marketing', 'granted', 'consent', 'Send me occasional news and offers by email. I can unsubscribe at any time.')) as p (purpose, status, basis, wording)
+where c.company_id = 'c0000000-0000-4000-8000-000000000005' and c.email = 'fiona.reid@example.com';

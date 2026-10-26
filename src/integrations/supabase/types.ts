@@ -939,6 +939,84 @@ export type Database = {
           },
         ];
       };
+      consents: {
+        Row: {
+          channel: string;
+          company_id: string;
+          contact_id: string;
+          created_at: string;
+          evidence: NonNullable<Json>;
+          form_id: string | null;
+          id: string;
+          lawful_basis: string | null;
+          purpose: string;
+          recorded_by: string | null;
+          source: string;
+          status: string;
+          wording: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          channel?: string;
+          company_id: string;
+          contact_id: string;
+          created_at?: string;
+          evidence?: NonNullable<Json>;
+          form_id?: string | null;
+          id?: string;
+          lawful_basis?: string | null;
+          purpose: string;
+          recorded_by?: string | null;
+          source: string;
+          status: string;
+          wording?: string | null;
+        };
+        Update: {
+          channel?: string;
+          company_id?: string;
+          contact_id?: string;
+          created_at?: string;
+          evidence?: NonNullable<Json>;
+          form_id?: string | null;
+          id?: string;
+          lawful_basis?: string | null;
+          purpose?: string;
+          recorded_by?: string | null;
+          source?: string;
+          status?: string;
+          wording?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "consents_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "consents_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "consents_form_id_fkey";
+            columns: ["form_id"];
+            isOneToOne: false;
+            referencedRelation: "forms";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "consents_recorded_by_fkey";
+            columns: ["recorded_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       contacts: {
         Row: {
           company_id: string;
@@ -1494,6 +1572,54 @@ export type Database = {
           },
         ];
       };
+      forms: {
+        Row: {
+          ask_phone: boolean;
+          company_id: string;
+          created_at: string;
+          enabled: boolean;
+          id: string;
+          intro: string;
+          marketing_wording: string;
+          name: string;
+          privacy_url: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          ask_phone?: boolean;
+          company_id: string;
+          created_at?: string;
+          enabled?: boolean;
+          id?: string;
+          intro?: string;
+          marketing_wording?: string;
+          name?: string;
+          privacy_url?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          ask_phone?: boolean;
+          company_id?: string;
+          created_at?: string;
+          enabled?: boolean;
+          id?: string;
+          intro?: string;
+          marketing_wording?: string;
+          name?: string;
+          privacy_url?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "forms_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       gate_comments: {
         Row: {
           author_id: string;
@@ -1596,6 +1722,51 @@ export type Database = {
             columns: ["user_id"];
             isOneToOne: true;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      hub_pages: {
+        Row: {
+          bio: string;
+          company_id: string;
+          enabled: boolean;
+          headline: string;
+          links: NonNullable<Json>;
+          show_form: boolean;
+          show_socials: boolean;
+          slug: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          bio?: string;
+          company_id: string;
+          enabled?: boolean;
+          headline?: string;
+          links?: NonNullable<Json>;
+          show_form?: boolean;
+          show_socials?: boolean;
+          slug: string;
+          updated_at?: string;
+        };
+        Update: {
+          bio?: string;
+          company_id?: string;
+          enabled?: boolean;
+          headline?: string;
+          links?: NonNullable<Json>;
+          show_form?: boolean;
+          show_socials?: boolean;
+          slug?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "hub_pages_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: true;
+            referencedRelation: "companies";
             referencedColumns: ["id"];
           },
         ];
@@ -1741,6 +1912,138 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [];
+      };
+      leads: {
+        Row: {
+          campaign: string;
+          channel: string;
+          company_id: string;
+          contact_id: string;
+          created_at: string;
+          form_id: string | null;
+          id: string;
+          link_id: string | null;
+          message: string;
+          status: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          campaign?: string;
+          channel?: string;
+          company_id: string;
+          contact_id: string;
+          created_at?: string;
+          form_id?: string | null;
+          id?: string;
+          link_id?: string | null;
+          message?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          campaign?: string;
+          channel?: string;
+          company_id?: string;
+          contact_id?: string;
+          created_at?: string;
+          form_id?: string | null;
+          id?: string;
+          link_id?: string | null;
+          message?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "leads_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "leads_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "leads_form_id_fkey";
+            columns: ["form_id"];
+            isOneToOne: false;
+            referencedRelation: "forms";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "leads_link_id_fkey";
+            columns: ["link_id"];
+            isOneToOne: false;
+            referencedRelation: "link_stats";
+            referencedColumns: ["link_id"];
+          },
+          {
+            foreignKeyName: "leads_link_id_fkey";
+            columns: ["link_id"];
+            isOneToOne: false;
+            referencedRelation: "tracked_links";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      link_clicks: {
+        Row: {
+          clicked_at: string;
+          company_id: string;
+          country: string | null;
+          device: string;
+          id: number;
+          link_id: string;
+          referrer_host: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          clicked_at?: string;
+          company_id: string;
+          country?: string | null;
+          device?: string;
+          id?: never;
+          link_id: string;
+          referrer_host?: string | null;
+        };
+        Update: {
+          clicked_at?: string;
+          company_id?: string;
+          country?: string | null;
+          device?: string;
+          id?: never;
+          link_id?: string;
+          referrer_host?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "link_clicks_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "link_clicks_link_id_fkey";
+            columns: ["link_id"];
+            isOneToOne: false;
+            referencedRelation: "link_stats";
+            referencedColumns: ["link_id"];
+          },
+          {
+            foreignKeyName: "link_clicks_link_id_fkey";
+            columns: ["link_id"];
+            isOneToOne: false;
+            referencedRelation: "tracked_links";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       media_assets: {
         Row: {
@@ -2324,6 +2627,76 @@ export type Database = {
           },
         ];
       };
+      tracked_links: {
+        Row: {
+          archived: boolean;
+          campaign: string;
+          campaign_id: string | null;
+          channel: string;
+          code: string;
+          company_id: string;
+          content: string | null;
+          created_at: string;
+          created_by: string | null;
+          created_by_sol: boolean;
+          destination: string;
+          id: string;
+          label: string;
+          medium: string;
+          spend_gbp: number | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          archived?: boolean;
+          campaign?: string;
+          campaign_id?: string | null;
+          channel: string;
+          code: string;
+          company_id: string;
+          content?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          created_by_sol?: boolean;
+          destination: string;
+          id?: string;
+          label: string;
+          medium?: string;
+          spend_gbp?: number | null;
+        };
+        Update: {
+          archived?: boolean;
+          campaign?: string;
+          campaign_id?: string | null;
+          channel?: string;
+          code?: string;
+          company_id?: string;
+          content?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          created_by_sol?: boolean;
+          destination?: string;
+          id?: string;
+          label?: string;
+          medium?: string;
+          spend_gbp?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tracked_links_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tracked_links_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       transcripts: {
         Row: {
           capture_id: string;
@@ -2687,6 +3060,70 @@ export type Database = {
           },
         ];
       };
+      current_consents: {
+        Row: {
+          channel: string;
+          company_id: string;
+          contact_id: string;
+          created_at: string;
+          id: string;
+          lawful_basis: string | null;
+          purpose: string;
+          source: string;
+          status: string;
+          wording: string | null;
+        };
+        ComputedFields: never;
+        Relationships: [
+          {
+            foreignKeyName: "consents_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "consents_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      link_stats: {
+        Row: {
+          clicks: number | null;
+          clicks_7d: number | null;
+          company_id: string;
+          leads: number | null;
+          link_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          clicks?: never;
+          clicks_7d?: never;
+          company_id?: string | null;
+          leads?: never;
+          link_id?: string | null;
+        };
+        Update: {
+          clicks?: never;
+          clicks_7d?: never;
+          company_id?: string | null;
+          leads?: never;
+          link_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tracked_links_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Functions: {
       accept_all_items: { Args: { p_capture: string }; Returns: number };
@@ -2698,6 +3135,19 @@ export type Database = {
       append_run_step: { Args: { p_run: string; p_step: Json }; Returns: undefined };
       approve_gate: { Args: { p_gate: string }; Returns: Database["public"]["Enums"]["stage"] };
       ask_why: { Args: { p_approval: string }; Returns: undefined };
+      attribution: {
+        Args: { p_company: string; p_since?: string };
+        Returns: {
+          campaign: string;
+          channel: string;
+          clicks: number;
+          cost_per_lead_credits: number;
+          cost_per_lead_gbp: number;
+          customers: number;
+          leads: number;
+          spend_gbp: number;
+        }[];
+      };
       begin_chat_turn: { Args: { p_company: string; p_content: string }; Returns: string };
       capture_estimate: { Args: { p_duration_seconds?: number }; Returns: number };
       check_claims: { Args: { p_company: string; p_text: string }; Returns: Json };
@@ -2796,6 +3246,41 @@ export type Database = {
         };
         Returns: string;
       };
+      create_tracked_link: {
+        Args: {
+          p_campaign?: string;
+          p_channel: string;
+          p_company: string;
+          p_content?: string;
+          p_destination: string;
+          p_label: string;
+          p_medium?: string;
+          p_spend_gbp?: number;
+        };
+        Returns: {
+          archived: boolean;
+          campaign: string;
+          campaign_id: string | null;
+          channel: string;
+          code: string;
+          company_id: string;
+          content: string | null;
+          created_at: string;
+          created_by: string | null;
+          created_by_sol: boolean;
+          destination: string;
+          id: string;
+          label: string;
+          medium: string;
+          spend_gbp: number | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "tracked_links";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       credit_summary: { Args: { p_company: string }; Returns: Json };
       credits_for_usd: { Args: { p_cost_usd: number }; Returns: number };
       decide_approval: {
@@ -2826,6 +3311,12 @@ export type Database = {
         Returns: string;
       };
       expire_credits: { Args: { p_at?: string }; Returns: number };
+      follow_link: {
+        Args: { p_code: string; p_country?: string; p_device?: string; p_referrer?: string };
+        Returns: string;
+      };
+      get_form: { Args: { p_form: string }; Returns: Json };
+      get_hub: { Args: { p_slug: string }; Returns: Json };
       get_public_progress: { Args: { p_slug: string }; Returns: Json };
       grant_credits: {
         Args: {
@@ -2848,6 +3339,16 @@ export type Database = {
         Returns: string;
       };
       reap_stale_runs: { Args: { p_stale?: string }; Returns: number };
+      record_consent: {
+        Args: {
+          p_basis?: string;
+          p_contact: string;
+          p_purpose: string;
+          p_status: string;
+          p_wording?: string;
+        };
+        Returns: undefined;
+      };
       refund_run: { Args: { p_reason?: string; p_run: string }; Returns: number };
       release_hold: { Args: { p_note?: string; p_run: string }; Returns: number };
       request_ad_budget: {
@@ -2862,12 +3363,15 @@ export type Database = {
         Args: { p_capture: string; p_items: Json; p_run: string };
         Returns: number;
       };
+      save_form: { Args: { p_form: string; p_patch: Json }; Returns: undefined };
+      save_hub_page: { Args: { p_company: string; p_patch: Json }; Returns: undefined };
       save_transcript: {
         Args: { p_capture: string; p_provider: string; p_segments: Json; p_text: string };
         Returns: undefined;
       };
       save_voice_profile: { Args: { p_company: string; p_profile: Json }; Returns: string };
       set_idea_status: { Args: { p_idea: string; p_status: string }; Returns: undefined };
+      set_lead_status: { Args: { p_lead: string; p_status: string }; Returns: undefined };
       set_response_policy: {
         Args: {
           p_category: string;
@@ -2882,6 +3386,20 @@ export type Database = {
         Returns: number;
       };
       share_extracted_item: { Args: { p_item: string; p_shared: boolean }; Returns: undefined };
+      submit_lead: {
+        Args: {
+          p_email: string;
+          p_form: string;
+          p_link_code?: string;
+          p_marketing?: boolean;
+          p_message?: string;
+          p_name: string;
+          p_page?: string;
+          p_phone?: string;
+          p_trap?: string;
+        };
+        Returns: boolean;
+      };
       update_capture_settings: {
         Args: { p_auto_accept?: boolean; p_company: string; p_keep_audio_days?: number };
         Returns: undefined;
@@ -2893,6 +3411,10 @@ export type Database = {
           p_disclosure_text?: string;
           p_mark_reviewed?: boolean;
         };
+        Returns: undefined;
+      };
+      update_tracked_link: {
+        Args: { p_archived?: boolean; p_label?: string; p_link: string; p_spend_gbp?: number };
         Returns: undefined;
       };
       usd_for_credits: { Args: { p_credits: number }; Returns: number };

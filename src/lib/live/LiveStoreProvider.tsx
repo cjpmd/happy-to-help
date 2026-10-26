@@ -9,7 +9,8 @@ import { useThemeState } from "../useThemeState";
 import { defaultPreferences, defaultSharing, type Preferences, type Sharing } from "../workspace";
 import type { ThemePref } from "../theme";
 import { ALL_GROUPS, TABLE_GROUPS, emptyDb, loadGroups, type Group } from "./load";
-import { preferencesRow } from "./mappers";
+import { mapLink, preferencesRow } from "./mappers";
+import type { PublicForm, PublicHub } from "../links";
 import { AgentError, enqueueJob, sendChatMessage, setLiveEstimates } from "../agentClient";
 
 const COMPANY_KEY = "gumption-company";
@@ -19,6 +20,11 @@ const TYPING_TIMEOUT_MS = 90_000;
 const GUEST: T.Profile = { id: "", full_name: "", email: "", role: "founder" };
 
 /** Work kinds the UI asks for, as agent job types (agent-service/src/jobs.ts). */
+/** Short links go through the link Edge Function unless a branded short domain is set. */
+const SHORT_LINK_BASE =
+  (import.meta.env["VITE_SHORT_LINK_BASE"] as string | undefined) ||
+  `${import.meta.env["VITE_SUPABASE_URL"] as string}/functions/v1/link`;
+
 const JOB_TYPES: Record<string, string> = {
   task: "task",
   image: "media_image",
@@ -602,6 +608,122 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       )) !== false,
     [sb, call],
   );
+  const createLink = useCallback<Ctx["createLink"]>(
+    async (cid, l) => {
+      const row = await call(
+        () =>
+          sb.rpc("create_tracked_link", {
+            p_company: cid,
+            p_destination: l.destination,
+            p_label: l.label,
+            p_channel: l.channel,
+            p_campaign: l.campaign ?? "",
+            p_medium: l.medium ?? "social",
+            ...(l.content ? { p_content: l.content } : {}),
+            ...(l.spend_gbp !== undefined ? { p_spend_gbp: l.spend_gbp } : {}),
+          }),
+        ["links"],
+      );
+      return row ? mapLink(row) : null;
+    },
+    [sb, call],
+  );
+  const updateLink = useCallback<Ctx["updateLink"]>(
+    async (id, patch) =>
+      (await call(
+        () =>
+          sb.rpc("update_tracked_link", {
+            p_link: id,
+            ...(patch.label !== undefined ? { p_label: patch.label } : {}),
+            ...(patch.spend_gbp !== undefined ? { p_spend_gbp: patch.spend_gbp } : {}),
+            ...(patch.archived !== undefined ? { p_archived: patch.archived } : {}),
+          }),
+        ["links"],
+      )) !== false,
+    [sb, call],
+  );
+  const saveHubPage = useCallback<Ctx["saveHubPage"]>(
+    async (cid, patch) =>
+      (await call(
+        () => sb.rpc("save_hub_page", { p_company: cid, p_patch: patch as unknown as Json }),
+        ["links", "activity_events"],
+      )) !== false,
+    [sb, call],
+  );
+  const saveForm = useCallback<Ctx["saveForm"]>(
+    async (id, patch) =>
+      (await call(() => sb.rpc("save_form", { p_form: id, p_patch: patch as Json }), ["links"])) !==
+      false,
+    [sb, call],
+  );
+  const setLeadStatus = useCallback<Ctx["setLeadStatus"]>(
+    async (id, status) =>
+      (await call(
+        () => sb.rpc("set_lead_status", { p_lead: id, p_status: status }),
+        ["links", "contacts"],
+      )) !== false,
+    [sb, call],
+  );
+  const withdrawMarketing = useCallback<Ctx["withdrawMarketing"]>(
+    async (contactId) =>
+      (await call(
+        () =>
+          sb.rpc("record_consent", {
+            p_contact: contactId,
+            p_purpose: "marketing",
+            p_status: "withdrawn",
+          }),
+        ["links"],
+      )) !== false,
+    [sb, call],
+  );
+  // Public pages: these work signed out too (the RPCs are open to anonymous visitors).
+  const fetchHub = useCallback<Ctx["fetchHub"]>(
+    async (slug) => {
+      const { data } = await sb.rpc("get_hub", { p_slug: slug });
+      return (data as unknown as PublicHub | null) ?? null;
+    },
+    [sb],
+  );
+  const fetchForm = useCallback<Ctx["fetchForm"]>(
+    async (id) => {
+      const { data } = await sb.rpc("get_form", { p_form: id });
+      return (data as unknown as PublicForm | null) ?? null;
+    },
+    [sb],
+  );
+  const submitLead = useCallback<Ctx["submitLead"]>(
+    async (x) => {
+      const { error } = await sb.rpc("submit_lead", {
+        p_form: x.formId,
+        p_name: x.name,
+        p_email: x.email,
+        p_message: x.message,
+        p_marketing: x.marketing,
+        ...(x.phone ? { p_phone: x.phone } : {}),
+        ...(x.linkCode ? { p_link_code: x.linkCode } : {}),
+        ...(x.page ? { p_page: x.page } : {}),
+        ...(x.trap ? { p_trap: x.trap } : {}),
+      });
+      if (error) {
+        toast.error(error.message);
+        return false;
+      }
+      return true;
+    },
+    [sb],
+  );
+  const followLink = useCallback<Ctx["followLink"]>(
+    async (code) => {
+      const { data } = await sb.rpc("follow_link", {
+        p_code: code,
+        ...(document.referrer ? { p_referrer: document.referrer } : {}),
+        p_device: /mobi|iphone|android/i.test(navigator.userAgent) ? "mobile" : "desktop",
+      });
+      return data ?? null;
+    },
+    [sb],
+  );
   const estimateCapture = useCallback<Ctx["estimateCapture"]>(
     async (seconds) => {
       const { data } = await sb.rpc("capture_estimate", {
@@ -688,6 +810,17 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       completeCommitment,
       loadTranscript,
       estimateCapture,
+      createLink,
+      updateLink,
+      saveHubPage,
+      saveForm,
+      setLeadStatus,
+      withdrawMarketing,
+      fetchHub,
+      fetchForm,
+      submitLead,
+      followLink,
+      shortLinkBase: SHORT_LINK_BASE,
       ...themeState,
     }),
     [
@@ -738,6 +871,16 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       completeCommitment,
       loadTranscript,
       estimateCapture,
+      createLink,
+      updateLink,
+      saveHubPage,
+      saveForm,
+      setLeadStatus,
+      withdrawMarketing,
+      fetchHub,
+      fetchForm,
+      submitLead,
+      followLink,
       themeState,
     ],
   );
