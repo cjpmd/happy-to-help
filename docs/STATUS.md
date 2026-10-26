@@ -1,5 +1,45 @@
 # Status
 
+## Autonomous run (started 26 Oct 2026)
+
+Working from `docs/AUTONOMOUS-RUN.md`. Decisions are in `docs/DECISIONS.md`; anything that needs the owner (accounts, keys, money, production) is in `docs/HANDOFF.md`.
+
+### Build order
+
+Restyle first, then the remaining Phase 1 groups, then the engine, then the v2 data-model phases (10–13) before the real integrations (6–9) that would otherwise be built on the old model, then the rest of v2.
+
+| # | Phase | Branch | Status |
+|---|---|---|---|
+| 0 | Merge SPEC/PHASES additions, CLAUDE.md summary | `phase-0-docs-merge` | Done |
+| 1 | Finish Phase 1: restyle step 5 (Telemetry), 1b schema additions, 1c live data layer, 1d server-side writes, 1e bug fixes | `phase-1-finish` | Next |
+| 2 | Credits engine | `phase-2-credits` | |
+| 3 | Agent service | `phase-3-agent-service` | |
+| 4 | Connect the app to the engine | `phase-4-connect` | |
+| 5 | Approvals executor | `phase-5-executor` | |
+| 10 | Two entry paths, stage-aware dashboard | `phase-10-entry-paths` | |
+| 11 | Brand voice and response policy | `phase-11-voice-policy` | |
+| 12 | Capture v1 | `phase-12-capture` | |
+| 13 | Link layer and lead capture | `phase-13-link-layer` | |
+| 6 | Stripe billing (test mode) | `phase-6-stripe` | |
+| 7 | Real integrations (flagged, mocked by default) | `phase-7-integrations` | |
+| 8 | Scheduler, routines, Auto Mode | `phase-8-scheduler` | |
+| 9 | More skills and hardening | `phase-9-hardening` | |
+| 14 | Customers: inbox and contacts | `phase-14-inbox` | |
+| 15 | Campaigns | `phase-15-campaigns` | |
+| 16 | Listening | `phase-16-listening` | |
+| 17 | Process bots | `phase-17-bots` | |
+| 18 | Capture v2: notetaker and calls (flagged) | `phase-18-capture-v2` | |
+| 19 | Paid ads management (flagged, off) | `phase-19-paid-ads` | |
+
+Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, contacts, consents and leads. Stripe (6) is independent of them, but Resend inbound, Ayrshare and PostHog (7), the morning brief (8, which needs commitments from 12) and the new skills (9) all read those tables, so they come after. Phase 14 needs 7 (inbound email) and 11 (policy); 17 needs 8 (scheduler).
+
+### Local environment
+
+- `npx supabase start` runs the whole local stack in Docker (Postgres, Auth, REST, Realtime, Storage, Edge Functions). The local DB port is 54332 and the mail port 54334 (moved from the defaults; see DECISIONS.md D2). API: `http://127.0.0.1:54321`.
+- `npx supabase test db` runs the pgTAP tests against it; `scripts/db/test-local.sh` still runs them on plain Postgres 16.
+
+## Phase 0 audit and Phase 1 history
+
 Phase 0 audit, 22 Oct 2026, at commit `aad3f26`. Updated 23 Oct 2026 during Phase 1 group 1a-design.
 
 ## Phase 1 progress
