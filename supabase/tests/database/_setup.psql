@@ -141,6 +141,7 @@ declare
   approval uuid;
   doc uuid;
   thread uuid;
+  cap uuid;
 begin
   foreach c in array array[pg_temp.id('company_a'), pg_temp.id('company_b')]
   loop
@@ -180,6 +181,15 @@ begin
     insert into public.voice_examples (company_id, situation, body, added_by) values (c, 'praise', 'Thank you so much!', founder_id);
     insert into public.voice_edit_events (company_id, approval_id, channel, original, final, edited_by)
       values (c, approval, 'social_post', 'Hello', 'Hello there', founder_id);
+    insert into public.capture_settings (company_id) values (c);
+    insert into public.captures (company_id, source, consent, status, created_by)
+      values (c, 'debrief', 'own_voice', 'review', founder_id) returning id into cap;
+    insert into public.transcripts (capture_id, company_id, text, provider) values (cap, c, 'We agreed to launch.', 'typed');
+    insert into public.extracted_items (capture_id, company_id, kind, text, confidence) values (cap, c, 'decision', 'Launch', 0.9);
+    insert into public.ideas (company_id, title) values (c, 'A podcast');
+    insert into public.commitments (company_id, to_name, what, due_date) values (c, 'Jo', 'Send the deck', '2026-11-01');
+    insert into public.feedback (company_id, source, body) values (c, 'capture', 'Loved it');
+    insert into public.memory_facts (company_id, fact) values (c, 'We open at 8');
   end loop;
 end;
 $$;
