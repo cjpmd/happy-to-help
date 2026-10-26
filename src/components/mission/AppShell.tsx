@@ -27,6 +27,7 @@ const mainNav = [
 const departments = [
   { to: "/build", label: "Build" },
   { to: "/grow", label: "Grow" },
+  { to: "/customers", label: "Customers" },
   { to: "/run", label: "Run" },
   { to: "/legal", label: "Stay legal" },
   { to: "/raise", label: "Raise" },

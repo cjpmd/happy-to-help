@@ -176,6 +176,7 @@ begin
     insert into public.email_messages (thread_id, company_id, direction, body) values (thread, c, 'received', 'Hi there');
     insert into public.ad_accounts (company_id) values (c);
     insert into public.company_sharing (company_id, enabled) values (c, c = pg_temp.id('company_b'));
+    insert into public.voice_sources (company_id, kind, content, added_by) values (c, 'email', 'Thanks for your order!', founder_id);
   end loop;
 end;
 $$;

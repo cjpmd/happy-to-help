@@ -173,6 +173,26 @@ try {
     await page.context().close();
   }
 
+  // Keep going: a trading business's HQ leads with its inbox and leads, not the flight plan.
+  {
+    const page = await pageAs("rory.mackay@example.com");
+    await page.goto(`${base}/hq`);
+    await page.getByText("GROW PHASE", { exact: false }).first().waitFor({ timeout: 20_000 });
+    check(
+      await page.getByText("Wedding cake for 80 guests").first().isVisible(),
+      "a Keep going HQ shows the inbox",
+    );
+    check(await page.getByRole("heading", { name: "Leads" }).isVisible(), "and the leads");
+    check(
+      (await page.getByRole("heading", { name: "Flight plan" }).count()) === 0,
+      "and no flight plan arc",
+    );
+    await page.goto(`${base}/customers?tab=contacts`);
+    await page.getByText("The Quay Café").waitFor({ timeout: 10_000 });
+    check(true, "imported contacts are in Customers");
+    await page.context().close();
+  }
+
   // A new person: onboarding creates their company with every answer kept.
   {
     const email = `new.founder.${Date.now()}@example.com`;

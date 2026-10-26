@@ -16,7 +16,7 @@ import type {
   Sharing,
   TeamInvite,
 } from "../workspace";
-import { defaultLayout, defaultPreferences, defaultSharing } from "../workspace";
+import { defaultPreferences, defaultSharing, isLayout } from "../workspace";
 
 type Row<K extends keyof Database["public"]["Tables"]> = Tables<K>;
 
@@ -51,6 +51,9 @@ export function mapCompany(c: Row<"companies">): T.Company {
     started_at: c.started_at,
     starting_stage: c.starting_stage,
     existing_website_url: c.existing_website_url,
+    entry_path: c.entry_path,
+    social_handles: c.social_handles as Record<string, string>,
+    google_business_url: c.google_business_url,
     ...(c.target_customer ? { target_customer: c.target_customer } : {}),
     ...(c.goal_90d ? { goal_90d: c.goal_90d } : {}),
   };
@@ -239,6 +242,7 @@ export function mapContact(c: Row<"contacts">): T.Contact {
     kind: c.kind,
     value: c.value,
     last: c.last_contact_at ?? c.created_at,
+    source: c.source,
   };
 }
 
@@ -346,21 +350,7 @@ export function preferencesRow(p: Preferences) {
 
 export function mapLayout(l: Row<"hq_layouts"> | undefined): LayoutItem[] | undefined {
   const value = l?.layout as unknown;
-  const ids = defaultLayout().map((x) => x.id);
-  if (
-    Array.isArray(value) &&
-    value.length === ids.length &&
-    value.every(
-      (x) =>
-        x &&
-        typeof x === "object" &&
-        ids.includes((x as LayoutItem).id) &&
-        typeof (x as LayoutItem).visible === "boolean",
-    ) &&
-    new Set(value.map((x) => (x as LayoutItem).id)).size === ids.length
-  )
-    return value as LayoutItem[];
-  return undefined;
+  return isLayout(value) ? value : undefined;
 }
 
 export function mapSharing(s: Row<"company_sharing"> | undefined): Sharing {

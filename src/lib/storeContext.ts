@@ -50,6 +50,13 @@ export type NewCompany = Omit<
   "id" | "slug" | "stage" | "website_live_url" | "website_preview_url" | "plan" | "created_by"
 > & { cohort_code?: string | undefined };
 
+export interface ContactRow {
+  name: string;
+  email: string;
+  kind: "customer" | "lead";
+  value: string;
+}
+
 export interface Ctx {
   /** demo: in-memory store; live: Supabase. */
   mode: "demo" | "live";
@@ -105,6 +112,14 @@ export interface Ctx {
   invite: (email: string, role: T.CompanyMember["role"]) => Promise<boolean>;
   markDone: (id: string) => Promise<boolean>;
   stopAuto: () => void;
+  /** Adds contacts from a CSV, skipping emails already known. Resolves to how many were added. */
+  importContacts: (companyId: string, rows: ContactRow[]) => Promise<number | null>;
+  /** Saves website copy or past emails for the voice analysis. */
+  addVoiceSource: (
+    companyId: string,
+    kind: "website" | "email" | "post" | "other",
+    content: string,
+  ) => Promise<boolean>;
 }
 
 export const StoreCtx = createContext<Ctx | null>(null);

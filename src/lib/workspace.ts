@@ -7,6 +7,11 @@ export const WIDGETS = [
   "Channels",
   "Overnight burn",
   "Next windows",
+  "Evidence",
+  "Leads",
+  "Inbox",
+  "Response times",
+  "Campaigns",
 ] as const;
 export type Widget = (typeof WIDGETS)[number];
 export type Sector = "general" | "legal" | "finance" | "health" | "education";
@@ -14,7 +19,47 @@ export interface LayoutItem {
   id: Widget;
   visible: boolean;
 }
-export const defaultLayout = (): LayoutItem[] => WIDGETS.map((id) => ({ id, visible: true }));
+/**
+ * The six cards a company's HQ starts with (Phase 10): Start up companies proving demand see
+ * their evidence; once building, the vehicle; Keep going companies see leads, campaigns, the
+ * inbox and response times.
+ */
+export function dashboardCards(company?: Pick<Company, "entry_path" | "stage">): Widget[] {
+  if (company?.entry_path === "keep_going")
+    return ["GO / NO-GO", "Leads", "Inbox", "Response times", "Campaigns", "Telemetry"];
+  if (company && (company.stage === "idea" || company.stage === "evidence"))
+    return ["GO / NO-GO", "Evidence", "Telemetry", "Channels", "Overnight burn", "Next windows"];
+  return ["GO / NO-GO", "Telemetry", "Vehicle", "Channels", "Overnight burn", "Next windows"];
+}
+export const defaultLayout = (company?: Pick<Company, "entry_path" | "stage">): LayoutItem[] =>
+  dashboardCards(company).map((id) => ({ id, visible: true }));
+
+/** A saved layout, if it has exactly this company's cards; otherwise the company's default. */
+export function layoutFor(
+  saved: LayoutItem[] | undefined,
+  company?: Pick<Company, "entry_path" | "stage">,
+): LayoutItem[] {
+  const ids = dashboardCards(company);
+  if (saved && saved.length === ids.length && saved.every((x) => ids.includes(x.id))) return saved;
+  return defaultLayout(company);
+}
+
+/** Saved layouts may hold any of the cards, each once. */
+export function isLayout(value: unknown): value is LayoutItem[] {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.length <= WIDGETS.length &&
+    value.every(
+      (x) =>
+        !!x &&
+        typeof x === "object" &&
+        (WIDGETS as readonly string[]).includes((x as LayoutItem).id) &&
+        typeof (x as LayoutItem).visible === "boolean",
+    ) &&
+    new Set(value.map((x) => (x as LayoutItem).id)).size === value.length
+  );
+}
 export interface Routine {
   id: string;
   company_id: string;

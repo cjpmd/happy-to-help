@@ -288,6 +288,9 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
             ...(c.starting_stage ? { p_starting_stage: c.starting_stage } : {}),
             ...(c.existing_website_url ? { p_existing_website_url: c.existing_website_url } : {}),
             ...(c.cohort_code ? { p_cohort_code: c.cohort_code } : {}),
+            ...(c.entry_path ? { p_entry_path: c.entry_path } : {}),
+            ...(c.social_handles ? { p_social_handles: c.social_handles } : {}),
+            ...(c.google_business_url ? { p_google_business_url: c.google_business_url } : {}),
           }),
         [],
       );
@@ -420,6 +423,24 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
     [sb, call],
   );
   const stopAuto = useCallback(() => setSolTyping(false), []);
+  const importContacts = useCallback<Ctx["importContacts"]>(
+    async (cid, rows) => {
+      const n = await call(
+        () => sb.rpc("import_contacts", { p_company: cid, p_rows: rows as unknown as Json }),
+        ["contacts", "activity_events"],
+      );
+      return n === false ? null : (n ?? 0);
+    },
+    [sb, call],
+  );
+  const addVoiceSource = useCallback<Ctx["addVoiceSource"]>(
+    async (cid, kind, content) =>
+      (await call(
+        () => sb.from("voice_sources").insert({ company_id: cid, kind, content }),
+        [],
+      )) !== false,
+    [sb, call],
+  );
   const signIn = useCallback<Ctx["signIn"]>(
     async (email) => {
       const { error } = await sb.auth.signInWithOtp({
@@ -469,6 +490,8 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       invite,
       markDone,
       stopAuto,
+      importContacts,
+      addVoiceSource,
       ...themeState,
     }),
     [
@@ -502,6 +525,8 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       invite,
       markDone,
       stopAuto,
+      importContacts,
+      addVoiceSource,
       themeState,
     ],
   );

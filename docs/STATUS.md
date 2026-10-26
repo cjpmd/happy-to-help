@@ -16,8 +16,8 @@ Restyle first, then the remaining Phase 1 groups, then the engine, then the v2 d
 | 3 | Agent service | `phase-3-agent-service` | Done |
 | 4 | Connect the app to the engine | `phase-4-connect` | Done |
 | 5 | Approvals executor | `phase-5-executor` | Done |
-| 10 | Two entry paths, stage-aware dashboard | `phase-10-entry-paths` | Next |
-| 11 | Brand voice and response policy | `phase-11-voice-policy` | |
+| 10 | Two entry paths, stage-aware dashboard | `phase-10-entry-paths` | Done |
+| 11 | Brand voice and response policy | `phase-11-voice-policy` | Next |
 | 12 | Capture v1 | `phase-12-capture` | |
 | 13 | Link layer and lead capture | `phase-13-link-layer` | |
 | 6 | Stripe billing (test mode) | `phase-6-stripe` | |
@@ -95,6 +95,15 @@ Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, con
 - Approval cards show what happened after GO. Sol's memory includes NO-GO notes (D32).
 - Tests: 8 rule tests and 7 executor tests in `agent-service/test`, and `09_executor.test.sql`.
 - **Mocked:** every provider (nothing leaves the building) until Phase 7.
+
+### Phase 10 (finished 27 Oct 2026)
+
+- `20261026150000_entry_path_enums.sql` and `20261026150100_entry_paths.sql`: `entry_path`, imported gates, socials and Google Business on companies, `contacts.source`, `voice_sources`, `create_company` with the path, `import_contacts` (D33).
+- Onboarding asks Start up or Keep going; Keep going imports website, socials, contacts CSV and past emails, and shows Sol's first read of the voice.
+- HQ cards depend on path and stage (D34): new Evidence, Leads, Inbox and Response times cards. The stage bar marks imported gates. Customers department added (D35).
+- Seed: Harbour Bakes (Rory MacKay, `rory.mackay@example.com`), trading at Grow with contacts, an inbox and posts; also in the demo.
+- Tests: `10_entry_paths.test.sql`, voice sources added to the read-access matrix as founder/teammate-only, `src/test/voice.test.ts`, `src/test/stageAware.test.ts`, and the live browser test checks the Keep going HQ.
+- **Mocked:** the voice read is rule-based (Phase 11 adds the skill). Website and Google Business aren't fetched; only the link is stored.
 
 ## Phase 0 audit and Phase 1 history
 

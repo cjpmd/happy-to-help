@@ -1,4 +1,5 @@
 import type * as T from "./types";
+import type { EmailThread } from "./workspace";
 import { defaultGates } from "./mission";
 import type { ExtendedTask } from "./workspace";
 
@@ -12,6 +13,7 @@ export const profiles: T.Profile[] = [
   { id: "u2", full_name: "Dr Morag Fraser", role: "mentor", email: "morag.fraser@example.com" },
   { id: "u3", full_name: "Platform Admin", role: "admin", email: "admin@example.com" },
   { id: "u4", full_name: "Callum Reid", role: "founder", email: "callum.reid@example.com" },
+  { id: "u6", full_name: "Rory MacKay", role: "founder", email: "rory.mackay@example.com" },
 ];
 
 export const companies: T.Company[] = [
@@ -74,7 +76,30 @@ export const companies: T.Company[] = [
   },
 ];
 
+// Harbour Bakes is already trading: it joined on the Keep going path, at Grow.
+companies.push({
+  id: "c5",
+  started_at: ago(24 * 21),
+  slug: "harbour-bakes",
+  name: "Harbour Bakes",
+  description:
+    "Sourdough, pastries and celebration cakes from a harbourside bakery in Taybridge. Click and collect, and local delivery on Saturdays.",
+  customer_type: "B2C",
+  stage: "grow",
+  website_live_url: "https://harbourbakes.example",
+  website_preview_url: "/site/harbour-bakes?preview=1",
+  plan: "founder",
+  created_by: "u6",
+  target_customer: "Local families and cafés",
+  goal_90d: "Grow weekly click-and-collect orders to 200",
+  entry_path: "keep_going",
+  existing_website_url: "https://harbourbakes.example",
+  social_handles: { instagram: "@harbourbakes" },
+  google_business_url: "https://business.google.com/harbourbakes.example",
+});
+
 export const company_members: T.CompanyMember[] = [
+  { company_id: "c5", user_id: "u6", role: "founder" },
   { company_id: "c1", user_id: "u1", role: "founder" },
   { company_id: "c2", user_id: "u1", role: "founder" },
   ...["c1", "c2", "c3", "c4"].map((c) => ({
@@ -151,6 +176,13 @@ export const stage_gates: T.StageGate[] = [
     [{ label: "Beta users", current: 0, target: 40 }],
   ),
 ];
+stage_gates.push(
+  ...defaultGates("c5", ago(24 * 21), "idea").map((g) => ({
+    ...g,
+    status: "imported" as const,
+    criteria: [],
+  })),
+);
 // Kelpie is ready for mentor sign-off on Evidence
 stage_gates.find((g) => g.id === "c2-evidence")!.status = "ready";
 
@@ -777,6 +809,24 @@ export const credit_ledger: T.LedgerEntry[] = [
     note: "Idea brief",
     created_at: "2026-10-02T03:00:00Z",
   },
+  {
+    id: "l17",
+    company_id: "c5",
+    entry_type: "grant",
+    amount: 5000,
+    run_id: null,
+    note: "Founder plan — October grant",
+    created_at: "2026-10-01T00:00:00Z",
+  },
+  {
+    id: "l18",
+    company_id: "c5",
+    entry_type: "usage",
+    amount: -640,
+    run_id: null,
+    note: "Import, voice analysis and first posts",
+    created_at: "2026-10-03T03:00:00Z",
+  },
 ];
 
 export const chat_messages: T.ChatMessage[] = [
@@ -1028,6 +1078,39 @@ export const grants: T.Grant[] = [
 ];
 
 export const contacts: T.Contact[] = [
+  ...(
+    [
+      ["Sarah Patel", "sarah.patel@example.com", "customer", "Weekly sourdough", "import", 48],
+      [
+        "Tom Gillespie",
+        "tom.gillespie@example.com",
+        "customer",
+        "Cinnamon buns, Saturdays",
+        "import",
+        144,
+      ],
+      [
+        "The Quay Café",
+        "orders@quaycafe.example.com",
+        "customer",
+        "Wholesale, 3 days a week",
+        "import",
+        24,
+      ],
+      ["Fiona Reid", "fiona.reid@example.com", "lead", "Wedding cake enquiry", "form", 5],
+      ["Ahmed Khan", "ahmed.khan@example.com", "lead", "Office breakfast order", "form", 20],
+      ["Lucy Moore", "lucy.moore@example.com", "lead", "Birthday cake", "import", 72],
+    ] as const
+  ).map(([name, email, kind, value, source, h], i) => ({
+    id: `hx${i + 1}`,
+    company_id: "c5",
+    name,
+    email,
+    kind,
+    value,
+    source,
+    last: ago(h),
+  })),
   {
     id: "x1",
     company_id: "c1",
@@ -1100,6 +1183,7 @@ export const metrics_daily: T.MetricsDaily[] = [
   ...series("c2", [40, 2, 0, 0], 0.03),
   ...series("c3", [320, 9, 14, 39], 0.04),
   ...series("c4", [8, 0, 0, 0], 0.01),
+  ...series("c5", [260, 6, 140, 18.5], 0.02),
 ];
 
 export const gate_comments: T.GateComment[] = [
@@ -1144,5 +1228,59 @@ export const site_versions: T.SiteVersion[] = [
     summary: "Public launch",
     preview_url: "/site/thrift-loop",
     published_at: ago(24 * 25),
+  },
+];
+
+/** Harbour Bakes' inbox: two enquiries waiting, one answered in three hours. */
+export const harbour_emails: EmailThread[] = [
+  {
+    id: "c5-mail-1",
+    company_id: "c5",
+    subject: "Wedding cake for 80 guests",
+    name: "Fiona Reid",
+    address: "fiona.reid@example.com",
+    mode: "support",
+    messages: [
+      {
+        direction: "received",
+        text: "Hello! We're getting married in June and would love a three-tier cake for 80 guests. Do you do tastings?",
+        date: ago(5),
+      },
+    ],
+  },
+  {
+    id: "c5-mail-2",
+    company_id: "c5",
+    subject: "Breakfast for our team on Friday",
+    name: "Ahmed Khan",
+    address: "ahmed.khan@example.com",
+    mode: "support",
+    messages: [
+      {
+        direction: "received",
+        text: "Could you deliver pastries for 25 people to our office on Friday at 8:30?",
+        date: ago(20),
+      },
+    ],
+  },
+  {
+    id: "c5-mail-3",
+    company_id: "c5",
+    subject: "Gluten-free options?",
+    name: "Sarah Patel",
+    address: "sarah.patel@example.com",
+    mode: "support",
+    messages: [
+      {
+        direction: "received",
+        text: "Do you have anything gluten-free? My daughter is coeliac.",
+        date: ago(48),
+      },
+      {
+        direction: "sent",
+        text: "Hi Sarah,\n\nThanks for asking. We bake in a kitchen that uses flour, so we can't promise anything is safe for coeliacs.\n\nBest wishes\nRory",
+        date: ago(45),
+      },
+    ],
   },
 ];
