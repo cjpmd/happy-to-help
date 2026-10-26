@@ -1091,6 +1091,7 @@ function series(
       signups: Math.max(0, Math.round(base[1] * g * wobble)),
       paying_customers: Math.round(base[2] + i * (base[2] ? 0.4 : 0)),
       mrr: +(Math.round(base[2] + i * (base[2] ? 0.4 : 0)) * base[3]).toFixed(2),
+      activated: Math.max(0, Math.round(base[1] * 0.6 * g)),
     };
   });
 }
