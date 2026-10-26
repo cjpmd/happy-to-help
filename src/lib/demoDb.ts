@@ -44,6 +44,7 @@ export function demoDb(): DB {
     commitments: [],
     capture_settings: [],
     ...demoLinkData(seed.companies, seed.NOW),
+    subscriptions: [],
   };
 }
 

@@ -179,3 +179,17 @@ Non-trivial decisions made during the autonomous build run (`docs/AUTONOMOUS-RUN
 
 ## D49. Consents as a history
 - **Chosen:** each change is a new `consents` row (updates refused by a trigger; deletes allowed so erasure requests work), and `current_consents` shows the latest per contact, channel and purpose. A form records a service consent on legitimate interests (to reply) and the marketing opt-in separately; leaving the box unticked never cancels an earlier opt-in, and the team can record an opt-out but not an opt-in (PECR: it must come from the person, or a confirmed soft opt-in in Phase 14).
+
+## D50. Stripe stays in test mode
+- **Chosen:** the billing functions refuse `sk_live_` keys and `livemode` events unless `STRIPE_ALLOW_LIVE=1`, and the app hides payments unless `VITE_BILLING_ENABLED=true`. Without a key, `BILLING_MOCK=1` applies purchases directly so the whole flow can be tested locally.
+- **Why:** AUTONOMOUS-RUN's hard limit on real money; switching to live is a deliberate owner step.
+
+## D51. No Stripe SDK in the Edge Functions
+- **Chosen:** Checkout and Portal sessions are two form-encoded `fetch` calls, and webhook signatures are verified with WebCrypto (HMAC-SHA256 over `t.payload`, 5-minute tolerance, constant-time compare, any `v1` matches). The event-to-action mapping is pure TypeScript shared with vitest.
+- **Why:** the edge runtime's npm downloads are fragile here (D28), the surface we use is small, and pure functions are easy to test.
+
+## D52. Idempotency in two layers
+- **Chosen:** `stripe_events` records each event id and `apply_billing_event` refuses to apply one twice; each grant also carries `stripe:<checkout session or invoice id>` as its ledger idempotency key, so even two different events for the same payment grant once. Failures are recorded and answered with a 500 so Stripe retries.
+
+## D53. When credits are granted
+- **Chosen:** subscriptions are granted on `invoice.paid` (each month, plan bucket, expiring at that period's end), not on the checkout, so renewals and the first month work the same way; one-off products on `checkout.session.completed` when `payment_status` is `paid`. Subscription changes update `subscriptions` and the company's plan.

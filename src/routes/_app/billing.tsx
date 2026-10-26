@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Rocket } from "lucide-react";
-import { useStore, useCompany, useBalance } from "@/lib/store";
+import { useStore, useCompany, useBalance, useCompanyRole } from "@/lib/store";
+import { billingEnabled, openPortal, productKey, startCheckout } from "@/lib/billingClient";
 import { PLANS, TOP_UPS, LAUNCH_PACK, isLowBalance } from "@/lib/credits";
 import { PageHeader, Panel, Pill, humanise } from "@/components/mission/primitives";
 import { Button } from "@/components/ui/button";
@@ -15,6 +17,9 @@ import { useCreditSummary } from "@/lib/useCreditSummary";
 export const Route = createFileRoute("/_app/billing")({
   head: () =>
     pageHead("Billing & credits", "Your plan, credit balance, top-ups and full credit ledger."),
+  // ?checkout=success|cancelled when Stripe sends the founder back.
+  validateSearch: (s: Record<string, unknown>): { checkout?: "success" | "cancelled" } =>
+    s["checkout"] === "success" || s["checkout"] === "cancelled" ? { checkout: s["checkout"] } : {},
   component: Billing,
 });
 
@@ -32,6 +37,24 @@ const soon = () =>
     description: "Stripe checkout will be connected in a later release.",
   });
 
+/** Opens Stripe Checkout (test mode) when billing is on; otherwise says it's coming. */
+function useBuy(companyId: string) {
+  const founder = useCompanyRole(companyId) === "founder";
+  return (product: string) => {
+    if (!billingEnabled) {
+      soon();
+      return;
+    }
+    if (!founder) {
+      toast.error("Only a founder can buy plans and credits");
+      return;
+    }
+    void startCheckout(companyId, product)
+      .then((url) => window.location.assign(url))
+      .catch((e: Error) => toast.error(e.message));
+  };
+}
+
 function Billing() {
   const { db, companyId } = useStore();
   const company = useCompany();
@@ -42,11 +65,26 @@ function Billing() {
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
   const pct = Math.min(100, Math.round((balance / plan.credits) * 100));
   const summary = useCreditSummary(companyId);
+  const buy = useBuy(companyId);
+  const subscription = db.subscriptions.find((x) => x.company_id === companyId);
+  const { checkout } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  useEffect(() => {
+    if (!checkout) return;
+    if (checkout === "success")
+      toast.success("Payment received. Your credits will appear in a moment.");
+    else toast("Checkout cancelled. Nothing was charged.");
+    void navigate({ search: {}, replace: true });
+  }, [checkout, navigate]);
   return (
     <div>
       <PageHeader
         title="Billing & credits"
-        description="Credits pay for Sol's work. Failed runs are always refunded."
+        description={
+          billingEnabled
+            ? "Credits pay for Sol's work. Failed runs are always refunded. Payments are in Stripe test mode."
+            : "Credits pay for Sol's work. Failed runs are always refunded."
+        }
       />
       {isLowBalance(balance, company.plan) && (
         <div className="mb-4 rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 text-sm text-warning">
@@ -59,6 +97,29 @@ function Billing() {
           <p className="mt-1 text-sm text-muted-foreground">
             {plan.name} plan · {num(plan.credits)} credits/month
           </p>
+          {subscription && subscription.current_period_end && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {subscription.status === "canceled"
+                ? "Subscription cancelled"
+                : subscription.cancel_at_period_end
+                  ? `Ends on ${fmtDate(subscription.current_period_end)}`
+                  : `Renews on ${fmtDate(subscription.current_period_end)}`}
+            </p>
+          )}
+          {billingEnabled && subscription && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-3"
+              onClick={() =>
+                void openPortal(companyId)
+                  .then((url) => window.location.assign(url))
+                  .catch((e: Error) => toast.error(e.message))
+              }
+            >
+              Manage billing
+            </Button>
+          )}
           <Progress value={pct} className="mt-4 h-1.5" />
           <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
             <dt className="text-muted-foreground">Plan credits</dt>
@@ -110,7 +171,12 @@ function Billing() {
                   </p>
                   <p className="text-sm text-muted-foreground tabular">{num(p.credits)} credits</p>
                   {!current && (
-                    <Button size="sm" variant="outline" className="mt-3 w-full" onClick={soon}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-3 w-full"
+                      onClick={() => buy(productKey.plan(k))}
+                    >
                       Switch
                     </Button>
                   )}
@@ -124,7 +190,7 @@ function Billing() {
             {TOP_UPS.map((t) => (
               <button
                 key={t.id}
-                onClick={soon}
+                onClick={() => buy(productKey.topup(t.id))}
                 className="rounded-xl border p-4 text-left transition-colors hover:border-primary hover:bg-primary-soft"
               >
                 <p className="text-xl font-semibold tabular">{num(t.credits)}</p>
@@ -139,7 +205,7 @@ function Billing() {
           <p className="text-sm text-muted-foreground tabular">
             {num(LAUNCH_PACK.credits)} build credits for {gbp(LAUNCH_PACK.priceGbp)}
           </p>
-          <Button className="mt-4 w-full" onClick={soon}>
+          <Button className="mt-4 w-full" onClick={() => buy(productKey.launchPack)}>
             Buy Launch Pack
           </Button>
         </Panel>

@@ -37,7 +37,7 @@ export class AgentError extends Error {
   }
 }
 
-async function functionUrl(name: string) {
+export async function functionUrl(name: string) {
   const sb = getSupabase();
   const { data } = await sb.auth.getSession();
   const token = data.session?.access_token;
