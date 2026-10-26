@@ -166,6 +166,8 @@ function approvalLabel(a: Approval) {
       return "Filing";
     case "publish_site":
       return "Site change";
+    case "update_voice":
+      return "Brand voice";
   }
 }
 
@@ -181,6 +183,8 @@ function approvalTitle(a: Approval) {
       return a.payload.document;
     case "publish_site":
       return a.payload.change;
+    case "update_voice":
+      return `Brand voice v${a.payload.version}`;
   }
 }
 
@@ -196,6 +200,8 @@ function approvalPreview(a: Approval) {
       return `${a.payload.document} to ${a.payload.destination}.`;
     case "publish_site":
       return a.payload.change;
+    case "update_voice":
+      return a.payload.changes || a.payload.summary;
   }
 }
 
@@ -668,7 +674,11 @@ export function ResponseTimesCard({ companyId }: { companyId: string }) {
         <Readout
           label="Median reply"
           value={r.median === null ? "—" : shortDuration(r.median)}
-          note={<span className="text-muted-foreground">{r.count} {r.count === 1 ? "reply" : "replies"}</span>}
+          note={
+            <span className="text-muted-foreground">
+              {r.count} {r.count === 1 ? "reply" : "replies"}
+            </span>
+          }
         />
         <Readout
           label="Oldest waiting"

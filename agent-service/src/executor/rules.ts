@@ -22,7 +22,8 @@ export interface FounderRules {
 }
 
 export interface ApprovalForRules {
-  action_type: "publish_post" | "send_email" | "ad_spend" | "file_document" | "publish_site";
+  action_type:
+    "publish_post" | "send_email" | "ad_spend" | "file_document" | "publish_site" | "update_voice";
   payload: Record<string, unknown>;
   /** The decider's role in the company. */
   deciderRole: "founder" | "mentor" | "teammate" | "viewer" | null;
@@ -106,5 +107,62 @@ export function checkRules(
       needsFounder: true,
     };
 
+  return { ok: true };
+}
+
+/** Categories that always go to the founder, whatever the policy says (SPEC G). */
+export const ALWAYS_ESCALATE = new Set(["refund_request", "legal_threat"]);
+/** Triage flags that always go to the founder. */
+export const ESCALATION_FLAGS = [
+  "money",
+  "legal",
+  "safety",
+  "vulnerable",
+  "data_request",
+  "unverified_claim",
+] as const;
+
+export interface AutoSendContext {
+  category: string;
+  triage: Record<string, unknown>;
+  /** The company's mode for this category. */
+  policyMode: "auto_send" | "draft" | "escalate" | null;
+  /** A voice the founder approved (not just the default). */
+  voiceApproved: boolean;
+  /** The founder has reviewed the response policy. */
+  policyReviewed: boolean;
+}
+
+/**
+ * Rules for replies sent automatically, with no founder decision. Enforced here, in the
+ * executor, not only in the agent's prompt: a reply that breaks any of them is never sent.
+ */
+export function checkAutoSend(c: AutoSendContext): RuleResult {
+  const flags = ESCALATION_FLAGS.filter((f) => c.triage[f] === true);
+  if (ALWAYS_ESCALATE.has(c.category))
+    return {
+      ok: false,
+      reason: `${c.category.replace("_", " ")}s always go to you, not an automatic reply.`,
+      needsFounder: true,
+    };
+  if (flags.length)
+    return {
+      ok: false,
+      reason: `the message needs you (${flags.map((f) => f.replace("_", " ")).join(", ")}), so no automatic reply was sent.`,
+      needsFounder: true,
+    };
+  if (c.policyMode !== "auto_send")
+    return {
+      ok: false,
+      reason: `automatic replies are off for ${c.category.replace("_", " ") || "this kind of message"}.`,
+      needsFounder: true,
+    };
+  if (!c.voiceApproved || !c.policyReviewed)
+    return {
+      ok: false,
+      reason:
+        "Sol doesn't reply to customers on its own until you've approved its voice and reviewed the response policy.",
+      needsFounder: true,
+    };
   return { ok: true };
 }

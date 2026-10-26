@@ -29,6 +29,21 @@ export async function loadMemoryInput(db: Db, companyId: string): Promise<Memory
       .limit(5),
   ]);
   const docRows = must(docs, "documents");
+  // The approved voice profile is the brand voice (Phase 11); the old guide document is the fallback.
+  const { data: profile } = await db
+    .from("voice_profiles")
+    .select(
+      "summary, traits, use_phrases, avoid_phrases, reading_level, spelling, sign_off, emoji, channel_variants, tone_rules",
+    )
+    .eq("company_id", companyId)
+    .eq("status", "approved")
+    .maybeSingle();
+  const { data: examples } = await db
+    .from("voice_examples")
+    .select("situation, body")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false })
+    .limit(5);
   const voiceDoc = docRows.find((d) => d.title === "Brand & voice guide");
   const voice = voiceDoc
     ? await db
@@ -50,7 +65,9 @@ export async function loadMemoryInput(db: Db, companyId: string): Promise<Memory
       .map((m) => (m.profiles as { full_name: string } | null)?.full_name ?? "")
       .filter(Boolean),
     gates: must(gates, "gates"),
-    voiceGuide: voice?.data?.content ?? null,
+    voiceGuide: profile
+      ? voiceText(profile) + examplesText(examples ?? [])
+      : (voice?.data?.content ?? null),
     unbuilt: outcomes.filter((o) => !o.complete).map((o) => o.title),
     openTasks: must(tasks, "tasks"),
     declined: must(declined, "declined approvals").map((a) => {
@@ -82,4 +99,50 @@ export async function prepareWorkspace(
     });
   await writeFile(path.join(dir, "data", "company.json"), JSON.stringify(memory.company, null, 2));
   return { dir, cleanup: () => rm(dir, { recursive: true, force: true }) };
+}
+
+/** The approved voice profile as plain instructions for CLAUDE.md. */
+export function voiceText(v: {
+  summary: string;
+  traits: string[];
+  use_phrases: string[];
+  avoid_phrases: string[];
+  reading_level: string;
+  spelling: string;
+  sign_off: string | null;
+  emoji: string;
+  channel_variants: unknown;
+  tone_rules: unknown;
+}): string {
+  const lines = (o: unknown) =>
+    Object.entries((o ?? {}) as Record<string, string>).map(
+      ([k, val]) => `  - ${k.replace(/_/g, " ")}: ${val}`,
+    );
+  return [
+    v.summary,
+    `- Traits: ${v.traits.join(", ")}.`,
+    `- Reading level: ${v.reading_level}. Spelling: ${v.spelling}. Emoji: ${v.emoji}.${v.sign_off ? ` Sign off with "${v.sign_off}".` : ""}`,
+    v.use_phrases.length
+      ? `- Phrases to use: ${v.use_phrases.map((p) => `"${p}"`).join(", ")}.`
+      : "",
+    v.avoid_phrases.length
+      ? `- Never say: ${v.avoid_phrases.map((p) => `"${p}"`).join(", ")}.`
+      : "",
+    "- By channel:",
+    ...lines(v.channel_variants),
+    "- By situation:",
+    ...lines(v.tone_rules),
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+/** The founder's example replies, as models for drafts in the same situation. */
+export function examplesText(examples: { situation: string; body: string }[]): string {
+  if (!examples.length) return "";
+  return [
+    "",
+    "- Example replies the founder approved (match their style for the same situation):",
+    ...examples.map((e) => `  - ${e.situation.replace(/_/g, " ")}: "${e.body.slice(0, 600)}"`),
+  ].join("\n");
 }

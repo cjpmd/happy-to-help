@@ -177,6 +177,9 @@ begin
     insert into public.ad_accounts (company_id) values (c);
     insert into public.company_sharing (company_id, enabled) values (c, c = pg_temp.id('company_b'));
     insert into public.voice_sources (company_id, kind, content, added_by) values (c, 'email', 'Thanks for your order!', founder_id);
+    insert into public.voice_examples (company_id, situation, body, added_by) values (c, 'praise', 'Thank you so much!', founder_id);
+    insert into public.voice_edit_events (company_id, approval_id, channel, original, final, edited_by)
+      values (c, approval, 'social_post', 'Hello', 'Hello there', founder_id);
   end loop;
 end;
 $$;

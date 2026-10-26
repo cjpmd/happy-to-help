@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Upload } from "lucide-react";
 import { toast } from "sonner";
 import { RouteTabs } from "@/components/mission/RouteTabs";
+import { VoiceAndPolicy } from "@/components/mission/VoicePolicy";
 import { PageHeader, Panel, Pill } from "@/components/mission/primitives";
 import { Button } from "@/components/ui/button";
 import { useCompanyRole, useStore } from "@/lib/store";
@@ -11,14 +12,17 @@ import { parseContactsCsv } from "@/lib/voice";
 import { fmtDate } from "@/lib/format";
 import { pageHead } from "@/lib/seo";
 
-type CustomersTab = "inbox" | "contacts" | "feedback";
-const TABS: CustomersTab[] = ["inbox", "contacts", "feedback"];
+type CustomersTab = "inbox" | "contacts" | "feedback" | "voice";
+const TABS: CustomersTab[] = ["inbox", "contacts", "feedback", "voice"];
 
 export const Route = createFileRoute("/_app/customers")({
-  head: () => pageHead("Customers", "Your inbox, contacts and customer feedback in one place."),
-  // ?tab=contacts|feedback; the inbox has no param.
+  head: () =>
+    pageHead("Customers", "Your inbox, contacts, customer feedback and brand voice in one place."),
+  // ?tab=contacts|feedback|voice; the inbox has no param.
   validateSearch: (search: Record<string, unknown>): { tab?: Exclude<CustomersTab, "inbox"> } =>
-    search["tab"] === "contacts" || search["tab"] === "feedback" ? { tab: search["tab"] } : {},
+    search["tab"] === "contacts" || search["tab"] === "feedback" || search["tab"] === "voice"
+      ? { tab: search["tab"] }
+      : {},
   component: Customers,
 });
 
@@ -41,6 +45,7 @@ function Customers() {
           { value: "inbox", label: "Inbox", content: <Inbox /> },
           { value: "contacts", label: "Contacts", content: <Contacts /> },
           { value: "feedback", label: "Feedback", content: <Feedback /> },
+          { value: "voice", label: "Voice & policy", content: <VoiceAndPolicy /> },
         ]}
       />
     </div>

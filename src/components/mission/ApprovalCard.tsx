@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Megaphone, Mail, PoundSterling, FileText, Globe } from "lucide-react";
+import { Megaphone, Mail, PoundSterling, FileText, Globe, Mic } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useStore, labelFor, useClaimsCheck, useCompanyRole, personName } from "@/lib/store";
@@ -17,6 +17,7 @@ const icons = {
   ad_spend: PoundSterling,
   file_document: FileText,
   publish_site: Globe,
+  update_voice: Mic,
 };
 const titles = {
   publish_post: "Publish a post",
@@ -24,6 +25,7 @@ const titles = {
   ad_spend: "Spend on ads",
   file_document: "File a document",
   publish_site: "Publish site change",
+  update_voice: "Adopt a new brand voice",
 };
 
 function Preview({ a }: { a: Approval }) {
@@ -77,6 +79,14 @@ function Preview({ a }: { a: Approval }) {
           {row("Preview", a.payload.url)}
         </div>
       );
+    case "update_voice":
+      return (
+        <div className="space-y-1.5">
+          {row("Version", `v${a.payload.version}`)}
+          {row("Voice", a.payload.summary)}
+          {a.payload.changes && row("Changes", a.payload.changes)}
+        </div>
+      );
   }
 }
 
@@ -92,6 +102,8 @@ function summary(a: Approval) {
       return a.payload.document;
     case "publish_site":
       return a.payload.change;
+    case "update_voice":
+      return a.payload.summary;
   }
 }
 

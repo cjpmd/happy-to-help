@@ -17,8 +17,8 @@ Restyle first, then the remaining Phase 1 groups, then the engine, then the v2 d
 | 4 | Connect the app to the engine | `phase-4-connect` | Done |
 | 5 | Approvals executor | `phase-5-executor` | Done |
 | 10 | Two entry paths, stage-aware dashboard | `phase-10-entry-paths` | Done |
-| 11 | Brand voice and response policy | `phase-11-voice-policy` | Next |
-| 12 | Capture v1 | `phase-12-capture` | |
+| 11 | Brand voice and response policy | `phase-11-voice-policy` | Done |
+| 12 | Capture v1 | `phase-12-capture` | Next |
 | 13 | Link layer and lead capture | `phase-13-link-layer` | |
 | 6 | Stripe billing (test mode) | `phase-6-stripe` | |
 | 7 | Real integrations (flagged, mocked by default) | `phase-7-integrations` | |
@@ -50,6 +50,7 @@ Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, con
 | Integration (API + RLS + Edge Functions) | `npm run test:integration` (local stack running and reset; `npx supabase functions serve` running) |
 | Live end to end | `npm run e2e:live` (set `CHROMIUM_PATH` if Playwright's browser isn't installed) |
 | Agent service | `cd agent-service && npx tsc --noEmit && npm test` (after `npx supabase db reset`) |
+| Everything above, after a reset | `scripts/dev/check-all.sh` |
 | HQ fit | `npm run check:fit` |
 
 ### Phase 1 (finished 26 Oct 2026)
@@ -104,6 +105,16 @@ Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, con
 - Seed: Harbour Bakes (Rory MacKay, `rory.mackay@example.com`), trading at Grow with contacts, an inbox and posts; also in the demo.
 - Tests: `10_entry_paths.test.sql`, voice sources added to the read-access matrix as founder/teammate-only, `src/test/voice.test.ts`, `src/test/stageAware.test.ts`, and the live browser test checks the Keep going HQ.
 - **Mocked:** the voice read is rule-based (Phase 11 adds the skill). Website and Google Business aren't fetched; only the link is stored.
+
+### Phase 11 (finished 27 Oct 2026)
+
+- `20261027100000_voice_enums.sql` and `20261027100100_voice_and_policy.sql`: versioned `voice_profiles` (one approved per company), `voice_examples`, `voice_edit_events` (founder/teammate only), `response_policies` (one mode per category; refunds and legal threats locked to escalate by a check constraint) and `response_settings` (AI disclosure, policy reviewed). Every company is seeded with the default voice, draft-only policy and the disclosure (D36).
+- RPCs: `set_response_policy`, `update_response_settings`, `save_voice_profile` (founders); `propose_voice_profile` and `adopt_voice_profile` (service role). Edits to Sol's drafts are recorded as voice edit events.
+- Skills `voice-analysis` (proposes a profile from voice sources) and `voice-update` (weekly proposal from edit events). Both propose an `update_voice` approval; the voice only changes on GO (D38). The agent's memory uses the approved profile and the founder's example replies.
+- Executor (D37): always-escalate categories and triage flags are enforced in code; auto-send only for categories set to auto-send, after the voice is approved and the policy reviewed; Sol-sent replies carry the disclosure.
+- App: Customers → Voice & policy (`?tab=voice`): readiness checklist, current voice and pending proposal, "Learn my voice", founder edit, example replies, the policy table (locked rows shown with a padlock), disclosure and "I've reviewed this policy". Works in the demo too (learns from the company's sent emails).
+- Tests: `11_voice_policy.test.sql`, `agent-service/test/voice.test.ts` and memory tests, `src/test/voicePolicy.test.ts`, and the live browser test checks the policy screen.
+- **Mocked:** the voice analysis runs in the mock runtime (rule-based) until real agent runs are turned on (HANDOFF 1). The weekly voice update is runnable as a job; the schedule comes with Phase 8.
 
 ## Phase 0 audit and Phase 1 history
 

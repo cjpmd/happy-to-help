@@ -178,8 +178,16 @@ try {
     const page = await pageAs("rory.mackay@example.com");
     await page.goto(`${base}/hq`);
     await page.getByText("GROW PHASE", { exact: false }).first().waitFor({ timeout: 20_000 });
+    // The inbox loads with the rest of the data, so wait for it rather than checking once.
     check(
-      await page.getByText("Wedding cake for 80 guests").first().isVisible(),
+      await page
+        .getByText("Wedding cake for 80 guests")
+        .first()
+        .waitFor({ timeout: 10_000 })
+        .then(
+          () => true,
+          () => false,
+        ),
       "a Keep going HQ shows the inbox",
     );
     check(await page.getByRole("heading", { name: "Leads" }).isVisible(), "and the leads");
@@ -190,6 +198,22 @@ try {
     await page.goto(`${base}/customers?tab=contacts`);
     await page.getByText("The Quay Café").waitFor({ timeout: 10_000 });
     check(true, "imported contacts are in Customers");
+
+    // Voice & policy: refunds are locked to the founder; setting a policy is saved.
+    await page.goto(`${base}/customers?tab=voice`);
+    await page.getByText("Response policy").first().waitFor({ timeout: 10_000 });
+    check(
+      (await page.getByRole("combobox", { name: "Refund request policy" }).count()) === 0,
+      "refund requests can't be switched away from the founder",
+    );
+    await page.getByRole("button", { name: "I've reviewed this policy" }).click();
+    await page.getByText(/^Reviewed /).waitFor({ timeout: 10_000 });
+    const { data: settings } = await admin
+      .from("response_settings")
+      .select("policy_reviewed_at")
+      .eq("company_id", "c0000000-0000-4000-8000-000000000005")
+      .single();
+    check(!!settings?.policy_reviewed_at, "marking the policy reviewed is saved");
     await page.context().close();
   }
 

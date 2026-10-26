@@ -150,12 +150,19 @@ export interface PublishSitePayload extends PayloadBase {
   change: string;
   url: string;
 }
+export interface UpdateVoicePayload extends PayloadBase {
+  profile_id: string;
+  version: number;
+  summary: string;
+  changes: string;
+}
 export interface ApprovalPayloads {
   publish_post: PublishPostPayload;
   send_email: SendEmailPayload;
   ad_spend: AdSpendPayload;
   file_document: FileDocumentPayload;
   publish_site: PublishSitePayload;
+  update_voice: UpdateVoicePayload;
 }
 export type ApprovalAction = keyof ApprovalPayloads;
 interface ApprovalBase {

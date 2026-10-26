@@ -23,6 +23,9 @@ const company = {
   updated_at: "",
   started_at: "",
   activation_definition: null,
+  entry_path: "start_up" as const,
+  social_handles: {},
+  google_business_url: null,
 };
 
 describe("company memory", () => {
@@ -73,5 +76,28 @@ describe("approval gate", () => {
       "mcp__other__publish",
     ])
       expect(gate(t, allowed).behavior).toBe("deny");
+  });
+});
+
+describe("voice examples in memory", async () => {
+  const { examplesText, voiceText } = await import("../src/workspace.js");
+  it("lists the founder's examples under the voice, and nothing when there are none", () => {
+    expect(examplesText([])).toBe("");
+    const text = examplesText([{ situation: "pricing_question", body: "Our loaves are £4." }]);
+    expect(text).toContain('pricing question: "Our loaves are £4."');
+    expect(
+      voiceText({
+        summary: "Warm.",
+        traits: ["Warm"],
+        use_phrases: [],
+        avoid_phrases: ["best"],
+        reading_level: "plain",
+        spelling: "UK",
+        sign_off: null,
+        emoji: "none",
+        channel_variants: {},
+        tone_rules: {},
+      }),
+    ).toContain('Never say: "best"');
   });
 });

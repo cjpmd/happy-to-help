@@ -1,5 +1,6 @@
 import * as seed from "./seed";
 import { demoJobTypes, type DB } from "./storeContext";
+import { defaultPolicies, defaultSettings, defaultVoice } from "./voicePolicy";
 import { businessDefaults, isLayout, workspaceSeed, type LayoutItem } from "./workspace";
 
 /** The demo store's starting data, from src/lib/seed.ts. */
@@ -32,6 +33,10 @@ export function demoDb(): DB {
     cohort_companies: seed.cohort_companies,
     cohort_mentors: seed.cohort_mentors,
     job_types: demoJobTypes(),
+    voice_profiles: seed.companies.map((c) => defaultVoice(c.id, seed.NOW.toISOString())),
+    voice_examples: [],
+    response_policies: seed.companies.flatMap((c) => defaultPolicies(c.id)),
+    response_settings: seed.companies.map((c) => defaultSettings(c.id)),
   };
 }
 

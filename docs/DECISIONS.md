@@ -132,3 +132,13 @@ Non-trivial decisions made during the autonomous build run (`docs/AUTONOMOUS-RUN
 
 ## D35. Customers department
 - **Chosen:** `/customers` with Inbox (conversations waiting for a reply), Contacts (moved from Run, with CSV import) and Feedback (empty until Phase 16). Run links to it.
+
+## D36. Voice and policy model
+- **Chosen:** voice profiles are versioned rows (never edited in place) with one `approved` per company enforced by a partial unique index; proposals sit as `proposed` until decided. The response policy is one row per message category with `auto_send | draft | escalate`. Every company starts with a default voice, `draft` for everything, and `escalate` for refunds and legal threats (a check constraint, so no RPC or service-role bug can loosen it). The disclosure can be reworded but not removed.
+- **Why:** SPEC G: the voice never changes silently, auto-send is off by default, and money and legal always reach the founder.
+
+## D37. Reply rules live in the executor
+- **Chosen:** the executor (not the prompt) blocks auto-sending for always-escalate categories and for triage flags (money, legal, safety, vulnerable, data request, unverified claim); allows auto-send only when the category is set to `auto_send`, the voice has been approved beyond the default and the policy has been reviewed; and appends the disclosure to Sol-sent replies (and to approved ones while "also add it to replies I approve" is on). Phase 14 feeds it.
+
+## D38. Adopting a voice is an approval
+- **Chosen:** the agent's voice proposals become an `update_voice` approval (0 credits) shown on the GO / NO-GO card and the Voice tab. GO runs through the executor, which calls `adopt_voice_profile`; NO-GO declines the proposal (a trigger). A founder's own edit is saved directly as a new approved version, since it's their decision.

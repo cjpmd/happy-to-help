@@ -17,6 +17,7 @@ import type {
   TeamInvite,
 } from "../workspace";
 import { defaultPreferences, defaultSharing, isLayout } from "../workspace";
+import type * as V from "../voicePolicy";
 
 type Row<K extends keyof Database["public"]["Tables"]> = Tables<K>;
 
@@ -394,5 +395,52 @@ export function mapSiteVersion(v: Row<"site_versions">): T.SiteVersion {
     summary: v.summary,
     preview_url: v.preview_url,
     published_at: v.published_at,
+  };
+}
+
+export function mapVoiceProfile(v: Row<"voice_profiles">): V.VoiceProfile {
+  // Columns are checked by the table's constraints; the jsonb maps are { key: text }.
+  return {
+    id: v.id,
+    company_id: v.company_id,
+    version: v.version,
+    status: v.status,
+    source: v.source as V.VoiceSource,
+    summary: v.summary,
+    traits: v.traits,
+    use_phrases: v.use_phrases,
+    avoid_phrases: v.avoid_phrases,
+    reading_level: v.reading_level as V.VoiceProfile["reading_level"],
+    spelling: v.spelling === "US" ? "US" : "UK",
+    sign_off: v.sign_off,
+    emoji: v.emoji as V.VoiceProfile["emoji"],
+    channel_variants: v.channel_variants as Record<string, string>,
+    tone_rules: v.tone_rules as Record<string, string>,
+    changes: v.changes,
+    created_at: v.created_at,
+  };
+}
+
+export function mapVoiceExample(e: Row<"voice_examples">): V.VoiceExample {
+  return {
+    id: e.id,
+    company_id: e.company_id,
+    situation: e.situation as V.Situation,
+    channel: e.channel as V.VoiceExample["channel"],
+    body: e.body,
+    created_at: e.created_at,
+  };
+}
+
+export function mapPolicy(p: Row<"response_policies">): V.ResponsePolicy {
+  return { company_id: p.company_id, category: p.category as V.PolicyCategory, mode: p.mode };
+}
+
+export function mapResponseSettings(s: Row<"response_settings">): V.ResponseSettings {
+  return {
+    company_id: s.company_id,
+    disclosure_text: s.disclosure_text,
+    disclosure_on_approved: s.disclosure_on_approved,
+    policy_reviewed_at: s.policy_reviewed_at,
   };
 }

@@ -26,6 +26,8 @@ import { LiveStoreProvider } from "./live/LiveStoreProvider";
 import { StoreCtx, labelFor, type Ctx, type DB } from "./storeContext";
 import { demoDb, isValidLayout } from "./demoDb";
 import { useThemeState } from "./useThemeState";
+import { analyseVoice } from "./voice";
+import { applyVoiceDecision, applyVoiceEdit, currentVoice, isLocked } from "./voicePolicy";
 
 export {
   useStore,
@@ -177,6 +179,10 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
                   },
                 ]
               : d.emails,
+          voice_profiles:
+            a.action_type === "update_voice"
+              ? applyVoiceDecision(d.voice_profiles, a.payload.profile_id, approved)
+              : d.voice_profiles,
           approvals: d.approvals.map((x) =>
             x.id === id
               ? {
@@ -798,6 +804,165 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
     return added;
   }, []);
   const addVoiceSource = useCallback<Ctx["addVoiceSource"]>(async () => true, []);
+  const isFounder = useCallback(
+    (cid: string) => {
+      const ok = db.company_members.some(
+        (m) => m.company_id === cid && m.user_id === userId && m.role === "founder",
+      );
+      if (!ok) toast.error("Only a founder can change this");
+      return ok;
+    },
+    [db.company_members, userId],
+  );
+  // The demo learns from the company's own sent emails, like the mock agent run does.
+  const learnVoice = useCallback<Ctx["learnVoice"]>(
+    async (cid) => {
+      const sent = db.emails
+        .filter((t) => t.company_id === cid)
+        .flatMap((t) => t.messages.filter((m) => m.direction === "sent").map((m) => m.text));
+      const read = analyseVoice(sent);
+      if (!read) {
+        toast.error("Sol needs a few past emails or your website copy to learn from first.");
+        return false;
+      }
+      if (currentVoice(db.voice_profiles, cid).proposed) {
+        toast.error("A proposed voice is already waiting for your GO.");
+        return false;
+      }
+      const profileId = uid("voice");
+      const version =
+        Math.max(
+          0,
+          ...db.voice_profiles.filter((p) => p.company_id === cid).map((p) => p.version),
+        ) + 1;
+      const summary = read.summary.split("\n")[0] ?? "";
+      const changes = `Learned from ${sent.length} pieces of your own writing.`;
+      const base = currentVoice(db.voice_profiles, cid).approved;
+      setDb((d) => ({
+        ...d,
+        voice_profiles: [
+          ...d.voice_profiles,
+          {
+            ...(base ?? d.voice_profiles[0]!),
+            id: profileId,
+            company_id: cid,
+            version,
+            status: "proposed",
+            source: "analysis",
+            summary,
+            traits: [...read.traits, "Honest", "Helpful"].slice(0, 5),
+            use_phrases: read.phrases,
+            reading_level: read.readingLevel,
+            spelling: read.spelling === "US" ? "US" : "UK",
+            sign_off: read.signOff,
+            emoji: read.usesEmoji ? "sparing" : "none",
+            changes,
+            created_at: iso(),
+          },
+        ],
+        approvals: [
+          {
+            id: uid("a"),
+            company_id: cid,
+            run_id: null,
+            action_type: "update_voice",
+            payload: {
+              profile_id: profileId,
+              version,
+              summary,
+              changes,
+              reason: "Learned from your website and past emails, so replies sound like you.",
+            },
+            estimated_credits: 0,
+            status: "pending",
+            created_at: iso(),
+          },
+          ...d.approvals,
+        ],
+      }));
+      toast.success("Sol has proposed a voice from your writing. It's waiting for your GO.");
+      return true;
+    },
+    [db.emails, db.voice_profiles],
+  );
+  const saveVoiceProfile = useCallback<Ctx["saveVoiceProfile"]>(
+    async (cid, edit) => {
+      if (!isFounder(cid)) return false;
+      setDb((d) => ({
+        ...d,
+        voice_profiles: applyVoiceEdit(d.voice_profiles, cid, edit, uid("voice"), iso()),
+      }));
+      return true;
+    },
+    [isFounder],
+  );
+  const addVoiceExample = useCallback<Ctx["addVoiceExample"]>(async (cid, situation, body) => {
+    if (!body.trim()) return false;
+    setDb((d) => ({
+      ...d,
+      voice_examples: [
+        ...d.voice_examples,
+        {
+          id: uid("vx"),
+          company_id: cid,
+          situation,
+          channel: "email",
+          body: body.trim(),
+          created_at: iso(),
+        },
+      ],
+    }));
+    return true;
+  }, []);
+  const removeVoiceExample = useCallback<Ctx["removeVoiceExample"]>(async (id) => {
+    setDb((d) => ({ ...d, voice_examples: d.voice_examples.filter((x) => x.id !== id) }));
+    return true;
+  }, []);
+  const setResponsePolicy = useCallback<Ctx["setResponsePolicy"]>(
+    async (cid, category, mode) => {
+      if (!isFounder(cid)) return false;
+      if (isLocked(category) && mode !== "escalate") {
+        toast.error("Refunds and legal threats always come to you");
+        return false;
+      }
+      setDb((d) => ({
+        ...d,
+        response_policies: d.response_policies.map((p) =>
+          p.company_id === cid && p.category === category ? { ...p, mode } : p,
+        ),
+      }));
+      return true;
+    },
+    [isFounder],
+  );
+  const updateResponseSettings = useCallback<Ctx["updateResponseSettings"]>(
+    async (cid, patch) => {
+      if (!isFounder(cid)) return false;
+      if (patch.disclosure_text !== undefined && patch.disclosure_text.trim().length < 3) {
+        toast.error("The disclosure can be reworded but not removed");
+        return false;
+      }
+      setDb((d) => ({
+        ...d,
+        response_settings: d.response_settings.map((s) =>
+          s.company_id === cid
+            ? {
+                ...s,
+                ...(patch.disclosure_text !== undefined
+                  ? { disclosure_text: patch.disclosure_text.trim() }
+                  : {}),
+                ...(patch.disclosure_on_approved !== undefined
+                  ? { disclosure_on_approved: patch.disclosure_on_approved }
+                  : {}),
+                ...(patch.mark_reviewed ? { policy_reviewed_at: iso() } : {}),
+              }
+            : s,
+        ),
+      }));
+      return true;
+    },
+    [isFounder],
+  );
   const stopAuto = useCallback(() => {
     setSolTyping(false);
     setDb((d) => ({
@@ -851,6 +1016,12 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       stopAuto,
       importContacts,
       addVoiceSource,
+      learnVoice,
+      saveVoiceProfile,
+      addVoiceExample,
+      removeVoiceExample,
+      setResponsePolicy,
+      updateResponseSettings,
       ...themeState,
     }),
     [
@@ -880,6 +1051,12 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       stopAuto,
       importContacts,
       addVoiceSource,
+      learnVoice,
+      saveVoiceProfile,
+      addVoiceExample,
+      removeVoiceExample,
+      setResponsePolicy,
+      updateResponseSettings,
     ],
   );
 

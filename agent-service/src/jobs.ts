@@ -120,6 +120,31 @@ export const JOBS: Record<string, JobSpec> = {
   },
 };
 
+JOBS["voice_analysis"] = {
+  label: "Learn the brand voice",
+  pillar: "grow",
+  tier: "strategy",
+  skills: ["voice-analysis"],
+  estimate: 150,
+  cap: 400,
+  maxTurns: 10,
+  tools: ["get_company", "get_voice_profile", "get_voice_sources", "propose_voice_from_analysis"],
+  prompt: () =>
+    "Use the voice-analysis skill: read the company's own writing and propose a voice profile for the founder to approve.",
+};
+JOBS["voice_update"] = {
+  label: "Weekly voice review",
+  pillar: "grow",
+  tier: "strategy",
+  skills: ["voice-update"],
+  estimate: 80,
+  cap: 250,
+  maxTurns: 8,
+  tools: ["get_voice_profile", "get_edit_events", "propose_voice_from_edits"],
+  prompt: () =>
+    "Use the voice-update skill: review this week's edits to your drafts and, if they show a pattern, propose a change to the voice for the founder to approve.",
+};
+
 export function jobSpec(jobType: string): JobSpec | undefined {
   return JOBS[jobType];
 }

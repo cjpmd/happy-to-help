@@ -1428,6 +1428,89 @@ export type Database = {
         };
         Relationships: [];
       };
+      response_policies: {
+        Row: {
+          category: string;
+          company_id: string;
+          mode: Database["public"]["Enums"]["response_mode"];
+          updated_at: string;
+          updated_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          category: string;
+          company_id: string;
+          mode?: Database["public"]["Enums"]["response_mode"];
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          category?: string;
+          company_id?: string;
+          mode?: Database["public"]["Enums"]["response_mode"];
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "response_policies_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "response_policies_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      response_settings: {
+        Row: {
+          company_id: string;
+          disclosure_on_approved: boolean;
+          disclosure_text: string;
+          policy_reviewed_at: string | null;
+          policy_reviewed_by: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          company_id: string;
+          disclosure_on_approved?: boolean;
+          disclosure_text?: string;
+          policy_reviewed_at?: string | null;
+          policy_reviewed_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          company_id?: string;
+          disclosure_on_approved?: boolean;
+          disclosure_text?: string;
+          policy_reviewed_at?: string | null;
+          policy_reviewed_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "response_settings_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: true;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "response_settings_policy_reviewed_by_fkey";
+            columns: ["policy_reviewed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       routines: {
         Row: {
           cadence: Database["public"]["Enums"]["routine_cadence"];
@@ -1764,6 +1847,213 @@ export type Database = {
           },
         ];
       };
+      voice_edit_events: {
+        Row: {
+          approval_id: string | null;
+          channel: string;
+          company_id: string;
+          created_at: string;
+          edited_by: string | null;
+          final: string;
+          id: string;
+          original: string;
+          used_at: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          approval_id?: string | null;
+          channel: string;
+          company_id: string;
+          created_at?: string;
+          edited_by?: string | null;
+          final: string;
+          id?: string;
+          original: string;
+          used_at?: string | null;
+        };
+        Update: {
+          approval_id?: string | null;
+          channel?: string;
+          company_id?: string;
+          created_at?: string;
+          edited_by?: string | null;
+          final?: string;
+          id?: string;
+          original?: string;
+          used_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "voice_edit_events_approval_id_fkey";
+            columns: ["approval_id"];
+            isOneToOne: false;
+            referencedRelation: "approvals";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "voice_edit_events_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "voice_edit_events_edited_by_fkey";
+            columns: ["edited_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      voice_examples: {
+        Row: {
+          added_by: string | null;
+          body: string;
+          channel: string;
+          company_id: string;
+          created_at: string;
+          id: string;
+          situation: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          added_by?: string | null;
+          body: string;
+          channel?: string;
+          company_id: string;
+          created_at?: string;
+          id?: string;
+          situation: string;
+        };
+        Update: {
+          added_by?: string | null;
+          body?: string;
+          channel?: string;
+          company_id?: string;
+          created_at?: string;
+          id?: string;
+          situation?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "voice_examples_added_by_fkey";
+            columns: ["added_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "voice_examples_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      voice_profiles: {
+        Row: {
+          approved_at: string | null;
+          approved_by: string | null;
+          avoid_phrases: string[];
+          changes: string | null;
+          channel_variants: NonNullable<Json>;
+          company_id: string;
+          created_at: string;
+          created_by: string | null;
+          emoji: string;
+          id: string;
+          reading_level: string;
+          run_id: string | null;
+          sign_off: string | null;
+          source: string;
+          spelling: string;
+          status: Database["public"]["Enums"]["voice_status"];
+          summary: string;
+          tone_rules: NonNullable<Json>;
+          traits: string[];
+          use_phrases: string[];
+          version: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          approved_at?: string | null;
+          approved_by?: string | null;
+          avoid_phrases?: string[];
+          changes?: string | null;
+          channel_variants?: NonNullable<Json>;
+          company_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          emoji?: string;
+          id?: string;
+          reading_level?: string;
+          run_id?: string | null;
+          sign_off?: string | null;
+          source: string;
+          spelling?: string;
+          status?: Database["public"]["Enums"]["voice_status"];
+          summary?: string;
+          tone_rules?: NonNullable<Json>;
+          traits?: string[];
+          use_phrases?: string[];
+          version: number;
+        };
+        Update: {
+          approved_at?: string | null;
+          approved_by?: string | null;
+          avoid_phrases?: string[];
+          changes?: string | null;
+          channel_variants?: NonNullable<Json>;
+          company_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          emoji?: string;
+          id?: string;
+          reading_level?: string;
+          run_id?: string | null;
+          sign_off?: string | null;
+          source?: string;
+          spelling?: string;
+          status?: Database["public"]["Enums"]["voice_status"];
+          summary?: string;
+          tone_rules?: NonNullable<Json>;
+          traits?: string[];
+          use_phrases?: string[];
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "voice_profiles_approved_by_fkey";
+            columns: ["approved_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "voice_profiles_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "voice_profiles_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "voice_profiles_run_id_fkey";
+            columns: ["run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       voice_sources: {
         Row: {
           added_by: string | null;
@@ -1832,6 +2122,10 @@ export type Database = {
     };
     Functions: {
       accept_invites: { Args: Record<PropertyKey, never>; Returns: number };
+      adopt_voice_profile: {
+        Args: { p_approved_by: string; p_profile: string };
+        Returns: undefined;
+      };
       append_run_step: { Args: { p_run: string; p_step: Json }; Returns: undefined };
       approve_gate: { Args: { p_gate: string }; Returns: Database["public"]["Enums"]["stage"] };
       ask_why: { Args: { p_approval: string }; Returns: undefined };
@@ -1958,6 +2252,10 @@ export type Database = {
       import_contacts: { Args: { p_company: string; p_rows: Json }; Returns: number };
       join_cohort: { Args: { p_code: string; p_company: string }; Returns: string };
       post_chat_message: { Args: { p_company: string; p_content: string }; Returns: string };
+      propose_voice_profile: {
+        Args: { p_company: string; p_profile: Json; p_run: string; p_source: string };
+        Returns: string;
+      };
       reap_stale_runs: { Args: { p_stale?: string }; Returns: number };
       refund_run: { Args: { p_reason?: string; p_run: string }; Returns: number };
       release_hold: { Args: { p_note?: string; p_run: string }; Returns: number };
@@ -1969,16 +2267,39 @@ export type Database = {
         Args: { p_amount: number; p_company: string; p_note?: string; p_run: string };
         Returns: number;
       };
+      save_voice_profile: { Args: { p_company: string; p_profile: Json }; Returns: string };
+      set_response_policy: {
+        Args: {
+          p_category: string;
+          p_company: string;
+          p_mode: Database["public"]["Enums"]["response_mode"];
+        };
+        Returns: undefined;
+      };
       settle_run: { Args: { p_cost_usd: number; p_note?: string; p_run: string }; Returns: number };
       settle_run_credits: {
         Args: { p_credits: number; p_note?: string; p_run: string };
         Returns: number;
       };
+      update_response_settings: {
+        Args: {
+          p_company: string;
+          p_disclosure_on_approved?: boolean;
+          p_disclosure_text?: string;
+          p_mark_reviewed?: boolean;
+        };
+        Returns: undefined;
+      };
       usd_for_credits: { Args: { p_credits: number }; Returns: number };
     };
     Enums: {
       approval_action:
-        "publish_post" | "send_email" | "ad_spend" | "file_document" | "publish_site";
+        | "publish_post"
+        | "send_email"
+        | "ad_spend"
+        | "file_document"
+        | "publish_site"
+        | "update_voice";
       approval_status: "pending" | "approved" | "declined";
       assumption_status: "untested" | "testing" | "validated" | "invalidated";
       chat_sender: "founder" | "sol";
@@ -2002,6 +2323,7 @@ export type Database = {
       member_role: "founder" | "teammate" | "mentor" | "viewer";
       pillar: "build" | "grow" | "run" | "legal" | "raise";
       post_status: "draft" | "awaiting_approval" | "scheduled" | "published";
+      response_mode: "auto_send" | "draft" | "escalate";
       routine_cadence: "daily" | "weekdays" | "weekly";
       run_status: "queued" | "running" | "succeeded" | "failed" | "needs_approval";
       sector_pack: "general" | "legal" | "finance" | "health" | "education";
@@ -2009,6 +2331,7 @@ export type Database = {
       stage: "idea" | "evidence" | "build" | "launch" | "grow";
       task_actor: "sol" | "founder" | "mentor";
       task_status: "todo" | "doing" | "done";
+      voice_status: "proposed" | "approved" | "declined" | "superseded";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -2123,7 +2446,14 @@ export const Constants = {
   },
   public: {
     Enums: {
-      approval_action: ["publish_post", "send_email", "ad_spend", "file_document", "publish_site"],
+      approval_action: [
+        "publish_post",
+        "send_email",
+        "ad_spend",
+        "file_document",
+        "publish_site",
+        "update_voice",
+      ],
       approval_status: ["pending", "approved", "declined"],
       assumption_status: ["untested", "testing", "validated", "invalidated"],
       chat_sender: ["founder", "sol"],
@@ -2146,6 +2476,7 @@ export const Constants = {
       member_role: ["founder", "teammate", "mentor", "viewer"],
       pillar: ["build", "grow", "run", "legal", "raise"],
       post_status: ["draft", "awaiting_approval", "scheduled", "published"],
+      response_mode: ["auto_send", "draft", "escalate"],
       routine_cadence: ["daily", "weekdays", "weekly"],
       run_status: ["queued", "running", "succeeded", "failed", "needs_approval"],
       sector_pack: ["general", "legal", "finance", "health", "education"],
@@ -2153,6 +2484,7 @@ export const Constants = {
       stage: ["idea", "evidence", "build", "launch", "grow"],
       task_actor: ["sol", "founder", "mentor"],
       task_status: ["todo", "doing", "done"],
+      voice_status: ["proposed", "approved", "declined", "superseded"],
     },
   },
 } as const;
