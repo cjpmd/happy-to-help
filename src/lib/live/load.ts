@@ -112,6 +112,12 @@ export const loaders = {
       .map(M.mapChat)
       .reverse(),
   }),
+  job_types: async (sb) => ({
+    job_types: must(
+      await sb.from("job_types").select("job_type, label, estimate_credits, cap_credits"),
+      "job estimates",
+    ),
+  }),
   investors: async (sb) => ({
     investors: must(await sb.from("investors").select("*").order("created_at"), "investors").map(
       M.mapInvestor,
@@ -211,6 +217,7 @@ export const TABLE_GROUPS: Partial<Record<keyof Database["public"]["Tables"], Gr
   media_assets: "media",
   document_versions: "documents",
   email_messages: "emails",
+  job_types: "job_types",
 };
 
 export async function loadGroups(sb: Client, userId: string, groups: Group[]) {
@@ -244,6 +251,7 @@ export function emptyDb(): DB {
     cohorts: [],
     cohort_companies: [],
     cohort_mentors: [],
+    job_types: [],
     routines: [],
     documents: [],
     media: [],

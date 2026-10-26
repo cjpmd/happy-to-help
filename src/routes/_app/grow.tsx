@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { RouteTabs } from "@/components/mission/RouteTabs";
 import { AdsPage, MediaPage } from "@/components/mission/WorkspacePages";
-import { useStore } from "@/lib/store";
+import { useStore, useEstimate } from "@/lib/store";
 import { PageHeader, Panel, Pill, StatusPill } from "@/components/mission/primitives";
 import { ClaimsCheck, CostButton, Why } from "@/components/mission/WorkControls";
 import { pageHead } from "@/lib/seo";
@@ -21,6 +21,7 @@ export const Route = createFileRoute("/_app/grow")({
 
 function Grow() {
   const { companyId, work } = useStore();
+  const postCost = useEstimate("social");
   const { tab = "overview" } = Route.useSearch();
   const navigate = Route.useNavigate();
   return (
@@ -32,8 +33,8 @@ function Grow() {
           <div>
             <CostButton
               label="Write post"
-              cost={40}
-              onConfirm={() => work(companyId, "Write social post", 40, "social")}
+              cost={postCost}
+              onConfirm={() => work(companyId, "Write social post", postCost, "social")}
             />
           </div>
         }

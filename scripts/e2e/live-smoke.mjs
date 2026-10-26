@@ -107,6 +107,12 @@ try {
       "HQ shows StudyBuddy from Supabase",
     );
 
+    // Sol chat streams from the chat Edge Function (needs `npx supabase functions serve`).
+    await page.getByPlaceholder(/Plan, write, check or build/).fill("How is the waitlist doing?");
+    await page.getByRole("button", { name: "Send" }).click();
+    await page.getByText(/brought in signups/).first().waitFor({ timeout: 30_000 });
+    check(true, "Sol's chat reply streams in and is saved");
+
     await page.goto(`${base}/approvals`);
     await page.getByText("Publish a post").first().waitFor();
     const cards = page.locator("article");

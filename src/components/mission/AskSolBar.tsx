@@ -1,8 +1,8 @@
 import { useId, useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { MessagesSquare } from "lucide-react";
-import { useBalance, useStore } from "@/lib/store";
-import { ACTION_COSTS, actionQuote } from "@/lib/credits";
+import { useBalance, useStore, useEstimate } from "@/lib/store";
+import { actionQuote } from "@/lib/credits";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { SolChat } from "./SolChat";
@@ -19,8 +19,9 @@ export function AskSolBar({
   onOpenChange?: (open: boolean) => void;
 }) {
   const { sendChat, solTyping } = useStore();
+  const chatCost = useEstimate("chat");
   const balance = useBalance(companyId);
-  const quote = actionQuote(balance, ACTION_COSTS.chat);
+  const quote = actionQuote(balance, chatCost);
   const [text, setText] = useState("");
   const [openState, setOpenState] = useState(false);
   const open = openProp ?? openState;
@@ -58,7 +59,7 @@ export function AskSolBar({
         />
         {quote.affordable ? (
           <span className="label-caps hidden text-[11px] text-muted-foreground tab:inline">
-            ≈ {ACTION_COSTS.chat} CR
+            ≈ {chatCost} CR
           </span>
         ) : (
           <Link to="/billing" className="label-caps text-[11px] text-hold">

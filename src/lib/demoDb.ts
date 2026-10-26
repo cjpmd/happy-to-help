@@ -1,5 +1,5 @@
 import * as seed from "./seed";
-import type { DB } from "./storeContext";
+import { demoJobTypes, type DB } from "./storeContext";
 import { businessDefaults, defaultLayout, workspaceSeed, type LayoutItem } from "./workspace";
 
 /** The demo store's starting data, from src/lib/seed.ts. */
@@ -31,6 +31,7 @@ export function demoDb(): DB {
     cohorts: seed.cohorts,
     cohort_companies: seed.cohort_companies,
     cohort_mentors: seed.cohort_mentors,
+    job_types: demoJobTypes(),
   };
 }
 

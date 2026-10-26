@@ -20,8 +20,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { useStore, useCompany, useBalance } from "@/lib/store";
-import { ACTION_COSTS, actionQuote } from "@/lib/credits";
+import { useStore, useCompany, useBalance, useEstimate } from "@/lib/store";
+import { actionQuote } from "@/lib/credits";
 import type { ThemePref } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import {
@@ -146,6 +146,7 @@ export function RoutinesPage({ embedded }: { embedded?: boolean }) {
 
 export function EmailPage({ embedded }: { embedded?: boolean }) {
   const { db, companyId, work, draftOutreach } = useStore();
+  const emailCost = useEstimate("email");
   const c = useCompany();
   const [mode, setMode] = useState<"support" | "outreach">("support");
   const [selected, setSelected] = useState<string | null>(null);
@@ -225,10 +226,10 @@ export function EmailPage({ embedded }: { embedded?: boolean }) {
               <div className="mt-5">
                 <CostButton
                   label="Draft support reply"
-                  cost={ACTION_COSTS.email}
+                  cost={emailCost}
                   disabled={mode !== "support"}
                   onConfirm={() =>
-                    work(companyId, "Draft support reply", ACTION_COSTS.email, "email", thread.id)
+                    work(companyId, "Draft support reply", emailCost, "email", thread.id)
                   }
                 />
                 <Why />
@@ -285,6 +286,9 @@ export function EmailPage({ embedded }: { embedded?: boolean }) {
 
 export function MediaPage({ embedded }: { embedded?: boolean }) {
   const { db, companyId, work } = useStore();
+  const imageCost = useEstimate("image");
+  const videoCost = useEstimate("video");
+  const postCost = useEstimate("social");
   const [prompt, setPrompt] = useState("Daily revision quiz campaign");
   return (
     <>
@@ -301,18 +305,18 @@ export function MediaPage({ embedded }: { embedded?: boolean }) {
           <CostButton
             label="Generate image"
             icon={<ImagePlus className="h-4 w-4" />}
-            cost={120}
+            cost={imageCost}
             disabled={!prompt.trim()}
-            onConfirm={() => work(companyId, prompt, 120, "image")}
+            onConfirm={() => work(companyId, prompt, imageCost, "image")}
           />
         </div>
         <div>
           <CostButton
             label="Generate video"
             icon={<Film className="h-4 w-4" />}
-            cost={400}
+            cost={videoCost}
             disabled={!prompt.trim()}
-            onConfirm={() => work(companyId, prompt, 400, "video")}
+            onConfirm={() => work(companyId, prompt, videoCost, "video")}
           />
         </div>
       </div>
@@ -360,8 +364,10 @@ export function MediaPage({ embedded }: { embedded?: boolean }) {
                 ) : m.status === "ready" ? (
                   <CostButton
                     label="Use in post"
-                    cost={40}
-                    onConfirm={() => work(companyId, "Draft post with media", 40, "social", m.id)}
+                    cost={postCost}
+                    onConfirm={() =>
+                      work(companyId, "Draft post with media", postCost, "social", m.id)
+                    }
                   />
                 ) : null}
                 <Why />
@@ -472,6 +478,7 @@ export function DocumentsPage({
   only?: string[];
 }) {
   const { db, companyId, work } = useStore();
+  const docCost = useEstimate("document");
   const docs = db.documents.filter(
     (d) => d.company_id === companyId && (!only || only.includes(d.title)),
   );
@@ -546,8 +553,10 @@ export function DocumentsPage({
             <div className="mt-5">
               <CostButton
                 label="Ask Sol to update"
-                cost={120}
-                onConfirm={() => work(companyId, `Update ${doc.title}`, 120, "document", doc.id)}
+                cost={docCost}
+                onConfirm={() =>
+                  work(companyId, `Update ${doc.title}`, docCost, "document", doc.id)
+                }
               />
               <Why reason="Keeping one versioned source prevents conflicting company information. Current company records and the previous document version form the evidence for this update." />
             </div>

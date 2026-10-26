@@ -14,8 +14,8 @@ Restyle first, then the remaining Phase 1 groups, then the engine, then the v2 d
 | 1 | Finish Phase 1: restyle step 5 (Telemetry), 1b schema additions, 1c live data layer, 1d server-side writes, 1e bug fixes | `phase-1-finish` | Done |
 | 2 | Credits engine | `phase-2-credits` | Done |
 | 3 | Agent service | `phase-3-agent-service` | Done |
-| 4 | Connect the app to the engine | `phase-4-connect` | Next |
-| 5 | Approvals executor | `phase-5-executor` | |
+| 4 | Connect the app to the engine | `phase-4-connect` | Done |
+| 5 | Approvals executor | `phase-5-executor` | Next |
 | 10 | Two entry paths, stage-aware dashboard | `phase-10-entry-paths` | |
 | 11 | Brand voice and response policy | `phase-11-voice-policy` | |
 | 12 | Capture v1 | `phase-12-capture` | |
@@ -47,7 +47,7 @@ Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, con
 | Unit tests | `npm test` |
 | Build | `npm run build` |
 | Database (pgTAP) | `npx supabase test db` (or `scripts/db/test-local.sh`) |
-| Integration (API + RLS) | `npm run test:integration` (local stack running and reset) |
+| Integration (API + RLS + Edge Functions) | `npm run test:integration` (local stack running and reset; `npx supabase functions serve` running) |
 | Live end to end | `npm run e2e:live` (set `CHROMIUM_PATH` if Playwright's browser isn't installed) |
 | Agent service | `cd agent-service && npx tsc --noEmit && npm test` (after `npx supabase db reset`) |
 | HQ fit | `npm run check:fit` |
@@ -78,6 +78,15 @@ Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, con
 - `npm run run-once` runs one StudyBuddy job end to end.
 - **Mocked:** the model (mock runtime by default, DECISIONS D20, HANDOFF 1) and media generation (a placeholder image).
 - Tests: 9 in `agent-service/test` (pipeline, chat, retry/refund/escalate, insufficient credits, claim exclusivity, reaper) and 11 pgTAP checks in `08_agent_worker.test.sql`.
+
+### Phase 4 (finished 26 Oct 2026)
+
+- `src/lib/agentClient.ts` is real in live mode with the same signatures: `sendChatMessage` streams from the `chat` Edge Function (optional `onDelta`), `runTask` and the new `enqueueJob` call the `enqueue-job` Edge Function. Demo mode keeps the canned behaviour.
+- `job_types` holds every job's estimate and cap (D26); the app shows them before running (`useEstimate`), `enqueue_job` and the agent service use them. `model_prices` prices token usage for chat.
+- Chat (D27): reserve → stream → settle → refund on failure, one run per turn. The reply streams into the chat as it's written (`chatDraft`).
+- Run progress arrives through Realtime (runs, jobs and steps); LOG shows each run's steps as they're recorded.
+- Tests: `src/test/edgeLogic.test.ts` (tier routing, pricing, reservation, SSE parsing), `src/test/integration/edge-functions.test.ts`, and the live browser test now sends a chat message.
+- **Mocked:** chat replies until `ANTHROPIC_API_KEY` is set on the functions (HANDOFF 2).
 
 ## Phase 0 audit and Phase 1 history
 
