@@ -7,11 +7,18 @@ describe("credits engine through the API", () => {
     const { data, error } = await sb.rpc("credit_summary", { p_company: STUDYBUDDY });
     expect(error).toBeNull();
     const s = data as { balance: number; held: number; plan: number; topup: number };
-    expect(s.balance).toBe(5995);
+    // Other tests may have spent credits, so compare with the ledger rather than a fixed number.
+    const { data: rows } = await sb
+      .from("credit_ledger")
+      .select("amount")
+      .eq("company_id", STUDYBUDDY);
+    expect(s.balance).toBe(rows!.reduce((n, r) => n + r.amount, 0));
+    expect(s.balance).toBeLessThanOrEqual(5995);
+    // The seed's still-running investor run holds 80.
     expect(s.held).toBe(80);
-    // 5,000 plan credits were used first; the rest came from the Launch Pack.
+    // 5,000 plan credits were used first; the rest is Launch Pack credit.
     expect(s.plan).toBe(0);
-    expect(s.topup).toBe(5995);
+    expect(s.topup).toBe(s.balance);
   });
 
   it("only the service role can move credits", async () => {

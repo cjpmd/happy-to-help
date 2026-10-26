@@ -22,7 +22,7 @@ export async function loadMemoryInput(db: Db, companyId: string): Promise<Memory
     db.from("tasks").select("title, status, due").eq("company_id", companyId).neq("status", "done"),
     db
       .from("approvals")
-      .select("action_type, payload, decided_at")
+      .select("action_type, payload, decided_at, decision_note")
       .eq("company_id", companyId)
       .eq("status", "declined")
       .order("decided_at", { ascending: false })
@@ -56,10 +56,11 @@ export async function loadMemoryInput(db: Db, companyId: string): Promise<Memory
     declined: must(declined, "declined approvals").map((a) => {
       const p = a.payload as Record<string, unknown>;
       return {
-        what: `${a.action_type.replace("_", " ")}: ${String(p["text"] ?? p["subject"] ?? p["change"] ?? "")}`.slice(
-          0,
-          120,
-        ),
+        what:
+          `${a.action_type.replace("_", " ")}: ${String(p["text"] ?? p["subject"] ?? p["change"] ?? "")}`.slice(
+            0,
+            120,
+          ) + (a.decision_note ? ` (founder's note: ${a.decision_note})` : ""),
         when: a.decided_at ?? "",
       };
     }),

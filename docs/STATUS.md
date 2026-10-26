@@ -15,8 +15,8 @@ Restyle first, then the remaining Phase 1 groups, then the engine, then the v2 d
 | 2 | Credits engine | `phase-2-credits` | Done |
 | 3 | Agent service | `phase-3-agent-service` | Done |
 | 4 | Connect the app to the engine | `phase-4-connect` | Done |
-| 5 | Approvals executor | `phase-5-executor` | Next |
-| 10 | Two entry paths, stage-aware dashboard | `phase-10-entry-paths` | |
+| 5 | Approvals executor | `phase-5-executor` | Done |
+| 10 | Two entry paths, stage-aware dashboard | `phase-10-entry-paths` | Next |
 | 11 | Brand voice and response policy | `phase-11-voice-policy` | |
 | 12 | Capture v1 | `phase-12-capture` | |
 | 13 | Link layer and lead capture | `phase-13-link-layer` | |
@@ -87,6 +87,14 @@ Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, con
 - Run progress arrives through Realtime (runs, jobs and steps); LOG shows each run's steps as they're recorded.
 - Tests: `src/test/edgeLogic.test.ts` (tier routing, pricing, reservation, SSE parsing), `src/test/integration/edge-functions.test.ts`, and the live browser test now sends a chat message.
 - **Mocked:** chat replies until `ANTHROPIC_API_KEY` is set on the functions (HANDOFF 2).
+
+### Phase 5 (finished 26 Oct 2026)
+
+- `20261026140000_approvals_executor.sql`: approvals gain `execution_status` (queued → executing → done / blocked / failed), result, error, attempts, the run that charged them and a NO-GO note. `decide_approval` queues approved actions; `claim_approval_execution` and `settle_run_credits` serve the executor.
+- `agent-service/src/executor/`: providers behind one interface (social, email, ads, site, documents; mock now, Phase 7 adds real ones), the rules (D30) and the executor (D29), run by the worker before agent jobs.
+- Approval cards show what happened after GO. Sol's memory includes NO-GO notes (D32).
+- Tests: 8 rule tests and 7 executor tests in `agent-service/test`, and `09_executor.test.sql`.
+- **Mocked:** every provider (nothing leaves the building) until Phase 7.
 
 ## Phase 0 audit and Phase 1 history
 

@@ -206,6 +206,8 @@ export function ApprovalCard({
         <p className="mt-3 text-xs text-muted-foreground">
           {a.status === "approved" ? "Approved" : "Declined"} by {personName(db, a.decided_by)} ·{" "}
           {a.decided_at && fmtDateTime(a.decided_at)}
+          {a.decision_note && ` · “${a.decision_note}”`}
+          <ExecutionNote a={a} />
         </p>
       ) : (
         <Pill className="mt-3">Awaiting founder</Pill>
@@ -263,4 +265,29 @@ function DraftEditor({ a, onDone }: { a: Approval; onDone: () => void }) {
       </div>
     </div>
   );
+}
+
+/** What happened after GO: queued for the executor, carried out, blocked by a rule, or failed. */
+function ExecutionNote({ a }: { a: Approval }) {
+  if (a.status !== "approved" || !a.execution_status || a.execution_status === "not_started")
+    return null;
+  switch (a.execution_status) {
+    case "queued":
+    case "executing":
+      return <span className="block">Sol is carrying it out…</span>;
+    case "done":
+      return (
+        <span className="block text-go">
+          Carried out{a.executed_at ? ` · ${fmtDateTime(a.executed_at)}` : ""}
+        </span>
+      );
+    case "blocked":
+      return <span className="block text-hold">Not carried out: {a.execution_error}</span>;
+    case "failed":
+      return (
+        <span className="block text-destructive">
+          Couldn't be carried out: {a.execution_error}. Nothing was charged.
+        </span>
+      );
+  }
 }

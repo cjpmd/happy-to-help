@@ -245,6 +245,9 @@ insert into public.approvals (id, company_id, run_id, action_type, payload, esti
    '{"change": "Connect Stripe checkout to the pricing page (£4.99 a month, test mode)", "url": "/site/studybuddy?preview=1", "reason": "Pre-orders passed the Launch gate target (12 of 10). Checkout lets them convert to paying."}',
    120, 'pending', null, null, now() - interval '25.5 hours');
 
+-- The approved filing was carried out at the time.
+update public.approvals set execution_status = 'done', executed_at = decided_at where status = 'approved';
+
 -- Activity --------------------------------------------------------------------------------
 
 insert into public.activity_events (company_id, type, summary, run_id, created_at) values

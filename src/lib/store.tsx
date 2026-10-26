@@ -178,7 +178,17 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
                 ]
               : d.emails,
           approvals: d.approvals.map((x) =>
-            x.id === id ? { ...x, status, decided_by: user.id, decided_at: iso() } : x,
+            x.id === id
+              ? {
+                  ...x,
+                  status,
+                  decided_by: user.id,
+                  decided_at: iso(),
+                  // The demo carries approved actions out at once.
+                  execution_status: status === "approved" ? "done" : "not_started",
+                  executed_at: status === "approved" ? iso() : null,
+                }
+              : x,
           ),
           agent_runs: d.agent_runs.map((r) =>
             r.id === a.run_id && r.status === "needs_approval"
