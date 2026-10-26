@@ -11,6 +11,7 @@ import { mockProviders } from "./executor/providers.js";
 import { runtimeFor } from "./runtime/index.js";
 import { transcriptionFromEnv } from "./capture/transcription.js";
 import { purgeExpiredAudio } from "./capture/prepare.js";
+import { runScheduler } from "./scheduler.js";
 import {
   platformKeys,
   providersFor,
@@ -85,6 +86,11 @@ async function main() {
         if (data) console.log(`Recovered ${data} stale run(s)`);
         const purged = await purgeExpiredAudio(db);
         if (purged) console.log(`Deleted ${purged} recording(s) past their keep period`);
+        const s = await runScheduler(db);
+        if (s.routines || s.nightly || s.voice || s.autoSteps)
+          console.log(
+            `Scheduled ${s.routines} routine(s), ${s.nightly} nightly, ${s.voice} voice review(s), ${s.autoSteps} Auto Mode step(s)`,
+          );
       }
       // Analytics back in from the real providers (Phase 8 moves these onto the scheduler).
       if (Date.now() - lastSocialSync > 60 * 60_000) {

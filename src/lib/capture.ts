@@ -376,7 +376,7 @@ export function acceptableInBulk(
 }
 
 /** Open promises due on or before a day, oldest first. */
-export function commitmentsDue<T extends Pick<Commitment, "status" | "due_date">>(
+export function commitmentsDue<T extends { status: string; due_date: string }>(
   commitments: T[],
   day: string,
 ) {

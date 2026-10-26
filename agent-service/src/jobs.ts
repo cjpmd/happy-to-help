@@ -170,6 +170,49 @@ JOBS["commitment_followup"] = {
     `The founder promised someone a follow-up (promise ${target ?? "(missing)"}). Read it with get_commitment and draft a short, warm follow-up in the brand voice that does exactly what was promised, then propose it with propose_followup. If something promised is an attachment you don't have, say in the email that it's attached and leave a [placeholder] for the founder.`,
 };
 
+JOBS["routine"] = {
+  label: "Routine",
+  pillar: "run",
+  tier: "routine",
+  skills: ["claims-check"],
+  estimate: 30,
+  cap: 120,
+  maxTurns: 10,
+  tools: [...READ, "propose_post", "propose_email", "propose_document_update"],
+  prompt: ({ title }) =>
+    `Run the founder's routine "${title ?? "routine"}". Do what it says for the company's current stage; propose anything that would publish or send.`,
+};
+JOBS["morning_brief"] = {
+  label: "Morning brief",
+  pillar: "run",
+  tier: "routine",
+  skills: ["morning-brief"],
+  estimate: 25,
+  cap: 60,
+  maxTurns: 4,
+  tools: ["get_brief_facts", "save_brief"],
+  prompt: () =>
+    "Write today's morning brief with the morning-brief skill: get the facts, then save a short brief in plain UK English.",
+};
+JOBS["nightly"] = {
+  label: "Nightly work",
+  pillar: "run",
+  tier: "planning",
+  skills: ["social-post", "claims-check"],
+  estimate: 150,
+  cap: 600,
+  maxTurns: 20,
+  tools: [
+    ...READ,
+    "propose_post",
+    "propose_email",
+    "propose_site_change",
+    "propose_document_update",
+  ],
+  prompt: ({ title }) =>
+    `It's the nightly loop. The highest-leverage open task for the current stage is "${title ?? "the next task"}". Make real progress on it, propose anything external for approval, and stop well within the budget.`,
+};
+
 export function jobSpec(jobType: string): JobSpec | undefined {
   return JOBS[jobType];
 }

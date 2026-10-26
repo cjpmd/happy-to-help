@@ -204,6 +204,10 @@ begin
     insert into public.stripe_events (id, type, company_id) values ('evt_' || c, 'invoice.paid', c);
     insert into public.integration_settings (company_id, provider) values (c, 'resend');
     insert into public.integration_secrets (company_id, provider, secret) values (c, 'ayrshare', 'profile-key');
+    insert into public.company_automation (company_id) values (c);
+    insert into public.schedule_runs (kind, company_id, period_key) values ('routine', c, '2026-10-27');
+    insert into public.briefs (company_id, brief_date, content) values (c, '2026-10-27', 'Good morning.');
+    insert into public.auto_sessions (company_id, ends_at, cap_credits, status) values (c, now() + interval '1 hour', 100, 'finished');
   end loop;
 end;
 $$;
