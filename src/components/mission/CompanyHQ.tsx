@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { ArrowDown, ArrowUp, GripVertical, RotateCcw } from "lucide-react";
-import { useStore } from "@/lib/store";
-import { defaultLayout, type Widget } from "@/lib/workspace";
+import { useCompany, useStore } from "@/lib/store";
+import { defaultLayout, layoutFor, type Widget } from "@/lib/workspace";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,7 +15,11 @@ import { MissionHeader } from "./MissionHeader";
 import { AskSolBar } from "./AskSolBar";
 import {
   ChannelsCard,
+  EvidenceCard,
   FlightPlanCard,
+  InboxCard,
+  LeadsCard,
+  ResponseTimesCard,
   GoNoGoCard,
   NextWindowsCard,
   OvernightBurnCard,
@@ -26,6 +30,7 @@ import {
 /**
  * Mission HQ (docs/DESIGN.md section 4): header, Ask Sol, the flight plan and a
  * grid of six cards that founders can hide and reorder. Mentors see it read-only.
+ * The cards depend on the entry path and stage (Phase 10, `dashboardCards`).
  */
 export function CompanyHQ({
   companyId,
@@ -35,10 +40,12 @@ export function CompanyHQ({
   readOnly?: boolean | undefined;
 }) {
   const { db, user, saveLayout } = useStore();
+  const company = useCompany(companyId);
   const [chatOpen, setChatOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [drag, setDrag] = useState<Widget | null>(null);
-  const layout = db.layouts[user.id] ?? defaultLayout();
+  const layout = layoutFor(db.layouts[user.id], company);
+  const keepGoing = company.entry_path === "keep_going";
 
   const reorder = (from: Widget, to: Widget) => {
     const next = [...layout];
@@ -71,6 +78,16 @@ export function CompanyHQ({
         return <OvernightBurnCard companyId={companyId} />;
       case "Next windows":
         return <NextWindowsCard companyId={companyId} />;
+      case "Evidence":
+        return <EvidenceCard companyId={companyId} />;
+      case "Leads":
+        return <LeadsCard companyId={companyId} />;
+      case "Inbox":
+        return <InboxCard companyId={companyId} />;
+      case "Response times":
+        return <ResponseTimesCard companyId={companyId} />;
+      case "Campaigns":
+        return <ChannelsCard companyId={companyId} title="Campaigns" />;
     }
   };
 
@@ -82,7 +99,8 @@ export function CompanyHQ({
         onCustomise={readOnly ? undefined : () => setEditing(true)}
       />
       {!readOnly && <AskSolBar companyId={companyId} open={chatOpen} onOpenChange={setChatOpen} />}
-      <FlightPlanCard companyId={companyId} readOnly={readOnly} />
+      {/* Start up companies steer by the flight plan; Keep going ones by leads and replies. */}
+      {!keepGoing && <FlightPlanCard companyId={companyId} readOnly={readOnly} />}
       <div className="grid items-start gap-3 tab:grid-cols-2 desk:grid-cols-3">
         {layout
           .filter((w) => w.visible)
@@ -148,7 +166,7 @@ export function CompanyHQ({
             ))}
           </div>
           <div className="flex justify-between gap-3">
-            <Button variant="outline" onClick={() => saveLayout(defaultLayout())}>
+            <Button variant="outline" onClick={() => saveLayout(defaultLayout(company))}>
               <RotateCcw className="h-4 w-4" />
               Restore default
             </Button>

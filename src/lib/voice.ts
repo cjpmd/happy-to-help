@@ -19,8 +19,10 @@ export interface VoiceRead {
   summary: string;
 }
 
-const UK = /\b(colour|favour|organis\w+|realis\w+|centre|licence|programme|apologis\w+|behaviour|cheque|enrol)\b/gi;
-const US = /\b(color|favor|organiz\w+|realiz\w+|center|license|program|apologiz\w+|behavior|check|enroll)\b/gi;
+const UK =
+  /\b(colour|favour|organis\w+|realis\w+|centre|licence|programme|apologis\w+|behaviour|cheque|enrol)\b/gi;
+const US =
+  /\b(color|favor|organiz\w+|realiz\w+|center|license|program|apologiz\w+|behavior|check|enroll)\b/gi;
 const SIGN_OFFS = [
   "Best wishes",
   "Kind regards",
@@ -44,12 +46,19 @@ export function analyseVoice(texts: string[]): VoiceRead | null {
   const all = texts.map((t) => t.trim()).filter(Boolean);
   if (!all.length) return null;
   const text = all.join("\n\n");
-  const sentences = text.split(/(?<=[.!?])\s+|\n+/).map((s) => s.trim()).filter((s) => /\w/.test(s));
+  const sentences = text
+    .split(/(?<=[.!?])\s+|\n+/)
+    .map((s) => s.trim())
+    .filter((s) => /\w/.test(s));
   const words = text.match(/[A-Za-z']+/g) ?? [];
   const sentenceLength = sentences.length ? Math.round(words.length / sentences.length) : 0;
   const longWords = words.filter((w) => w.length >= 9).length / Math.max(1, words.length);
   const readingLevel =
-    sentenceLength <= 14 && longWords < 0.12 ? "plain" : sentenceLength <= 22 ? "standard" : "complex";
+    sentenceLength <= 14 && longWords < 0.12
+      ? "plain"
+      : sentenceLength <= 22
+        ? "standard"
+        : "complex";
   const uk = text.match(UK)?.length ?? 0;
   const us = text.match(US)?.length ?? 0;
   const spelling = uk > us ? "UK" : us > uk ? "US" : "unclear";
@@ -64,7 +73,8 @@ export function analyseVoice(texts: string[]): VoiceRead | null {
   const usesEmoji = EMOJI.test(text);
   const exclaims = (text.match(/!/g) ?? []).length / Math.max(1, sentences.length);
   const questions = (text.match(/\?/g) ?? []).length / Math.max(1, sentences.length);
-  const you = words.filter((w) => /^(you|your|you're)$/i.test(w)).length / Math.max(1, words.length);
+  const you =
+    words.filter((w) => /^(you|your|you're)$/i.test(w)).length / Math.max(1, words.length);
 
   // Phrases of two to four words, within a sentence, that come up at least twice.
   const counts = new Map<string, number>();
@@ -86,7 +96,11 @@ export function analyseVoice(texts: string[]): VoiceRead | null {
     .slice(0, 5);
 
   const traits = [
-    readingLevel === "plain" ? "Plain and direct" : readingLevel === "standard" ? "Clear and considered" : "Detailed",
+    readingLevel === "plain"
+      ? "Plain and direct"
+      : readingLevel === "standard"
+        ? "Clear and considered"
+        : "Detailed",
     exclaims > 0.15 || usesEmoji ? "Upbeat" : "Calm",
     you > 0.03 ? "Talks to the reader as “you”" : "Talks about the business",
     questions > 0.1 ? "Asks questions" : null,
@@ -150,7 +164,9 @@ export function parseContactsCsv(csv: string): {
     rows.push({
       name: (iName >= 0 ? cells[iName] : "")?.trim() || email.split("@")[0]!,
       email,
-      kind: /customer|paying|client/i.test(iKind >= 0 ? (cells[iKind] ?? "") : "") ? "customer" : "lead",
+      kind: /customer|paying|client/i.test(iKind >= 0 ? (cells[iKind] ?? "") : "")
+        ? "customer"
+        : "lead",
       value: (iValue >= 0 ? cells[iValue] : "")?.trim() ?? "",
     });
   }

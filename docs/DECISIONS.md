@@ -122,3 +122,13 @@ Non-trivial decisions made during the autonomous build run (`docs/AUTONOMOUS-RUN
 
 ## D32. NO-GO notes
 - **Chosen:** `decide_approval` takes an optional note; it's stored on the approval and shown in the agent's company memory under "Recently declined", so Sol doesn't propose the same thing again unchanged. The app doesn't ask for a note yet.
+
+## D33. Keep going companies
+- **Chosen:** `companies.entry_path` (start_up | keep_going). Keep going companies are created at Grow with the four earlier gates marked `imported` (a new gate status), their website as the live URL, and their socials and Google Business link stored on the company. Their safety approvals (voice, response policy) come in Phase 11.
+- **Onboarding** asks the path first. Keep going adds: website and socials, a contacts CSV (imported with `import_contacts`, deduplicated by email) and pasted past emails (saved as `voice_sources`, readable only by founders and teammates) with Sol's first read of the voice (`src/lib/voice.ts`, rule-based until the Phase 11 skill runs).
+
+## D34. Stage-aware HQ
+- **Chosen:** `dashboardCards()` picks the six HQ cards: Start up at Idea or Evidence sees Evidence instead of Vehicle; Start up from Build sees the original six; Keep going sees GO / NO-GO, Leads, Inbox, Response times, Campaigns (the Channels card until Phase 15) and Telemetry, and no flight plan arc. A saved layout is used only when it has the same cards as the company's dashboard.
+
+## D35. Customers department
+- **Chosen:** `/customers` with Inbox (conversations waiting for a reply), Contacts (moved from Run, with CSV import) and Feedback (empty until Phase 16). Run links to it.

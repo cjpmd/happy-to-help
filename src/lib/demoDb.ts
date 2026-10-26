@@ -1,11 +1,11 @@
 import * as seed from "./seed";
 import { demoJobTypes, type DB } from "./storeContext";
-import { businessDefaults, defaultLayout, workspaceSeed, type LayoutItem } from "./workspace";
+import { businessDefaults, isLayout, workspaceSeed, type LayoutItem } from "./workspace";
 
 /** The demo store's starting data, from src/lib/seed.ts. */
 export function demoDb(): DB {
   return {
-    ...workspaceSeed(seed.companies, seed.tasks),
+    ...withHarbour(workspaceSeed(seed.companies, seed.tasks)),
     profiles: seed.profiles,
     companies: seed.companies.map((c) => ({
       ...c,
@@ -37,13 +37,10 @@ export function demoDb(): DB {
 
 /** A saved HQ layout is usable if it lists each card exactly once. */
 export function isValidLayout(value: unknown): value is LayoutItem[] {
-  return (
-    Array.isArray(value) &&
-    value.length === defaultLayout().length &&
-    new Set(value.map((x: LayoutItem) => x.id)).size === value.length &&
-    value.every(
-      (x: LayoutItem) =>
-        defaultLayout().some((y) => y.id === x.id) && typeof x.visible === "boolean",
-    )
-  );
+  return isLayout(value);
+}
+
+/** Harbour Bakes' seeded inbox replaces the empty one workspaceSeed gives other companies. */
+function withHarbour(w: ReturnType<typeof workspaceSeed>) {
+  return { ...w, emails: [...w.emails, ...seed.harbour_emails] };
 }

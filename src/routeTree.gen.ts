@@ -18,6 +18,7 @@ import { Route as AppApprovalsRouteImport } from './routes/_app/approvals'
 import { Route as AppBillingRouteImport } from './routes/_app/billing'
 import { Route as AppBuildRouteImport } from './routes/_app/build'
 import { Route as AppCohortRouteImport } from './routes/_app/cohort'
+import { Route as AppCustomersRouteImport } from './routes/_app/customers'
 import { Route as AppDocumentsRouteImport } from './routes/_app/documents'
 import { Route as AppEmailRouteImport } from './routes/_app/email'
 import { Route as AppEvidenceRouteImport } from './routes/_app/evidence'
@@ -79,6 +80,11 @@ const AppBuildRoute = AppBuildRouteImport.update({
 const AppCohortRoute = AppCohortRouteImport.update({
   id: '/cohort',
   path: '/cohort',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCustomersRoute = AppCustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDocumentsRoute = AppDocumentsRouteImport.update({
@@ -181,6 +187,7 @@ export interface FileRoutesByFullPath {
   '/billing': typeof AppBillingRoute
   '/build': typeof AppBuildRoute
   '/cohort': typeof AppCohortRouteWithChildren
+  '/customers': typeof AppCustomersRoute
   '/documents': typeof AppDocumentsRoute
   '/email': typeof AppEmailRoute
   '/evidence': typeof AppEvidenceRoute
@@ -209,6 +216,7 @@ export interface FileRoutesByTo {
   '/billing': typeof AppBillingRoute
   '/build': typeof AppBuildRoute
   '/cohort': typeof AppCohortRouteWithChildren
+  '/customers': typeof AppCustomersRoute
   '/documents': typeof AppDocumentsRoute
   '/email': typeof AppEmailRoute
   '/evidence': typeof AppEvidenceRoute
@@ -239,6 +247,7 @@ export interface FileRoutesById {
   '/_app/billing': typeof AppBillingRoute
   '/_app/build': typeof AppBuildRoute
   '/_app/cohort': typeof AppCohortRouteWithChildren
+  '/_app/customers': typeof AppCustomersRoute
   '/_app/documents': typeof AppDocumentsRoute
   '/_app/email': typeof AppEmailRoute
   '/_app/evidence': typeof AppEvidenceRoute
@@ -269,6 +278,7 @@ export interface FileRouteTypes {
     | '/billing'
     | '/build'
     | '/cohort'
+    | '/customers'
     | '/documents'
     | '/email'
     | '/evidence'
@@ -297,6 +307,7 @@ export interface FileRouteTypes {
     | '/billing'
     | '/build'
     | '/cohort'
+    | '/customers'
     | '/documents'
     | '/email'
     | '/evidence'
@@ -326,6 +337,7 @@ export interface FileRouteTypes {
     | '/_app/billing'
     | '/_app/build'
     | '/_app/cohort'
+    | '/_app/customers'
     | '/_app/documents'
     | '/_app/email'
     | '/_app/evidence'
@@ -417,6 +429,13 @@ declare module '@tanstack/react-router' {
       path: '/cohort'
       fullPath: '/cohort'
       preLoaderRoute: typeof AppCohortRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/customers': {
+      id: '/_app/customers'
+      path: '/customers'
+      fullPath: '/customers'
+      preLoaderRoute: typeof AppCustomersRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/documents': {
@@ -567,6 +586,7 @@ interface AppRouteChildren {
   AppBillingRoute: typeof AppBillingRoute
   AppBuildRoute: typeof AppBuildRoute
   AppCohortRoute: typeof AppCohortRouteWithChildren
+  AppCustomersRoute: typeof AppCustomersRoute
   AppDocumentsRoute: typeof AppDocumentsRoute
   AppEmailRoute: typeof AppEmailRoute
   AppEvidenceRoute: typeof AppEvidenceRoute
@@ -591,6 +611,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppBillingRoute: AppBillingRoute,
   AppBuildRoute: AppBuildRoute,
   AppCohortRoute: AppCohortRouteWithChildren,
+  AppCustomersRoute: AppCustomersRoute,
   AppDocumentsRoute: AppDocumentsRoute,
   AppEmailRoute: AppEmailRoute,
   AppEvidenceRoute: AppEvidenceRoute,

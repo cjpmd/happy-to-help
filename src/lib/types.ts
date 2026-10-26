@@ -30,6 +30,10 @@ export interface Company {
   /** Onboarding answers kept as given. */
   starting_stage?: string | null;
   existing_website_url?: string | null;
+  /** Start up (prove demand from an idea) or Keep going (already trading). */
+  entry_path?: "start_up" | "keep_going";
+  social_handles?: Record<string, string>;
+  google_business_url?: string | null;
 }
 export interface CompanyMember {
   company_id: string;
@@ -61,7 +65,8 @@ export interface StageGate {
   company_id: string;
   stage: Stage;
   criteria: GateCriterion[];
-  status: "locked" | "in_progress" | "ready" | "approved";
+  /** imported: a Keep going company was already past this gate when it joined. */
+  status: "locked" | "in_progress" | "ready" | "approved" | "imported";
   approved_by?: string | null;
   approved_at?: string | null;
   /** When the gate should pass. */
@@ -272,6 +277,8 @@ export interface Contact {
   kind: "customer" | "lead";
   value: string;
   last: string;
+  /** manual, import, form… */
+  source?: string;
 }
 export interface GateComment {
   id: string;

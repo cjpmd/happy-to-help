@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { RouteTabs } from "@/components/mission/RouteTabs";
 import { DocumentsPage, EmailPage } from "@/components/mission/WorkspacePages";
 import { useStore } from "@/lib/store";
@@ -86,35 +86,14 @@ function RunOverview() {
             {!todo.length && <li className="p-4 text-sm text-muted-foreground">No tasks.</li>}
           </ul>
         </Panel>
-        <Panel title="Customers & leads" className="lg:col-span-3" bodyClassName="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs text-muted-foreground">
-                <tr className="border-b">
-                  <th className="px-4 py-2 font-medium">Name</th>
-                  <th className="px-4 py-2 font-medium">Email</th>
-                  <th className="px-4 py-2 font-medium">Type</th>
-                  <th className="px-4 py-2 font-medium">Value</th>
-                  <th className="px-4 py-2 font-medium">Last contact</th>
-                </tr>
-              </thead>
-              <tbody>
-                {people.map((p) => (
-                  <tr key={p.id} className="border-b last:border-0">
-                    <td className="px-4 py-3 font-medium">{p.name}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{p.email}</td>
-                    <td className="px-4 py-3">
-                      <Pill tone={p.kind === "customer" ? "success" : "info"}>
-                        {p.kind === "customer" ? "Customer" : "Lead"}
-                      </Pill>
-                    </td>
-                    <td className="px-4 py-3">{p.value}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{fmtDate(p.last)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <Panel title="Customers & leads" className="lg:col-span-3">
+          <p className="text-sm text-muted-foreground">
+            {people.length} contacts. They live in{" "}
+            <Link to="/customers" search={{ tab: "contacts" }} className="text-ink underline">
+              Customers
+            </Link>{" "}
+            now, with the inbox and feedback.
+          </p>
         </Panel>
       </div>
     </div>

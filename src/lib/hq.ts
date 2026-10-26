@@ -3,6 +3,8 @@ import type {
   Approval,
   Company,
   ComplianceItem,
+  Contact,
+  EvidenceItem,
   LedgerEntry,
   MetricsDaily,
   SocialPost,
@@ -248,4 +250,89 @@ export function tileSummary(badges: { tone: BadgeTone }[]): string {
     .filter(([n]) => n > 0)
     .map(([n, word]) => `${n} ${word}`)
     .join(" · ");
+}
+
+// Stage-aware HQ (Phase 10) --------------------------------------------------------------------
+
+/** Threads whose latest message is from the customer: they're waiting for a reply. */
+export function inboxSummary(emails: EmailThread[], companyId: string, now: Date) {
+  const threads = emails.filter((t) => t.company_id === companyId);
+  const waiting = threads
+    .filter((t) => t.messages.at(-1)?.direction === "received")
+    .map((t) => {
+      const since = new Date(t.messages.at(-1)!.date).getTime();
+      return {
+        id: t.id,
+        name: t.name || t.address,
+        subject: t.subject,
+        hours: Math.max(0, (now.getTime() - since) / 3_600_000),
+      };
+    })
+    .sort((a, b) => b.hours - a.hours);
+  return { waiting, total: threads.length };
+}
+
+/** Median hours from a customer's message to the first reply, over threads in the last `days`. */
+export function responseTimes(emails: EmailThread[], companyId: string, now: Date, days = 30) {
+  const since = now.getTime() - days * DAY_MS;
+  const gaps: number[] = [];
+  for (const t of emails.filter((x) => x.company_id === companyId)) {
+    const msgs = [...t.messages].sort((a, b) => a.date.localeCompare(b.date));
+    for (let i = 0; i < msgs.length; i++) {
+      const m = msgs[i]!;
+      if (m.direction !== "received" || new Date(m.date).getTime() < since) continue;
+      const reply = msgs
+        .slice(i + 1)
+        .find((r) => r.direction === "sent" && !r.text.startsWith("Draft only"));
+      if (reply)
+        gaps.push((new Date(reply.date).getTime() - new Date(m.date).getTime()) / 3_600_000);
+    }
+  }
+  if (!gaps.length) return { median: null as number | null, count: 0 };
+  const sorted = gaps.sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const median = sorted.length % 2 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
+  return { median, count: gaps.length };
+}
+
+/** "3h", "2d": how long ago or how long a wait. */
+export function shortDuration(hours: number) {
+  if (hours < 1) return `${Math.max(1, Math.round(hours * 60))}m`;
+  if (hours < 48) return `${Math.round(hours)}h`;
+  return `${Math.round(hours / 24)}d`;
+}
+
+/** Leads: the newest first, and how many arrived in the last 7 days. */
+export function leadsSummary(contacts: Contact[], companyId: string, now: Date) {
+  const leads = contacts
+    .filter((c) => c.company_id === companyId && c.kind === "lead")
+    .sort((a, b) => b.last.localeCompare(a.last));
+  const week = leads.filter((l) => now.getTime() - new Date(l.last).getTime() <= 7 * DAY_MS).length;
+  const customers = contacts.filter(
+    (c) => c.company_id === companyId && c.kind === "customer",
+  ).length;
+  return { leads, week, customers };
+}
+
+/** The evidence board in numbers: assumptions by status, interviews, waitlist and pre-orders. */
+export function evidenceSummary(items: EvidenceItem[], companyId: string) {
+  const mine = items.filter((e) => e.company_id === companyId);
+  const assumptions = mine.filter((e) => e.type === "assumption");
+  const count = (s: EvidenceItem["status"]) => assumptions.filter((a) => a.status === s).length;
+  const num = (type: EvidenceItem["type"]) =>
+    mine
+      .filter((e) => e.type === type)
+      .reduce(
+        (n, e) => n + (typeof e.data["count"] === "number" ? (e.data["count"] as number) : 0),
+        0,
+      );
+  return {
+    validated: count("validated"),
+    testing: count("testing"),
+    untested: count("untested"),
+    invalidated: count("invalidated"),
+    interviews: mine.filter((e) => e.type === "interview").length,
+    waitlist: num("waitlist"),
+    preorders: num("preorder"),
+  };
 }

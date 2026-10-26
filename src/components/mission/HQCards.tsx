@@ -9,7 +9,12 @@ import { missionDay, stageLabel } from "@/lib/mission";
 import { buildMilestones } from "@/lib/flightPlan";
 import {
   channelRows,
+  evidenceSummary,
+  inboxSummary,
   isGain,
+  leadsSummary,
+  responseTimes,
+  shortDuration,
   nextWindows,
   overnightBurn,
   phaseTasks,
@@ -437,8 +442,14 @@ export function VehicleCard({ companyId }: { companyId: string }) {
   );
 }
 
-/** Channels: how each marketing channel is doing. */
-export function ChannelsCard({ companyId }: { companyId: string }) {
+/** Channels: how each marketing channel is doing. Keep going HQs call it Campaigns. */
+export function ChannelsCard({
+  companyId,
+  title = "Channels",
+}: {
+  companyId: string;
+  title?: string;
+}) {
   const { db } = useStore();
   const c = useCompany(companyId);
   const rows = channelRows(
@@ -448,7 +459,7 @@ export function ChannelsCard({ companyId }: { companyId: string }) {
     db.ads.find((a) => a.company_id === companyId),
   );
   return (
-    <HQCard title="Channels">
+    <HQCard title={title}>
       <dl className="grid grid-cols-[1fr_auto] items-baseline gap-x-3 gap-y-[7px]">
         {rows.map((r, i) => (
           <div key={r.channel} className={cn("contents", i >= 2 && "shorter:hidden")}>
@@ -544,6 +555,131 @@ export function NextWindowsCard({ companyId }: { companyId: string }) {
           ))}
         </dl>
       )}
+    </HQCard>
+  );
+}
+
+/** Evidence: where the assumptions stand, and the interview, waitlist and pre-order counts. */
+export function EvidenceCard({ companyId }: { companyId: string }) {
+  const { db } = useStore();
+  const e = evidenceSummary(db.evidence_items, companyId);
+  return (
+    <HQCard
+      title="Evidence"
+      meta={
+        <Link to="/flight-plan" search={{ tab: "evidence" }} className={cn(meta, "hover:text-ink")}>
+          Open board
+        </Link>
+      }
+    >
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+        <Readout
+          label="Validated"
+          value={num(e.validated)}
+          note={<span className="text-muted-foreground">{e.testing} testing</span>}
+        />
+        <Readout label="Interviews" value={num(e.interviews)} />
+        <Readout label="Waitlist" value={num(e.waitlist)} />
+        <Readout label="Pre-orders" value={num(e.preorders)} />
+      </div>
+    </HQCard>
+  );
+}
+
+/** Leads: the newest leads and how many came in this week. */
+export function LeadsCard({ companyId }: { companyId: string }) {
+  const { db, now } = useStore();
+  const l = leadsSummary(db.contacts, companyId, now);
+  return (
+    <HQCard title="Leads" meta={<span className={meta}>{l.week} this week</span>}>
+      {l.leads.length === 0 ? (
+        <p className="text-muted-foreground">No leads yet. Lead forms and imports add them here.</p>
+      ) : (
+        <dl className="grid grid-cols-[1fr_auto] items-baseline gap-x-3 gap-y-[7px]">
+          {l.leads.slice(0, 4).map((c, i) => (
+            <div key={c.id} className={cn("contents", i >= 2 && "shorter:hidden")}>
+              <dt className="truncate">
+                {c.name} <span className="text-muted-foreground">· {c.value || c.source}</span>
+              </dt>
+              <dd className="text-xs text-muted-foreground tabular">
+                {shortDuration((now.getTime() - new Date(c.last).getTime()) / 3_600_000)}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      <Link to="/customers" className="label-caps self-start text-[11px] hover:opacity-80">
+        {l.customers} customers · open contacts
+      </Link>
+    </HQCard>
+  );
+}
+
+/** Inbox: customer messages waiting for a reply, oldest first. */
+export function InboxCard({ companyId }: { companyId: string }) {
+  const { db, now } = useStore();
+  const i = inboxSummary(db.emails, companyId, now);
+  return (
+    <HQCard
+      title="Inbox"
+      meta={
+        <span className={cn(meta, i.waiting.length && "text-hold")}>
+          {i.waiting.length} waiting
+        </span>
+      }
+    >
+      {i.waiting.length === 0 ? (
+        <p className="text-muted-foreground">Nothing waiting for a reply.</p>
+      ) : (
+        <dl className="grid grid-cols-[1fr_auto] items-baseline gap-x-3 gap-y-[7px]">
+          {i.waiting.slice(0, 4).map((t, n) => (
+            <div key={t.id} className={cn("contents", n >= 2 && "shorter:hidden")}>
+              <dt className="truncate">
+                {t.name} <span className="text-muted-foreground">· {t.subject}</span>
+              </dt>
+              <dd
+                className={cn(
+                  "label-caps text-[11px]",
+                  t.hours >= 24 ? "text-hold" : "text-muted-foreground",
+                )}
+              >
+                {shortDuration(t.hours)}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      <Link to="/customers" className="label-caps self-start text-[11px] hover:opacity-80">
+        Open inbox
+      </Link>
+    </HQCard>
+  );
+}
+
+/** Response times: how quickly customers hear back (median, last 30 days). */
+export function ResponseTimesCard({ companyId }: { companyId: string }) {
+  const { db, now } = useStore();
+  const r = responseTimes(db.emails, companyId, now);
+  const waiting = inboxSummary(db.emails, companyId, now).waiting;
+  const oldest = waiting[0];
+  return (
+    <HQCard title="Response times" meta={<span className={meta}>30 days</span>}>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+        <Readout
+          label="Median reply"
+          value={r.median === null ? "—" : shortDuration(r.median)}
+          note={<span className="text-muted-foreground">{r.count} {r.count === 1 ? "reply" : "replies"}</span>}
+        />
+        <Readout
+          label="Oldest waiting"
+          value={oldest ? shortDuration(oldest.hours) : "—"}
+          note={
+            <span className={oldest && oldest.hours >= 24 ? "text-hold" : "text-muted-foreground"}>
+              {waiting.length} open
+            </span>
+          }
+        />
+      </div>
     </HQCard>
   );
 }

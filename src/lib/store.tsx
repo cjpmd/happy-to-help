@@ -393,10 +393,17 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
         website_live_url: `/site/${slug}`,
         website_preview_url: `/site/${slug}?preview=1`,
       };
+      const keepGoing = c.entry_path === "keep_going";
+      if (keepGoing) company.stage = "grow";
       const fresh = workspaceSeed([company], []);
       setDb((d) => ({
         ...d,
-        stage_gates: [...d.stage_gates, ...defaultGates(id, startedAt, "idea")],
+        stage_gates: [
+          ...d.stage_gates,
+          ...defaultGates(id, startedAt, "idea").map((g) =>
+            keepGoing ? { ...g, status: "imported" as const, criteria: [] } : g,
+          ),
+        ],
         routines: [...d.routines, ...fresh.routines],
         documents: [...d.documents, ...fresh.documents],
         ads: [...d.ads, ...fresh.ads],
@@ -772,6 +779,25 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
     },
     [db.tasks],
   );
+  const importContacts = useCallback<Ctx["importContacts"]>(async (cid, rows) => {
+    let added = 0;
+    setDb((d) => {
+      const known = new Set(
+        d.contacts.filter((c) => c.company_id === cid).map((c) => c.email.toLowerCase()),
+      );
+      const fresh: T.Contact[] = [];
+      for (const r of rows) {
+        const email = r.email.toLowerCase();
+        if (known.has(email)) continue;
+        known.add(email);
+        fresh.push({ id: uid("x"), company_id: cid, ...r, email, last: iso(), source: "import" });
+      }
+      added = fresh.length;
+      return { ...d, contacts: [...d.contacts, ...fresh] };
+    });
+    return added;
+  }, []);
+  const addVoiceSource = useCallback<Ctx["addVoiceSource"]>(async () => true, []);
   const stopAuto = useCallback(() => {
     setSolTyping(false);
     setDb((d) => ({
@@ -823,6 +849,8 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       invite,
       markDone,
       stopAuto,
+      importContacts,
+      addVoiceSource,
       ...themeState,
     }),
     [
@@ -850,6 +878,8 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       invite,
       markDone,
       stopAuto,
+      importContacts,
+      addVoiceSource,
     ],
   );
 
