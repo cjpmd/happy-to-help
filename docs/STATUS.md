@@ -20,8 +20,8 @@ Restyle first, then the remaining Phase 1 groups, then the engine, then the v2 d
 | 11 | Brand voice and response policy | `phase-11-voice-policy` | Done |
 | 12 | Capture v1 | `phase-12-capture` | Done |
 | 13 | Link layer and lead capture | `phase-13-link-layer` | Done |
-| 6 | Stripe billing (test mode) | `phase-6-stripe` | Next |
-| 7 | Real integrations (flagged, mocked by default) | `phase-7-integrations` | |
+| 6 | Stripe billing (test mode) | `phase-6-stripe` | Done |
+| 7 | Real integrations (flagged, mocked by default) | `phase-7-integrations` | Next |
 | 8 | Scheduler, routines, Auto Mode | `phase-8-scheduler` | |
 | 9 | More skills and hardening | `phase-9-hardening` | |
 | 14 | Customers: inbox and contacts | `phase-14-inbox` | |
@@ -133,6 +133,16 @@ Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, con
 - App: Grow → Links & forms (what's working, tracked links with copy and QR PNG/SVG, hub page editor and publish, form wording, privacy link and embed code); public `/h/<slug>`, `/f/<id>` and `/l/<code>`; cookie banner on public pages (D48); Customers → Leads and a Marketing column on contacts; the Keep going HQ "Campaigns" card is now clicks → leads → customers.
 - Tests: `13_link_layer.test.sql`, the new tables in the read-access matrix (consents and leads founder/teammate only), the anonymous-function allowlist, `src/test/links.test.ts`, edge logic tests, an integration test for the redirect, and the live browser test follows a short link to the hub page and sends the form.
 - **Mocked / owner steps:** a branded short domain and per-company subdomains (HANDOFF 4). Campaign objects come in Phase 15; links carry the campaign's name until then.
+
+### Phase 6 (finished 27 Oct 2026)
+
+- `20261028110000_billing.sql`: `billing_products` (the price list, with Stripe price ids to fill in), `stripe_customers`, `subscriptions`, `stripe_events`; service-role `apply_billing_event` (records each event once and applies its actions in one transaction: grant credits with their own idempotency key, track the subscription, remember the customer) and `fail_billing_event`.
+- Edge Functions: `billing-checkout` (founders only; subscription or one-off Checkout Session tagged with the company; mock mode applies the purchase straight away), `billing-portal`, `stripe-webhook` (signature checked with WebCrypto, public). Stripe is called with `fetch`; event handling is pure (`_shared/billing.ts`, D51). Live keys and live events are refused (D50).
+- Plans: each paid invoice grants the plan's credits into the plan bucket, expiring at the end of that billing period, and sets the company's plan; top-ups and the Launch Pack go into the top-up bucket (12 months).
+- App: Billing buttons open Checkout and the Portal when `VITE_BILLING_ENABLED=true` (otherwise "coming soon"), with the subscription's renewal date and a message on return.
+- `scripts/dev/replay-stripe-webhooks.mjs` replays signed test events, each twice, and checks the second is a duplicate.
+- Tests: `14_billing.test.sql`, Stripe tables in the read-access matrix (customer ids and raw events service-role only), `src/test/billing.test.ts` (signatures, event mapping, checkout parameters, key checks), a price-list parity test, and `src/test/integration/billing.test.ts` (mock checkout, founder-only, idempotent invoice, forged signature).
+- **Mocked / owner steps:** Stripe itself (HANDOFF 5). The monthly reconciliation of SDK cost against the Anthropic invoice is Phase 9.
 
 ## Phase 0 audit and Phase 1 history
 

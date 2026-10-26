@@ -41,3 +41,15 @@ Built: short links work now at `<Supabase project URL>/functions/v1/link/<code>`
 3. Point the domain at it: with a proxy that supports path rewriting (e.g. Cloudflare in front of the domain), forward `https://<short-domain>/<code>` to `https://<project>.supabase.co/functions/v1/link/<code>`, keeping the visitor's `User-Agent` and `Referer` headers. Cloudflare also adds the `cf-ipcountry` header the function reads for the coarse country.
 4. Set `VITE_SHORT_LINK_BASE=https://<short-domain>` for the frontend build and redeploy it. New links copy with the short domain; existing ones keep working on both addresses.
 5. Subdomains per company (`{company}.<our-domain>`) or a company's own domain for its hub page need wildcard DNS and hosting rules on the app's host; until then the `/h/<slug>` address works everywhere. Update the links in seed data (`supabase/seed.sql`) if you use them for demos.
+
+## 5. Turn on Stripe billing (test mode)
+
+Built: Checkout for the three plans, three top-ups and the Launch Pack, the Customer Portal, and a webhook that grants credits once per payment (`supabase/functions/billing-checkout`, `billing-portal`, `stripe-webhook`; the rules in `apply_billing_event`). The functions refuse live keys (`sk_live_…`) and live events unless `STRIPE_ALLOW_LIVE=1`, which only you should ever set. Locally, `BILLING_MOCK=1` applies purchases without Stripe, and `node scripts/dev/replay-stripe-webhooks.mjs` sends signed test events.
+
+1. Create a Stripe account (or use the existing one) and stay in **test mode**.
+2. Create the products and monthly prices in GBP to match `billing_products` (Starter £29, Founder £79, Growth £149 as monthly subscriptions; £10, £25 and £50 top-ups and the £49 Launch Pack as one-off prices). Then record each price id: `update public.billing_products set stripe_price_id = 'price_…' where product = 'plan_starter';` (and so on for the other six).
+3. In the Stripe dashboard, turn on the Customer Portal (Settings → Billing → Customer portal) and allow plan switching between the three plan prices and cancellation.
+4. Add a webhook endpoint for `https://<project>.supabase.co/functions/v1/stripe-webhook` with these events: `checkout.session.completed`, `invoice.paid`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`. Copy its signing secret.
+5. Set the function secrets: `npx supabase secrets set STRIPE_SECRET_KEY=sk_test_… STRIPE_WEBHOOK_SECRET=whsec_… APP_URL=https://<your app domain>`, then deploy: `npx supabase functions deploy billing-checkout billing-portal stripe-webhook` (the webhook needs `--no-verify-jwt`, set in `supabase/config.toml`).
+6. Build the app with `VITE_BILLING_ENABLED=true`, buy a top-up with Stripe's test card 4242 4242 4242 4242, and check the credits appear in the ledger once.
+7. Locally with the Stripe CLI: `stripe listen --forward-to http://127.0.0.1:54321/functions/v1/stripe-webhook` and put the `whsec_…` it prints in `supabase/functions/.env`.

@@ -83,6 +83,9 @@ begin
   execute format('select exists (select 1 from public.%I where company_id = $1)', p_table)
     into found using p_company;
   return found;
+exception when insufficient_privilege then
+  -- Tables only the service role can read.
+  return false;
 end;
 $$;
 
@@ -196,6 +199,9 @@ begin
     insert into public.consents (company_id, contact_id, purpose, status, lawful_basis, source)
       select c, id, 'service', 'granted', 'legitimate_interests', 'form' from public.contacts where company_id = c;
     insert into public.leads (company_id, contact_id) select c, id from public.contacts where company_id = c;
+    insert into public.stripe_customers (company_id, customer_id) values (c, 'cus_' || c);
+    insert into public.subscriptions (company_id, subscription_id, customer_id, status) values (c, 'sub_' || c, 'cus_' || c, 'active');
+    insert into public.stripe_events (id, type, company_id) values ('evt_' || c, 'invoice.paid', c);
   end loop;
 end;
 $$;

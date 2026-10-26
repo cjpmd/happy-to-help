@@ -417,3 +417,7 @@ enabled = true
 # Short links are followed by anyone, signed in or not (Phase 13).
 [functions.link]
 verify_jwt = false
+
+# Stripe calls this; its signature is checked in the function (Phase 6).
+[functions.stripe-webhook]
+verify_jwt = false

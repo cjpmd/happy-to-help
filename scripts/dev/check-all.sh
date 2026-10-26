@@ -6,6 +6,9 @@
 set -uo pipefail
 cd "$(dirname "$0")/../.."
 fail=0
+# The Edge Functions read supabase/functions/.env; its example holds local-only test values.
+# (Restart `supabase functions serve` after creating it.)
+[ -f supabase/functions/.env ] || cp supabase/functions/.env.example supabase/functions/.env
 step() {
   local name=$1; shift
   if "$@" >"/tmp/check-$name.log" 2>&1; then echo "PASS $name"; else echo "FAIL $name (see /tmp/check-$name.log)"; fail=1; fi

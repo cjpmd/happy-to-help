@@ -57,7 +57,17 @@ export type DB = WorkspaceDB & {
   link_stats: L.LinkStat[];
   leads: L.Lead[];
   current_consents: L.ConsentState[];
+  /** The company's Stripe subscription, if any (Phase 6). */
+  subscriptions: Subscription[];
 };
+
+export interface Subscription {
+  company_id: string;
+  status: string;
+  plan: T.Plan | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+}
 
 export interface CaptureSettings {
   company_id: string;

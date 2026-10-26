@@ -242,6 +242,14 @@ export const loaders = {
       })),
     };
   },
+  billing: async (sb) => ({
+    subscriptions: must(
+      await sb
+        .from("subscriptions")
+        .select("company_id, status, plan, current_period_end, cancel_at_period_end"),
+      "subscription",
+    ),
+  }),
   settings: async (sb, userId) => {
     const [prefs, layout, sharing, invites] = await Promise.all([
       sb.from("user_preferences").select("*").maybeSingle(),
@@ -286,6 +294,7 @@ export const TABLE_GROUPS: Partial<Record<keyof Database["public"]["Tables"], Gr
   commitments: "captures",
   leads: "links",
   tracked_links: "links",
+  subscriptions: "billing",
 };
 
 export async function loadGroups(sb: Client, userId: string, groups: Group[]) {
@@ -335,6 +344,7 @@ export function emptyDb(): DB {
     link_stats: [],
     leads: [],
     current_consents: [],
+    subscriptions: [],
     routines: [],
     documents: [],
     media: [],

@@ -391,6 +391,40 @@ export type Database = {
           },
         ];
       };
+      billing_products: {
+        Row: {
+          active: boolean;
+          credits: number;
+          kind: string;
+          label: string;
+          plan: Database["public"]["Enums"]["company_plan"] | null;
+          price_gbp: number;
+          product: string;
+          stripe_price_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          active?: boolean;
+          credits: number;
+          kind: string;
+          label: string;
+          plan?: Database["public"]["Enums"]["company_plan"] | null;
+          price_gbp: number;
+          product: string;
+          stripe_price_id?: string | null;
+        };
+        Update: {
+          active?: boolean;
+          credits?: number;
+          kind?: string;
+          label?: string;
+          plan?: Database["public"]["Enums"]["company_plan"] | null;
+          price_gbp?: number;
+          product?: string;
+          stripe_price_id?: string | null;
+        };
+        Relationships: [];
+      };
       capture_settings: {
         Row: {
           auto_accept_own_notes: boolean;
@@ -2501,6 +2535,114 @@ export type Database = {
           },
         ];
       };
+      stripe_customers: {
+        Row: {
+          company_id: string;
+          created_at: string;
+          customer_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          company_id: string;
+          created_at?: string;
+          customer_id: string;
+        };
+        Update: {
+          company_id?: string;
+          created_at?: string;
+          customer_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "stripe_customers_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: true;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      stripe_events: {
+        Row: {
+          company_id: string | null;
+          error: string | null;
+          id: string;
+          outcome: string | null;
+          processed_at: string | null;
+          received_at: string;
+          type: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          company_id?: string | null;
+          error?: string | null;
+          id: string;
+          outcome?: string | null;
+          processed_at?: string | null;
+          received_at?: string;
+          type: string;
+        };
+        Update: {
+          company_id?: string | null;
+          error?: string | null;
+          id?: string;
+          outcome?: string | null;
+          processed_at?: string | null;
+          received_at?: string;
+          type?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "stripe_events_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean;
+          company_id: string;
+          current_period_end: string | null;
+          customer_id: string;
+          plan: Database["public"]["Enums"]["company_plan"] | null;
+          status: string;
+          subscription_id: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          cancel_at_period_end?: boolean;
+          company_id: string;
+          current_period_end?: string | null;
+          customer_id: string;
+          plan?: Database["public"]["Enums"]["company_plan"] | null;
+          status: string;
+          subscription_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          cancel_at_period_end?: boolean;
+          company_id?: string;
+          current_period_end?: string | null;
+          customer_id?: string;
+          plan?: Database["public"]["Enums"]["company_plan"] | null;
+          status?: string;
+          subscription_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: true;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       tasks: {
         Row: {
           actor: Database["public"]["Enums"]["task_actor"];
@@ -3133,6 +3275,10 @@ export type Database = {
         Returns: undefined;
       };
       append_run_step: { Args: { p_run: string; p_step: Json }; Returns: undefined };
+      apply_billing_event: {
+        Args: { p_actions: Json; p_event_id: string; p_type: string };
+        Returns: string;
+      };
       approve_gate: { Args: { p_gate: string }; Returns: Database["public"]["Enums"]["stage"] };
       ask_why: { Args: { p_approval: string }; Returns: undefined };
       attribution: {
@@ -3311,6 +3457,10 @@ export type Database = {
         Returns: string;
       };
       expire_credits: { Args: { p_at?: string }; Returns: number };
+      fail_billing_event: {
+        Args: { p_error: string; p_event_id: string; p_type: string };
+        Returns: undefined;
+      };
       follow_link: {
         Args: { p_code: string; p_country?: string; p_device?: string; p_referrer?: string };
         Returns: string;
