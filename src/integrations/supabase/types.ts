@@ -391,6 +391,113 @@ export type Database = {
           },
         ];
       };
+      capture_settings: {
+        Row: {
+          auto_accept_own_notes: boolean;
+          company_id: string;
+          keep_audio_days: number;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          auto_accept_own_notes?: boolean;
+          company_id: string;
+          keep_audio_days?: number;
+          updated_at?: string;
+        };
+        Update: {
+          auto_accept_own_notes?: boolean;
+          company_id?: string;
+          keep_audio_days?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "capture_settings_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: true;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      captures: {
+        Row: {
+          audio_delete_after: string | null;
+          audio_deleted_at: string | null;
+          audio_path: string | null;
+          company_id: string;
+          consent: string;
+          created_at: string;
+          created_by: string | null;
+          duration_seconds: number | null;
+          error: string | null;
+          id: string;
+          job_id: string | null;
+          participants: string[];
+          source: string;
+          status: string;
+          title: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          audio_delete_after?: string | null;
+          audio_deleted_at?: string | null;
+          audio_path?: string | null;
+          company_id: string;
+          consent: string;
+          created_at?: string;
+          created_by?: string | null;
+          duration_seconds?: number | null;
+          error?: string | null;
+          id?: string;
+          job_id?: string | null;
+          participants?: string[];
+          source: string;
+          status?: string;
+          title?: string;
+        };
+        Update: {
+          audio_delete_after?: string | null;
+          audio_deleted_at?: string | null;
+          audio_path?: string | null;
+          company_id?: string;
+          consent?: string;
+          created_at?: string;
+          created_by?: string | null;
+          duration_seconds?: number | null;
+          error?: string | null;
+          id?: string;
+          job_id?: string | null;
+          participants?: string[];
+          source?: string;
+          status?: string;
+          title?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "captures_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "captures_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "captures_job_id_fkey";
+            columns: ["job_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_jobs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       chat_messages: {
         Row: {
           author_id: string | null;
@@ -535,6 +642,91 @@ export type Database = {
           name?: string;
         };
         Relationships: [];
+      };
+      commitments: {
+        Row: {
+          company_id: string;
+          completed_at: string | null;
+          contact_id: string | null;
+          created_at: string;
+          created_by: string | null;
+          due_date: string;
+          followup_approval_id: string | null;
+          followup_draft: string | null;
+          id: string;
+          source_item_id: string | null;
+          status: string;
+          to_name: string;
+          what: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          company_id: string;
+          completed_at?: string | null;
+          contact_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          due_date: string;
+          followup_approval_id?: string | null;
+          followup_draft?: string | null;
+          id?: string;
+          source_item_id?: string | null;
+          status?: string;
+          to_name: string;
+          what: string;
+        };
+        Update: {
+          company_id?: string;
+          completed_at?: string | null;
+          contact_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          due_date?: string;
+          followup_approval_id?: string | null;
+          followup_draft?: string | null;
+          id?: string;
+          source_item_id?: string | null;
+          status?: string;
+          to_name?: string;
+          what?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "commitments_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "commitments_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "commitments_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "commitments_followup_approval_id_fkey";
+            columns: ["followup_approval_id"];
+            isOneToOne: false;
+            referencedRelation: "approvals";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "commitments_source_item_id_fkey";
+            columns: ["source_item_id"];
+            isOneToOne: false;
+            referencedRelation: "extracted_items";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       companies: {
         Row: {
@@ -800,6 +992,7 @@ export type Database = {
           markup: number;
           plan_expiry: string;
           topup_expiry: string;
+          transcription_usd_per_minute: number;
           updated_at: string;
         };
         ComputedFields: never;
@@ -810,6 +1003,7 @@ export type Database = {
           markup?: number;
           plan_expiry?: string;
           topup_expiry?: string;
+          transcription_usd_per_minute?: number;
           updated_at?: string;
         };
         Update: {
@@ -819,6 +1013,7 @@ export type Database = {
           markup?: number;
           plan_expiry?: string;
           topup_expiry?: string;
+          transcription_usd_per_minute?: number;
           updated_at?: string;
         };
         Relationships: [];
@@ -1108,6 +1303,197 @@ export type Database = {
           },
         ];
       };
+      extracted_items: {
+        Row: {
+          at_seconds: number | null;
+          capture_id: string;
+          company_id: string;
+          confidence: number;
+          contact_id: string | null;
+          contact_name: string | null;
+          created_at: string;
+          decided_at: string | null;
+          decided_by: string | null;
+          department: Database["public"]["Enums"]["pillar"] | null;
+          due_date: string | null;
+          id: string;
+          kind: string;
+          match_task_id: string | null;
+          owner: string | null;
+          owner_id: string | null;
+          owner_name: string | null;
+          quote: string | null;
+          routed: NonNullable<Json>;
+          run_id: string | null;
+          sensitive: boolean;
+          shared: boolean;
+          status: string;
+          text: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          at_seconds?: number | null;
+          capture_id: string;
+          company_id: string;
+          confidence: number;
+          contact_id?: string | null;
+          contact_name?: string | null;
+          created_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          department?: Database["public"]["Enums"]["pillar"] | null;
+          due_date?: string | null;
+          id?: string;
+          kind: string;
+          match_task_id?: string | null;
+          owner?: string | null;
+          owner_id?: string | null;
+          owner_name?: string | null;
+          quote?: string | null;
+          routed?: NonNullable<Json>;
+          run_id?: string | null;
+          sensitive?: boolean;
+          shared?: boolean;
+          status?: string;
+          text: string;
+        };
+        Update: {
+          at_seconds?: number | null;
+          capture_id?: string;
+          company_id?: string;
+          confidence?: number;
+          contact_id?: string | null;
+          contact_name?: string | null;
+          created_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          department?: Database["public"]["Enums"]["pillar"] | null;
+          due_date?: string | null;
+          id?: string;
+          kind?: string;
+          match_task_id?: string | null;
+          owner?: string | null;
+          owner_id?: string | null;
+          owner_name?: string | null;
+          quote?: string | null;
+          routed?: NonNullable<Json>;
+          run_id?: string | null;
+          sensitive?: boolean;
+          shared?: boolean;
+          status?: string;
+          text?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "extracted_items_capture_id_fkey";
+            columns: ["capture_id"];
+            isOneToOne: false;
+            referencedRelation: "captures";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "extracted_items_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "extracted_items_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "extracted_items_decided_by_fkey";
+            columns: ["decided_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "extracted_items_match_task_id_fkey";
+            columns: ["match_task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "extracted_items_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "extracted_items_run_id_fkey";
+            columns: ["run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      feedback: {
+        Row: {
+          body: string;
+          capture_id: string | null;
+          company_id: string;
+          contact_id: string | null;
+          created_at: string;
+          id: string;
+          sentiment: string | null;
+          source: string;
+          theme: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          body: string;
+          capture_id?: string | null;
+          company_id: string;
+          contact_id?: string | null;
+          created_at?: string;
+          id?: string;
+          sentiment?: string | null;
+          source: string;
+          theme?: string | null;
+        };
+        Update: {
+          body?: string;
+          capture_id?: string | null;
+          company_id?: string;
+          contact_id?: string | null;
+          created_at?: string;
+          id?: string;
+          sentiment?: string | null;
+          source?: string;
+          theme?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "feedback_capture_id_fkey";
+            columns: ["capture_id"];
+            isOneToOne: false;
+            referencedRelation: "captures";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "feedback_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "feedback_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       gate_comments: {
         Row: {
           author_id: string;
@@ -1210,6 +1596,75 @@ export type Database = {
             columns: ["user_id"];
             isOneToOne: true;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ideas: {
+        Row: {
+          company_id: string;
+          created_at: string;
+          created_by: string | null;
+          evidence_item_id: string | null;
+          evidence_plan: string | null;
+          id: string;
+          source_item_id: string | null;
+          status: string;
+          title: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          company_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          evidence_item_id?: string | null;
+          evidence_plan?: string | null;
+          id?: string;
+          source_item_id?: string | null;
+          status?: string;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          company_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          evidence_item_id?: string | null;
+          evidence_plan?: string | null;
+          id?: string;
+          source_item_id?: string | null;
+          status?: string;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ideas_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ideas_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ideas_evidence_item_id_fkey";
+            columns: ["evidence_item_id"];
+            isOneToOne: false;
+            referencedRelation: "evidence_items";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ideas_source_item_id_fkey";
+            columns: ["source_item_id"];
+            isOneToOne: false;
+            referencedRelation: "extracted_items";
             referencedColumns: ["id"];
           },
         ];
@@ -1335,6 +1790,56 @@ export type Database = {
             columns: ["job_id"];
             isOneToOne: false;
             referencedRelation: "agent_jobs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      memory_facts: {
+        Row: {
+          approved_by: string | null;
+          company_id: string;
+          created_at: string;
+          fact: string;
+          id: string;
+          source_item_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          approved_by?: string | null;
+          company_id: string;
+          created_at?: string;
+          fact: string;
+          id?: string;
+          source_item_id?: string | null;
+        };
+        Update: {
+          approved_by?: string | null;
+          company_id?: string;
+          created_at?: string;
+          fact?: string;
+          id?: string;
+          source_item_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "memory_facts_approved_by_fkey";
+            columns: ["approved_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "memory_facts_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "memory_facts_source_item_id_fkey";
+            columns: ["source_item_id"];
+            isOneToOne: false;
+            referencedRelation: "extracted_items";
             referencedColumns: ["id"];
           },
         ];
@@ -1696,6 +2201,7 @@ export type Database = {
       tasks: {
         Row: {
           actor: Database["public"]["Enums"]["task_actor"];
+          assignee_id: string | null;
           company_id: string;
           completed_at: string | null;
           created_at: string;
@@ -1705,6 +2211,7 @@ export type Database = {
           key: boolean;
           pillar: Database["public"]["Enums"]["pillar"];
           proof: Json | null;
+          source_item_id: string | null;
           stage: Database["public"]["Enums"]["stage"] | null;
           status: Database["public"]["Enums"]["task_status"];
           title: string;
@@ -1713,6 +2220,7 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           actor?: Database["public"]["Enums"]["task_actor"];
+          assignee_id?: string | null;
           company_id: string;
           completed_at?: string | null;
           created_at?: string;
@@ -1722,6 +2230,7 @@ export type Database = {
           key?: boolean;
           pillar: Database["public"]["Enums"]["pillar"];
           proof?: Json | null;
+          source_item_id?: string | null;
           stage?: Database["public"]["Enums"]["stage"] | null;
           status?: Database["public"]["Enums"]["task_status"];
           title: string;
@@ -1729,6 +2238,7 @@ export type Database = {
         };
         Update: {
           actor?: Database["public"]["Enums"]["task_actor"];
+          assignee_id?: string | null;
           company_id?: string;
           completed_at?: string | null;
           created_at?: string;
@@ -1738,6 +2248,7 @@ export type Database = {
           key?: boolean;
           pillar?: Database["public"]["Enums"]["pillar"];
           proof?: Json | null;
+          source_item_id?: string | null;
           stage?: Database["public"]["Enums"]["stage"] | null;
           status?: Database["public"]["Enums"]["task_status"];
           title?: string;
@@ -1745,10 +2256,24 @@ export type Database = {
         };
         Relationships: [
           {
+            foreignKeyName: "tasks_assignee_id_fkey";
+            columns: ["assignee_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "tasks_company_id_fkey";
             columns: ["company_id"];
             isOneToOne: false;
             referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_source_item_id_fkey";
+            columns: ["source_item_id"];
+            isOneToOne: false;
+            referencedRelation: "extracted_items";
             referencedColumns: ["id"];
           },
         ];
@@ -1795,6 +2320,49 @@ export type Database = {
             columns: ["invited_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      transcripts: {
+        Row: {
+          capture_id: string;
+          company_id: string;
+          created_at: string;
+          provider: string;
+          segments: NonNullable<Json>;
+          text: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          capture_id: string;
+          company_id: string;
+          created_at?: string;
+          provider: string;
+          segments?: NonNullable<Json>;
+          text: string;
+        };
+        Update: {
+          capture_id?: string;
+          company_id?: string;
+          created_at?: string;
+          provider?: string;
+          segments?: NonNullable<Json>;
+          text?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "transcripts_capture_id_fkey";
+            columns: ["capture_id"];
+            isOneToOne: true;
+            referencedRelation: "captures";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "transcripts_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
             referencedColumns: ["id"];
           },
         ];
@@ -2121,6 +2689,7 @@ export type Database = {
       };
     };
     Functions: {
+      accept_all_items: { Args: { p_capture: string }; Returns: number };
       accept_invites: { Args: Record<PropertyKey, never>; Returns: number };
       adopt_voice_profile: {
         Args: { p_approved_by: string; p_profile: string };
@@ -2130,6 +2699,7 @@ export type Database = {
       approve_gate: { Args: { p_gate: string }; Returns: Database["public"]["Enums"]["stage"] };
       ask_why: { Args: { p_approval: string }; Returns: undefined };
       begin_chat_turn: { Args: { p_company: string; p_content: string }; Returns: string };
+      capture_estimate: { Args: { p_duration_seconds?: number }; Returns: number };
       check_claims: { Args: { p_company: string; p_text: string }; Returns: Json };
       claim_agent_job: {
         Args: { p_job_types?: string[]; p_worker: string };
@@ -2191,7 +2761,24 @@ export type Database = {
           isSetofReturn: true;
         };
       };
+      complete_commitment: {
+        Args: { p_commitment: string; p_status?: string };
+        Returns: undefined;
+      };
       complete_task: { Args: { p_task: string }; Returns: undefined };
+      create_capture: {
+        Args: {
+          p_audio_path?: string;
+          p_company: string;
+          p_consent: string;
+          p_duration_seconds?: number;
+          p_participants?: string[];
+          p_source: string;
+          p_text?: string;
+          p_title?: string;
+        };
+        Returns: string;
+      };
       create_company: {
         Args: {
           p_cohort_code?: string;
@@ -2218,6 +2805,10 @@ export type Database = {
           p_note?: string;
         };
         Returns: Database["public"]["Enums"]["approval_status"];
+      };
+      decide_extracted_item: {
+        Args: { p_changes?: Json; p_decision: string; p_file_sensitive?: boolean; p_item: string };
+        Returns: Json;
       };
       draft_outreach: {
         Args: { p_body: string; p_company: string; p_subject: string; p_to: string };
@@ -2267,7 +2858,16 @@ export type Database = {
         Args: { p_amount: number; p_company: string; p_note?: string; p_run: string };
         Returns: number;
       };
+      save_extraction: {
+        Args: { p_capture: string; p_items: Json; p_run: string };
+        Returns: number;
+      };
+      save_transcript: {
+        Args: { p_capture: string; p_provider: string; p_segments: Json; p_text: string };
+        Returns: undefined;
+      };
       save_voice_profile: { Args: { p_company: string; p_profile: Json }; Returns: string };
+      set_idea_status: { Args: { p_idea: string; p_status: string }; Returns: undefined };
       set_response_policy: {
         Args: {
           p_category: string;
@@ -2280,6 +2880,11 @@ export type Database = {
       settle_run_credits: {
         Args: { p_credits: number; p_note?: string; p_run: string };
         Returns: number;
+      };
+      share_extracted_item: { Args: { p_item: string; p_shared: boolean }; Returns: undefined };
+      update_capture_settings: {
+        Args: { p_auto_accept?: boolean; p_company: string; p_keep_audio_days?: number };
+        Returns: undefined;
       };
       update_response_settings: {
         Args: {
@@ -2299,7 +2904,8 @@ export type Database = {
         | "ad_spend"
         | "file_document"
         | "publish_site"
-        | "update_voice";
+        | "update_voice"
+        | "update_memory";
       approval_status: "pending" | "approved" | "declined";
       assumption_status: "untested" | "testing" | "validated" | "invalidated";
       chat_sender: "founder" | "sol";
@@ -2329,7 +2935,7 @@ export type Database = {
       sector_pack: "general" | "legal" | "finance" | "health" | "education";
       social_channel: "Instagram" | "TikTok" | "LinkedIn" | "X";
       stage: "idea" | "evidence" | "build" | "launch" | "grow";
-      task_actor: "sol" | "founder" | "mentor";
+      task_actor: "sol" | "founder" | "mentor" | "teammate";
       task_status: "todo" | "doing" | "done";
       voice_status: "proposed" | "approved" | "declined" | "superseded";
     };
@@ -2453,6 +3059,7 @@ export const Constants = {
         "file_document",
         "publish_site",
         "update_voice",
+        "update_memory",
       ],
       approval_status: ["pending", "approved", "declined"],
       assumption_status: ["untested", "testing", "validated", "invalidated"],
@@ -2482,7 +3089,7 @@ export const Constants = {
       sector_pack: ["general", "legal", "finance", "health", "education"],
       social_channel: ["Instagram", "TikTok", "LinkedIn", "X"],
       stage: ["idea", "evidence", "build", "launch", "grow"],
-      task_actor: ["sol", "founder", "mentor"],
+      task_actor: ["sol", "founder", "mentor", "teammate"],
       task_status: ["todo", "doing", "done"],
       voice_status: ["proposed", "approved", "declined", "superseded"],
     },

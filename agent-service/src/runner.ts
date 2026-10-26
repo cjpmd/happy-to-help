@@ -10,6 +10,8 @@ import type { Json, Tables } from "./db/types.js";
 import { jobSpec, type JobSpec } from "./jobs.js";
 import type { AgentRuntime, RunOutcome, RunStep } from "./runtime/types.js";
 import { loadMemoryInput, prepareWorkspace } from "./workspace.js";
+import { failCapture, prepareCapture } from "./capture/prepare.js";
+import { mockTranscription, type TranscriptionProvider } from "./capture/transcription.js";
 
 export type Job = Tables<"agent_jobs">;
 
@@ -17,6 +19,8 @@ export interface RunnerDeps {
   db: Db;
   config: Config;
   runtime: AgentRuntime;
+  /** Speech-to-text for uploaded recordings (mock unless configured). */
+  transcription?: TranscriptionProvider;
   log?: (msg: string) => void;
 }
 
@@ -61,7 +65,10 @@ function jobInput(job: Job, chatText: string | undefined) {
   return {
     ...(str(p["title"]) ? { title: str(p["title"])! } : {}),
     ...(chatText ? { message: chatText } : {}),
-    ...(str(p["target"]) ? { target: str(p["target"])! } : {}),
+    // Capture and follow-up jobs carry the row they're about.
+    ...(str(p["target"] ?? p["capture_id"] ?? p["commitment_id"])
+      ? { target: str(p["target"] ?? p["capture_id"] ?? p["commitment_id"])! }
+      : {}),
   };
 }
 
@@ -206,7 +213,12 @@ export async function processJob(deps: RunnerDeps, job: Job): Promise<JobResult>
     spec.skills,
   );
   let outcome: RunOutcome;
+  // Transcription (for uploaded recordings) runs first and is charged with the run.
+  let preUsd = 0;
   try {
+    if (job.job_type === "capture_process" && input.target)
+      preUsd = (await prepareCapture(db, deps.transcription ?? mockTranscription, input.target))
+        .costUsd;
     outcome = await runtime.run({
       jobType: job.job_type,
       prompt: spec.prompt(input),
@@ -214,7 +226,7 @@ export async function processJob(deps: RunnerDeps, job: Job): Promise<JobResult>
       cwd: ws.dir,
       skills: spec.skills,
       tools: spec.tools,
-      maxBudgetUsd,
+      maxBudgetUsd: Math.max(0, maxBudgetUsd - preUsd),
       estimateUsd,
       maxTurns: spec.maxTurns,
       ctx: { db, companyId: job.company_id, runId: run.id },
@@ -236,6 +248,7 @@ export async function processJob(deps: RunnerDeps, job: Job): Promise<JobResult>
     await ws.cleanup();
   }
 
+  if (outcome.status !== "error") outcome = { ...outcome, costUsd: outcome.costUsd + preUsd };
   const now = new Date().toISOString();
   if (outcome.status === "error") {
     // The platform failed: give everything back, then retry or escalate.
@@ -262,6 +275,8 @@ export async function processJob(deps: RunnerDeps, job: Job): Promise<JobResult>
       return { outcome: "retry", runId: run.id, charged: 0 };
     }
     await finishJob(db, job, "failed", outcome.error ?? "run failed");
+    if (job.job_type === "capture_process" && input.target)
+      await failCapture(db, input.target, outcome.error ?? "run failed");
     await event(
       db,
       job.company_id,

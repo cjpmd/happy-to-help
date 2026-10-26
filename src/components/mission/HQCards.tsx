@@ -168,6 +168,8 @@ function approvalLabel(a: Approval) {
       return "Site change";
     case "update_voice":
       return "Brand voice";
+    case "update_memory":
+      return "Memory";
   }
 }
 
@@ -185,6 +187,8 @@ function approvalTitle(a: Approval) {
       return a.payload.change;
     case "update_voice":
       return `Brand voice v${a.payload.version}`;
+    case "update_memory":
+      return "Remember this";
   }
 }
 
@@ -202,6 +206,8 @@ function approvalPreview(a: Approval) {
       return a.payload.change;
     case "update_voice":
       return a.payload.changes || a.payload.summary;
+    case "update_memory":
+      return a.payload.fact;
   }
 }
 

@@ -37,6 +37,11 @@ export function demoDb(): DB {
     voice_examples: [],
     response_policies: seed.companies.flatMap((c) => defaultPolicies(c.id)),
     response_settings: seed.companies.map((c) => defaultSettings(c.id)),
+    captures: [],
+    extracted_items: [],
+    ideas: [],
+    commitments: [],
+    capture_settings: [],
   };
 }
 

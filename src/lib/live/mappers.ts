@@ -18,6 +18,7 @@ import type {
 } from "../workspace";
 import { defaultPreferences, defaultSharing, isLayout } from "../workspace";
 import type * as V from "../voicePolicy";
+import type * as K from "../capture";
 
 type Row<K extends keyof Database["public"]["Tables"]> = Tables<K>;
 
@@ -442,5 +443,70 @@ export function mapResponseSettings(s: Row<"response_settings">): V.ResponseSett
     disclosure_text: s.disclosure_text,
     disclosure_on_approved: s.disclosure_on_approved,
     policy_reviewed_at: s.policy_reviewed_at,
+  };
+}
+
+export function mapCapture(c: Row<"captures">): K.Capture {
+  return {
+    id: c.id,
+    company_id: c.company_id,
+    source: c.source as K.CaptureSource,
+    title: c.title,
+    participants: c.participants,
+    status: c.status as K.CaptureStatus,
+    duration_seconds: c.duration_seconds,
+    created_by: c.created_by,
+    created_at: c.created_at,
+    error: c.error,
+  };
+}
+
+export function mapItem(i: Row<"extracted_items">): K.ExtractedItem {
+  // Text columns checked by the table's constraints.
+  return {
+    id: i.id,
+    capture_id: i.capture_id,
+    company_id: i.company_id,
+    kind: i.kind as K.ItemKind,
+    text: i.text,
+    confidence: Number(i.confidence),
+    status: i.status as K.ExtractedItem["status"],
+    match_task_id: i.match_task_id,
+    contact_id: i.contact_id,
+    shared: i.shared,
+    routed: i.routed as Record<string, unknown>,
+    sensitive: i.sensitive,
+    ...(i.owner ? { owner: i.owner as K.Owner } : {}),
+    ...(i.owner_name ? { owner_name: i.owner_name } : {}),
+    ...(i.due_date ? { due_date: i.due_date } : {}),
+    ...(i.department ? { department: i.department } : {}),
+    ...(i.contact_name ? { contact_name: i.contact_name } : {}),
+    ...(i.quote ? { quote: i.quote } : {}),
+    ...(i.at_seconds !== null ? { at_seconds: i.at_seconds } : {}),
+  };
+}
+
+export function mapIdea(i: Row<"ideas">): K.Idea {
+  return {
+    id: i.id,
+    company_id: i.company_id,
+    title: i.title,
+    status: i.status as K.Idea["status"],
+    evidence_plan: i.evidence_plan,
+    created_at: i.created_at,
+  };
+}
+
+export function mapCommitment(c: Row<"commitments">): K.Commitment {
+  return {
+    id: c.id,
+    company_id: c.company_id,
+    to_name: c.to_name,
+    contact_id: c.contact_id,
+    what: c.what,
+    due_date: c.due_date,
+    status: c.status as K.Commitment["status"],
+    followup_draft: c.followup_draft,
+    created_at: c.created_at,
   };
 }

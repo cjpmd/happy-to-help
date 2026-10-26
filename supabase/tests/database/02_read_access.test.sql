@@ -11,7 +11,8 @@ returns text[]
 language sql
 immutable
 as $$
-  select array['voice_sources', 'voice_edit_events']
+  select array['voice_sources', 'voice_edit_events', 'captures', 'transcripts', 'extracted_items',
+    'ideas', 'commitments', 'feedback']
 $$;
 
 -- Expected readers of each company's data.

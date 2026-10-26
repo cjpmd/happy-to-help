@@ -28,6 +28,8 @@ import { demoDb, isValidLayout } from "./demoDb";
 import { useThemeState } from "./useThemeState";
 import { analyseVoice } from "./voice";
 import { applyVoiceDecision, applyVoiceEdit, currentVoice, isLocked } from "./voicePolicy";
+import { captureEstimate } from "./capture";
+import { demoAcceptAll, demoCreateCapture, demoDecideItem, type DemoCtx } from "./demoCapture";
 
 export {
   useStore,
@@ -963,6 +965,85 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
     },
     [isFounder],
   );
+  // Capture from conversation: the demo reads typed or pasted text straight away.
+  const demoCtx = useCallback((): DemoCtx => ({ userId, now: new Date(), uid }), [userId]);
+  const createCapture = useCallback<Ctx["createCapture"]>(
+    async (c) => {
+      if (c.audio || !c.text?.trim()) {
+        toast.error("The demo can't transcribe audio. Type or paste the text instead.");
+        return null;
+      }
+      const { db: next, id } = demoCreateCapture(db, c, demoCtx());
+      setDb(next);
+      return id;
+    },
+    [db, demoCtx],
+  );
+  const decideItem = useCallback<Ctx["decideItem"]>(
+    async (id, decision, changes = {}, fileSensitive = false) => {
+      const r = demoDecideItem(db, id, decision, changes, fileSensitive, demoCtx());
+      if ("error" in r) {
+        toast.error(r.error);
+        return false;
+      }
+      setDb(r.db);
+      return true;
+    },
+    [db, demoCtx],
+  );
+  const acceptAllItems = useCallback<Ctx["acceptAllItems"]>(
+    async (captureId) => {
+      const r = demoAcceptAll(db, captureId, demoCtx());
+      setDb(r.db);
+      return r.n;
+    },
+    [db, demoCtx],
+  );
+  const shareItem = useCallback<Ctx["shareItem"]>(async (id, shared) => {
+    setDb((d) => ({
+      ...d,
+      extracted_items: d.extracted_items.map((x) => (x.id === id ? { ...x, shared } : x)),
+    }));
+    return true;
+  }, []);
+  const updateCaptureSettings = useCallback<Ctx["updateCaptureSettings"]>(
+    async (cid, patch) => {
+      if (!isFounder(cid)) return false;
+      setDb((d) => {
+        const cur = d.capture_settings.find((s) => s.company_id === cid) ?? {
+          company_id: cid,
+          keep_audio_days: 0,
+          auto_accept_own_notes: false,
+        };
+        return {
+          ...d,
+          capture_settings: [
+            ...d.capture_settings.filter((s) => s.company_id !== cid),
+            { ...cur, ...patch },
+          ],
+        };
+      });
+      return true;
+    },
+    [isFounder],
+  );
+  const setIdeaStatus = useCallback<Ctx["setIdeaStatus"]>(async (id, status) => {
+    setDb((d) => ({ ...d, ideas: d.ideas.map((i) => (i.id === id ? { ...i, status } : i)) }));
+    return true;
+  }, []);
+  const completeCommitment = useCallback<Ctx["completeCommitment"]>(async (id, status = "done") => {
+    setDb((d) => ({
+      ...d,
+      commitments: d.commitments.map((c) => (c.id === id ? { ...c, status } : c)),
+    }));
+    return true;
+  }, []);
+  const loadTranscript = useCallback<Ctx["loadTranscript"]>(async () => null, []);
+  // The demo uses the default rates: 40 to read it, 3 a minute to transcribe.
+  const estimateCapture = useCallback<Ctx["estimateCapture"]>(
+    async (seconds) => captureEstimate(seconds ?? null, 3, 40),
+    [],
+  );
   const stopAuto = useCallback(() => {
     setSolTyping(false);
     setDb((d) => ({
@@ -1022,6 +1103,15 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       removeVoiceExample,
       setResponsePolicy,
       updateResponseSettings,
+      createCapture,
+      decideItem,
+      acceptAllItems,
+      shareItem,
+      updateCaptureSettings,
+      setIdeaStatus,
+      completeCommitment,
+      loadTranscript,
+      estimateCapture,
       ...themeState,
     }),
     [
@@ -1057,6 +1147,15 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       removeVoiceExample,
       setResponsePolicy,
       updateResponseSettings,
+      createCapture,
+      decideItem,
+      acceptAllItems,
+      shareItem,
+      updateCaptureSettings,
+      setIdeaStatus,
+      completeCommitment,
+      loadTranscript,
+      estimateCapture,
     ],
   );
 

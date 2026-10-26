@@ -19,6 +19,7 @@ import { Route as AppBillingRouteImport } from './routes/_app/billing'
 import { Route as AppBuildRouteImport } from './routes/_app/build'
 import { Route as AppCohortRouteImport } from './routes/_app/cohort'
 import { Route as AppCustomersRouteImport } from './routes/_app/customers'
+import { Route as AppDebriefRouteImport } from './routes/_app/debrief'
 import { Route as AppDocumentsRouteImport } from './routes/_app/documents'
 import { Route as AppEmailRouteImport } from './routes/_app/email'
 import { Route as AppEvidenceRouteImport } from './routes/_app/evidence'
@@ -27,6 +28,7 @@ import { Route as AppGrowRouteImport } from './routes/_app/grow'
 import { Route as AppHqRouteImport } from './routes/_app/hq'
 import { Route as AppLegalRouteImport } from './routes/_app/legal'
 import { Route as AppMediaRouteImport } from './routes/_app/media'
+import { Route as AppMeetingsRouteImport } from './routes/_app/meetings'
 import { Route as AppOwnershipRouteImport } from './routes/_app/ownership'
 import { Route as AppRaiseRouteImport } from './routes/_app/raise'
 import { Route as AppRoutinesRouteImport } from './routes/_app/routines'
@@ -87,6 +89,11 @@ const AppCustomersRoute = AppCustomersRouteImport.update({
   path: '/customers',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDebriefRoute = AppDebriefRouteImport.update({
+  id: '/debrief',
+  path: '/debrief',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDocumentsRoute = AppDocumentsRouteImport.update({
   id: '/documents',
   path: '/documents',
@@ -125,6 +132,11 @@ const AppLegalRoute = AppLegalRouteImport.update({
 const AppMediaRoute = AppMediaRouteImport.update({
   id: '/media',
   path: '/media',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMeetingsRoute = AppMeetingsRouteImport.update({
+  id: '/meetings',
+  path: '/meetings',
   getParentRoute: () => AppRoute,
 } as any)
 const AppOwnershipRoute = AppOwnershipRouteImport.update({
@@ -188,6 +200,7 @@ export interface FileRoutesByFullPath {
   '/build': typeof AppBuildRoute
   '/cohort': typeof AppCohortRouteWithChildren
   '/customers': typeof AppCustomersRoute
+  '/debrief': typeof AppDebriefRoute
   '/documents': typeof AppDocumentsRoute
   '/email': typeof AppEmailRoute
   '/evidence': typeof AppEvidenceRoute
@@ -196,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/hq': typeof AppHqRoute
   '/legal': typeof AppLegalRoute
   '/media': typeof AppMediaRoute
+  '/meetings': typeof AppMeetingsRoute
   '/ownership': typeof AppOwnershipRoute
   '/raise': typeof AppRaiseRoute
   '/routines': typeof AppRoutinesRoute
@@ -217,6 +231,7 @@ export interface FileRoutesByTo {
   '/build': typeof AppBuildRoute
   '/cohort': typeof AppCohortRouteWithChildren
   '/customers': typeof AppCustomersRoute
+  '/debrief': typeof AppDebriefRoute
   '/documents': typeof AppDocumentsRoute
   '/email': typeof AppEmailRoute
   '/evidence': typeof AppEvidenceRoute
@@ -225,6 +240,7 @@ export interface FileRoutesByTo {
   '/hq': typeof AppHqRoute
   '/legal': typeof AppLegalRoute
   '/media': typeof AppMediaRoute
+  '/meetings': typeof AppMeetingsRoute
   '/ownership': typeof AppOwnershipRoute
   '/raise': typeof AppRaiseRoute
   '/routines': typeof AppRoutinesRoute
@@ -248,6 +264,7 @@ export interface FileRoutesById {
   '/_app/build': typeof AppBuildRoute
   '/_app/cohort': typeof AppCohortRouteWithChildren
   '/_app/customers': typeof AppCustomersRoute
+  '/_app/debrief': typeof AppDebriefRoute
   '/_app/documents': typeof AppDocumentsRoute
   '/_app/email': typeof AppEmailRoute
   '/_app/evidence': typeof AppEvidenceRoute
@@ -256,6 +273,7 @@ export interface FileRoutesById {
   '/_app/hq': typeof AppHqRoute
   '/_app/legal': typeof AppLegalRoute
   '/_app/media': typeof AppMediaRoute
+  '/_app/meetings': typeof AppMeetingsRoute
   '/_app/ownership': typeof AppOwnershipRoute
   '/_app/raise': typeof AppRaiseRoute
   '/_app/routines': typeof AppRoutinesRoute
@@ -279,6 +297,7 @@ export interface FileRouteTypes {
     | '/build'
     | '/cohort'
     | '/customers'
+    | '/debrief'
     | '/documents'
     | '/email'
     | '/evidence'
@@ -287,6 +306,7 @@ export interface FileRouteTypes {
     | '/hq'
     | '/legal'
     | '/media'
+    | '/meetings'
     | '/ownership'
     | '/raise'
     | '/routines'
@@ -308,6 +328,7 @@ export interface FileRouteTypes {
     | '/build'
     | '/cohort'
     | '/customers'
+    | '/debrief'
     | '/documents'
     | '/email'
     | '/evidence'
@@ -316,6 +337,7 @@ export interface FileRouteTypes {
     | '/hq'
     | '/legal'
     | '/media'
+    | '/meetings'
     | '/ownership'
     | '/raise'
     | '/routines'
@@ -338,6 +360,7 @@ export interface FileRouteTypes {
     | '/_app/build'
     | '/_app/cohort'
     | '/_app/customers'
+    | '/_app/debrief'
     | '/_app/documents'
     | '/_app/email'
     | '/_app/evidence'
@@ -346,6 +369,7 @@ export interface FileRouteTypes {
     | '/_app/hq'
     | '/_app/legal'
     | '/_app/media'
+    | '/_app/meetings'
     | '/_app/ownership'
     | '/_app/raise'
     | '/_app/routines'
@@ -438,6 +462,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCustomersRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/debrief': {
+      id: '/_app/debrief'
+      path: '/debrief'
+      fullPath: '/debrief'
+      preLoaderRoute: typeof AppDebriefRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/documents': {
       id: '/_app/documents'
       path: '/documents'
@@ -492,6 +523,13 @@ declare module '@tanstack/react-router' {
       path: '/media'
       fullPath: '/media'
       preLoaderRoute: typeof AppMediaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/meetings': {
+      id: '/_app/meetings'
+      path: '/meetings'
+      fullPath: '/meetings'
+      preLoaderRoute: typeof AppMeetingsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/ownership': {
@@ -587,6 +625,7 @@ interface AppRouteChildren {
   AppBuildRoute: typeof AppBuildRoute
   AppCohortRoute: typeof AppCohortRouteWithChildren
   AppCustomersRoute: typeof AppCustomersRoute
+  AppDebriefRoute: typeof AppDebriefRoute
   AppDocumentsRoute: typeof AppDocumentsRoute
   AppEmailRoute: typeof AppEmailRoute
   AppEvidenceRoute: typeof AppEvidenceRoute
@@ -595,6 +634,7 @@ interface AppRouteChildren {
   AppHqRoute: typeof AppHqRoute
   AppLegalRoute: typeof AppLegalRoute
   AppMediaRoute: typeof AppMediaRoute
+  AppMeetingsRoute: typeof AppMeetingsRoute
   AppOwnershipRoute: typeof AppOwnershipRoute
   AppRaiseRoute: typeof AppRaiseRoute
   AppRoutinesRoute: typeof AppRoutinesRoute
@@ -612,6 +652,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppBuildRoute: AppBuildRoute,
   AppCohortRoute: AppCohortRouteWithChildren,
   AppCustomersRoute: AppCustomersRoute,
+  AppDebriefRoute: AppDebriefRoute,
   AppDocumentsRoute: AppDocumentsRoute,
   AppEmailRoute: AppEmailRoute,
   AppEvidenceRoute: AppEvidenceRoute,
@@ -620,6 +661,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppHqRoute: AppHqRoute,
   AppLegalRoute: AppLegalRoute,
   AppMediaRoute: AppMediaRoute,
+  AppMeetingsRoute: AppMeetingsRoute,
   AppOwnershipRoute: AppOwnershipRoute,
   AppRaiseRoute: AppRaiseRoute,
   AppRoutinesRoute: AppRoutinesRoute,

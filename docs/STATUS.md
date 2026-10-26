@@ -18,8 +18,8 @@ Restyle first, then the remaining Phase 1 groups, then the engine, then the v2 d
 | 5 | Approvals executor | `phase-5-executor` | Done |
 | 10 | Two entry paths, stage-aware dashboard | `phase-10-entry-paths` | Done |
 | 11 | Brand voice and response policy | `phase-11-voice-policy` | Done |
-| 12 | Capture v1 | `phase-12-capture` | Next |
-| 13 | Link layer and lead capture | `phase-13-link-layer` | |
+| 12 | Capture v1 | `phase-12-capture` | Done |
+| 13 | Link layer and lead capture | `phase-13-link-layer` | Next |
 | 6 | Stripe billing (test mode) | `phase-6-stripe` | |
 | 7 | Real integrations (flagged, mocked by default) | `phase-7-integrations` | |
 | 8 | Scheduler, routines, Auto Mode | `phase-8-scheduler` | |
@@ -115,6 +115,15 @@ Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, con
 - App: Customers → Voice & policy (`?tab=voice`): readiness checklist, current voice and pending proposal, "Learn my voice", founder edit, example replies, the policy table (locked rows shown with a padlock), disclosure and "I've reviewed this policy". Works in the demo too (learns from the company's sent emails).
 - Tests: `11_voice_policy.test.sql`, `agent-service/test/voice.test.ts` and memory tests, `src/test/voicePolicy.test.ts`, and the live browser test checks the policy screen.
 - **Mocked:** the voice analysis runs in the mock runtime (rule-based) until real agent runs are turned on (HANDOFF 1). The weekly voice update is runnable as a job; the schedule comes with Phase 8.
+
+### Phase 12 (finished 27 Oct 2026)
+
+- `20261027110000_capture_enums.sql` and `20261027110100_capture.sql`: `captures`, `transcripts`, `extracted_items`, `ideas`, `commitments`, `feedback`, `memory_facts`, `capture_settings`; tasks gain `assignee_id` and `source_item_id`; a private `captures` storage bucket. Raw captures, transcripts and everything derived from them are founder/teammate only; mentors see just the accepted actions and decisions a founder shares (D43).
+- RPCs: `create_capture` (consent and credits checked, queues `capture_process`), `capture_estimate`, `decide_extracted_item`, `accept_all_items`, `share_extracted_item`, `update_capture_settings`, `set_idea_status`, `complete_commitment`; service role `save_transcript` and `save_extraction`. Routing (D40): Sol actions → Sol task plus queued job; people's actions → their task; promises → `commitments` plus a `commitment_followup` job; ideas → idea inbox (a hypothesis with an evidence plan for Start up companies); feedback → `feedback`; facts → an `update_memory` approval; claims → the claims check; every step in the activity log with the timestamp.
+- Agent service: `capture_process` transcribes uploaded audio inside the run (charged and refunded with it, D42), deletes the audio by default, then the `capture-extract` skill proposes items; matching to tasks and contacts is checked in the tool (D41). `commitment_followup` drafts the promised email for approval. Approved facts join the company memory. Transcription provider behind an interface: mock by default, Speechmatics EU behind `TRANSCRIPTION_PROVIDER` (HANDOFF 3).
+- App: hold-to-talk mic on the Ask Sol bar (a voice note, D44), Debrief page (mobile-first, up to two follow-up questions; a Debrief button on the phone HQ), Meetings (list, review cards, transcript on demand, add a transcript or recording with consent and the cost shown, ideas, promises, recording and auto-accept settings), "From your meeting" cards in GO / NO-GO and in its count. The demo reads typed text with the same rules (`src/lib/demoCapture.ts`).
+- Tests: `12_capture.test.sql` and the new tables in the read-access matrix; `agent-service/test/capture.test.ts` (debrief, recording with transcription and deletion, follow-up draft, memory facts); `src/test/capture.test.ts` and `demoCapture.test.ts`; the live browser test adds a transcript and accepts from the review card.
+- **Mocked:** transcription (HANDOFF 3) and the extraction model (rule-based `src/lib/capture.ts` in the mock runtime, HANDOFF 1). "Commitments due today" is ready (`commitmentsDue`) for the morning brief, which Phase 8 builds.
 
 ## Phase 0 audit and Phase 1 history
 

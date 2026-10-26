@@ -10,6 +10,8 @@ export interface MemoryInput {
   unbuilt: string[];
   openTasks: Pick<Tables<"tasks">, "title" | "status" | "due">[];
   declined: { what: string; when: string }[];
+  /** Facts the founder approved for Sol to remember (from conversations). */
+  facts?: string[];
 }
 
 const STAGE_GOALS: Record<string, string> = {
@@ -49,6 +51,9 @@ export function companyMemory(m: MemoryInput): string {
     m.voiceGuide?.trim() ||
       "Clear, encouraging and honest. UK spelling. No guarantees or unsupported claims.",
     "",
+    ...(m.facts?.length
+      ? ["## Things to remember", ...m.facts.slice(0, 30).map((f) => `- ${f}`), ""]
+      : []),
     "## Not built yet (never promise these in public text)",
     ...(m.unbuilt.length ? m.unbuilt.map((u) => `- ${u}`) : ["- (Nothing listed.)"]),
     "",

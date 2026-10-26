@@ -7,6 +7,7 @@
 import { z } from "zod";
 import type { Db } from "./db/client.js";
 import type { Json } from "./db/types.js";
+import { ITEM_KINDS, matchContact, matchTask } from "../../src/lib/capture.js";
 
 export interface ToolContext {
   db: Db;
@@ -441,6 +442,197 @@ TOOLS.push(
     shape: VOICE_SHAPE,
     readOnly: false,
     handler: async (ctx, profile) => proposeVoice(ctx, "edits", profile),
+  }),
+);
+
+// Capture from conversation (Phase 12, SPEC P): read a capture, propose what was in it for the
+// founder's review, and draft promised follow-ups. Nothing is created until they accept.
+const ITEM_SHAPE = z.object({
+  kind: z.enum(ITEM_KINDS),
+  text: z.string().min(1).max(1000),
+  owner: z.enum(["sol", "founder", "teammate", "unknown"]).optional(),
+  owner_id: z.string().uuid().optional(),
+  owner_name: z.string().max(100).optional(),
+  due_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  department: z.enum(["build", "grow", "run", "legal", "raise"]).optional(),
+  confidence: z.number().min(0).max(1),
+  contact_name: z.string().max(200).optional(),
+  sensitive: z.boolean().optional(),
+  quote: z.string().max(1000).optional(),
+  at_seconds: z.number().int().min(0).optional(),
+});
+
+async function captureTeam(ctx: ToolContext) {
+  const { data } = await ctx.db
+    .from("company_members")
+    .select("user_id, role, profiles(full_name)")
+    .eq("company_id", ctx.companyId)
+    .in("role", ["founder", "teammate"]);
+  return (data ?? []).map((m) => ({
+    id: m.user_id,
+    role: m.role,
+    name: (m.profiles as { full_name: string } | null)?.full_name ?? "",
+  }));
+}
+
+TOOLS.push(
+  def({
+    name: "get_capture",
+    description:
+      "The capture to read: its kind, title, participants and transcript (with speaker labels and timestamps when there are any).",
+    shape: { capture_id: z.string().uuid() },
+    readOnly: true,
+    handler: async (ctx, { capture_id }) => {
+      const [cap, tr] = await Promise.all([
+        ctx.db
+          .from("captures")
+          .select("id, source, title, participants, created_at")
+          .eq("id", capture_id)
+          .eq("company_id", ctx.companyId)
+          .maybeSingle(),
+        ctx.db
+          .from("transcripts")
+          .select("text, segments")
+          .eq("capture_id", capture_id)
+          .eq("company_id", ctx.companyId)
+          .maybeSingle(),
+      ]);
+      if (!cap.data || !tr.data) return { isError: true, text: "Capture or transcript not found." };
+      return { text: json({ ...cap.data, transcript: tr.data.text, segments: tr.data.segments }) };
+    },
+  }),
+  def({
+    name: "get_capture_context",
+    description:
+      "What to match extracted items against: open tasks, ideas, the team (founders and teammates) and contacts. Prefer updating an existing task to creating a duplicate.",
+    shape: {},
+    readOnly: true,
+    handler: async (ctx) => {
+      const [tasks, ideas, contacts] = await Promise.all([
+        ctx.db
+          .from("tasks")
+          .select("id, title, status, due")
+          .eq("company_id", ctx.companyId)
+          .neq("status", "done"),
+        ctx.db.from("ideas").select("id, title, status").eq("company_id", ctx.companyId),
+        ctx.db.from("contacts").select("id, name").eq("company_id", ctx.companyId).limit(500),
+      ]);
+      return {
+        text: json({
+          today: new Date().toISOString().slice(0, 10),
+          tasks: tasks.data ?? [],
+          ideas: ideas.data ?? [],
+          team: await captureTeam(ctx),
+          contacts: contacts.data ?? [],
+        }),
+      };
+    },
+  }),
+  def({
+    name: "propose_extraction",
+    description:
+      "Saves what you found in the capture for the founder's review card. Nothing is created until they accept. Matching to existing tasks and contacts is checked here too.",
+    shape: { capture_id: z.string().uuid(), items: z.array(ITEM_SHAPE).max(60) },
+    readOnly: false,
+    handler: async (ctx, { capture_id, items }) => {
+      const [tasks, contacts, team] = await Promise.all([
+        ctx.db
+          .from("tasks")
+          .select("id, title, status")
+          .eq("company_id", ctx.companyId)
+          .neq("status", "done"),
+        ctx.db.from("contacts").select("id, name").eq("company_id", ctx.companyId).limit(500),
+        captureTeam(ctx),
+      ]);
+      const rows = items.map((it) => {
+        const task = it.kind === "action" ? matchTask(it.text, tasks.data ?? []) : undefined;
+        const contact = matchContact(it.contact_name, contacts.data ?? []);
+        const mate =
+          it.owner === "teammate" && !it.owner_id && it.owner_name
+            ? matchContact(it.owner_name, team)
+            : undefined;
+        return {
+          ...it,
+          ...(task ? { match_task_id: task.id } : {}),
+          ...(contact ? { contact_id: contact.id } : {}),
+          ...(mate ? { owner_id: mate.id } : {}),
+        };
+      });
+      const { data, error } = await ctx.db.rpc("save_extraction", {
+        p_capture: capture_id,
+        p_run: ctx.runId,
+        p_items: rows as unknown as Json,
+      });
+      if (error) return { isError: true, text: `Not saved: ${error.message}` };
+      const updates = rows.filter((r) => "match_task_id" in r).length;
+      return {
+        text: `Saved ${String(data)} items for review${updates ? ` (${updates} update existing tasks)` : ""}.`,
+      };
+    },
+  }),
+  def({
+    name: "get_commitment",
+    description: "A promise the founder made to someone outside the company, with the contact.",
+    shape: { commitment_id: z.string().uuid() },
+    readOnly: true,
+    handler: async (ctx, { commitment_id }) => {
+      const { data } = await ctx.db
+        .from("commitments")
+        .select("id, to_name, what, due_date, status, contacts(name, email)")
+        .eq("id", commitment_id)
+        .eq("company_id", ctx.companyId)
+        .maybeSingle();
+      return data ? { text: json(data) } : { isError: true, text: "Promise not found." };
+    },
+  }),
+  def({
+    name: "propose_followup",
+    description:
+      "Drafts the follow-up the founder promised, in the company voice. With the contact's email it becomes an email for approval; otherwise the draft is saved on the promise for the founder to send.",
+    shape: {
+      commitment_id: z.string().uuid(),
+      subject: z.string().min(1).max(200),
+      body: z.string().min(1).max(5000),
+    },
+    readOnly: false,
+    handler: async (ctx, { commitment_id, subject, body }) => {
+      const { data: c } = await ctx.db
+        .from("commitments")
+        .select("id, to_name, what, contacts(email)")
+        .eq("id", commitment_id)
+        .eq("company_id", ctx.companyId)
+        .maybeSingle();
+      if (!c) return { isError: true, text: "Promise not found." };
+      const email = (c.contacts as { email: string } | null)?.email;
+      if (!email) {
+        const flags = await claims(ctx, body);
+        if (flags.length)
+          return {
+            isError: true,
+            text: `Not saved: the claims check flagged "${flags[0]!.phrase}". Rewrite it.`,
+          };
+        await ctx.db
+          .from("commitments")
+          .update({ followup_draft: `${subject}\n\n${body}` })
+          .eq("id", commitment_id);
+        return { text: "Saved the draft on the promise (no email address for this person)." };
+      }
+      const r = await propose(
+        ctx,
+        "send_email",
+        { to: email, subject, body, reason: `You promised ${c.to_name}: ${c.what}` },
+        `${subject}\n${body}`,
+      );
+      if (r.approvalId)
+        await ctx.db
+          .from("commitments")
+          .update({ followup_approval_id: r.approvalId, followup_draft: body })
+          .eq("id", commitment_id);
+      return r;
+    },
   }),
 );
 

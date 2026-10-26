@@ -94,7 +94,7 @@ export interface Task {
   stage?: Stage;
   completed_at?: string | null;
   /** Who does the work. Unset in older demo data: worked out from proof and status. */
-  actor?: "sol" | "founder" | "mentor";
+  actor?: "sol" | "founder" | "mentor" | "teammate";
 }
 export type RunStatus = "queued" | "running" | "succeeded" | "failed" | "needs_approval";
 export interface RunStep {
@@ -156,6 +156,11 @@ export interface UpdateVoicePayload extends PayloadBase {
   summary: string;
   changes: string;
 }
+export interface UpdateMemoryPayload extends PayloadBase {
+  fact: string;
+  item_id?: string;
+  capture_id?: string;
+}
 export interface ApprovalPayloads {
   publish_post: PublishPostPayload;
   send_email: SendEmailPayload;
@@ -163,6 +168,7 @@ export interface ApprovalPayloads {
   file_document: FileDocumentPayload;
   publish_site: PublishSitePayload;
   update_voice: UpdateVoicePayload;
+  update_memory: UpdateMemoryPayload;
 }
 export type ApprovalAction = keyof ApprovalPayloads;
 interface ApprovalBase {
