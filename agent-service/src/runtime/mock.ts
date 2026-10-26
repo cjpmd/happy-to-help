@@ -7,6 +7,7 @@ import { callTool } from "../tools.js";
 import type { AgentRuntime, RunOutcome, RunRequest } from "./types.js";
 import { analyseVoice } from "../../../src/lib/voice.js";
 import { extractItems } from "../../../src/lib/capture.js";
+import { briefText, type BriefFacts } from "../../../src/lib/brief.js";
 
 interface Post {
   channel: string;
@@ -233,7 +234,20 @@ export const mockRuntime: AgentRuntime = {
         return done("I've drafted the follow-up you promised. It's waiting for your GO.");
       }
 
+      case "morning_brief": {
+        const facts = JSON.parse((await step("get_brief_facts")).text) as BriefFacts;
+        const { data: company } = await req.ctx.db
+          .from("companies")
+          .select("name")
+          .eq("id", req.ctx.companyId)
+          .single();
+        await step("save_brief", { content: briefText(facts, company?.name ?? "your company") });
+        return done("Morning brief sent.");
+      }
+
       case "task":
+      case "routine":
+      case "nightly":
       case "auto_mode": {
         const tasks = JSON.parse((await step("list_tasks")).text) as { title: string }[];
         return done(

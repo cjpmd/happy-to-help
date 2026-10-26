@@ -403,14 +403,14 @@ cross join generate_series(0, 13) as i;
 
 -- Workspace: routines, documents, email, ads ---------------------------------------------
 
-insert into public.routines (company_id, title, cadence, credits)
-select c.id, r.title, r.cadence, r.credits
+insert into public.routines (company_id, title, cadence, credits, job_type)
+select c.id, r.title, r.cadence, r.credits, r.job_type
 from public.companies c
 cross join lateral (values
-  ('Morning brief', 'daily'::public.routine_cadence, 25),
-  (case when c.customer_type = 'B2B' then 'Post to LinkedIn' else 'Draft Instagram post' end, 'weekdays', 40),
-  ('Weekly investor update', 'weekly', 60)
-) as r (title, cadence, credits);
+  ('Morning brief', 'daily'::public.routine_cadence, 25, 'morning_brief'),
+  (case when c.customer_type = 'B2B' then 'Post to LinkedIn' else 'Draft Instagram post' end, 'weekdays', 40, 'social_post'),
+  ('Weekly investor update', 'weekly', 60, 'investor_update')
+) as r (title, cadence, credits, job_type);
 
 with docs as (
   insert into public.documents (company_id, title, outcomes)

@@ -297,6 +297,9 @@ export function mapRoutine(r: Row<"routines">): Routine {
     cadence: r.cadence,
     credits: r.credits,
     enabled: r.enabled,
+    job_type: r.job_type,
+    run_at: r.run_at,
+    last_run_at: r.last_run_at,
   };
 }
 

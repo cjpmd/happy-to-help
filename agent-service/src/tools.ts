@@ -7,7 +7,9 @@
 import { z } from "zod";
 import type { Db } from "./db/client.js";
 import type { Json } from "./db/types.js";
-import { ITEM_KINDS, matchContact, matchTask } from "../../src/lib/capture.js";
+import { ITEM_KINDS, commitmentsDue, matchContact, matchTask } from "../../src/lib/capture.js";
+import { localTime } from "../../src/lib/schedule.js";
+import type { BriefFacts } from "../../src/lib/brief.js";
 
 export interface ToolContext {
   db: Db;
@@ -632,6 +634,116 @@ TOOLS.push(
           .update({ followup_approval_id: r.approvalId, followup_draft: body })
           .eq("id", commitment_id);
       return r;
+    },
+  }),
+);
+
+// The morning brief (Phase 8): facts from the database, then the brief itself.
+async function briefFacts(ctx: ToolContext): Promise<BriefFacts> {
+  const since = new Date(Date.now() - 86_400_000).toISOString();
+  const today = localTime(new Date()).date;
+  const head = { count: "exact" as const, head: true };
+  const [approvals, runs, meetings, actions, accepted, promises, threads, leads, summary] =
+    await Promise.all([
+      ctx.db
+        .from("approvals")
+        .select("id", head)
+        .eq("company_id", ctx.companyId)
+        .eq("status", "pending"),
+      ctx.db
+        .from("agent_runs")
+        .select("credits_charged, task")
+        .eq("company_id", ctx.companyId)
+        .gte("started_at", since)
+        .neq("task", "Chat with Sol"),
+      ctx.db
+        .from("captures")
+        .select("id", head)
+        .eq("company_id", ctx.companyId)
+        .gte("created_at", since),
+      ctx.db
+        .from("extracted_items")
+        .select("id", head)
+        .eq("company_id", ctx.companyId)
+        .eq("kind", "action")
+        .gte("created_at", since),
+      ctx.db
+        .from("extracted_items")
+        .select("id", head)
+        .eq("company_id", ctx.companyId)
+        .eq("kind", "action")
+        .eq("status", "accepted")
+        .gte("created_at", since),
+      ctx.db
+        .from("commitments")
+        .select("to_name, what, due_date, status")
+        .eq("company_id", ctx.companyId),
+      ctx.db
+        .from("email_threads")
+        .select("id, email_messages(direction, created_at)")
+        .eq("company_id", ctx.companyId)
+        .neq("mode", "outreach"),
+      ctx.db
+        .from("leads")
+        .select("id", head)
+        .eq("company_id", ctx.companyId)
+        .gte("created_at", since),
+      ctx.db.rpc("credit_summary", { p_company: ctx.companyId }),
+    ]);
+  const waiting = (threads.data ?? []).filter((t) => {
+    const msgs = ((t.email_messages ?? []) as { direction: string; created_at: string }[]).sort(
+      (a, b) => a.created_at.localeCompare(b.created_at),
+    );
+    return msgs[msgs.length - 1]?.direction === "received";
+  }).length;
+  return {
+    date: today,
+    approvalsWaiting: approvals.count ?? 0,
+    overnight: {
+      runs: (runs.data ?? []).length,
+      credits: (runs.data ?? []).reduce((n, r) => n + (r.credits_charged ?? 0), 0),
+    },
+    meetings: meetings.count ?? 0,
+    actionsFound: actions.count ?? 0,
+    actionsAccepted: accepted.count ?? 0,
+    promisesDue: commitmentsDue(promises.data ?? [], today).map((c) => ({
+      to: c.to_name,
+      what: c.what,
+    })),
+    inboxWaiting: waiting,
+    newLeads: leads.count ?? 0,
+    balance: (summary.data as { balance: number } | null)?.balance ?? 0,
+  };
+}
+
+TOOLS.push(
+  def({
+    name: "get_brief_facts",
+    description:
+      "Today's facts for the morning brief: approvals waiting, last night's work, yesterday's meetings and actions, promises due today, customers waiting, new leads and the balance.",
+    shape: {},
+    readOnly: true,
+    handler: async (ctx) => ({ text: json(await briefFacts(ctx)) }),
+  }),
+  def({
+    name: "save_brief",
+    description: "Saves today's morning brief and sends it to the founder in chat.",
+    shape: { content: z.string().min(1).max(3000) },
+    readOnly: false,
+    handler: async (ctx, { content }) => {
+      const facts = await briefFacts(ctx);
+      const { error } = await ctx.db.from("briefs").upsert({
+        company_id: ctx.companyId,
+        brief_date: facts.date,
+        content,
+        facts: facts as unknown as { [k: string]: Json },
+        run_id: ctx.runId,
+      });
+      if (error) return { isError: true, text: `Not saved: ${error.message}` };
+      await ctx.db
+        .from("chat_messages")
+        .insert({ company_id: ctx.companyId, sender: "sol", content });
+      return { text: "Saved and sent." };
     },
   }),
 );

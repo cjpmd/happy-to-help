@@ -1163,6 +1163,33 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
     },
     [db],
   );
+  // The demo previews one Auto Mode cycle, as before; the live store runs real sessions.
+  const startAutoMode = useCallback<Ctx["startAutoMode"]>(
+    (cid, hours, cap) => work(cid, `Auto Mode: ${hours}-hour plan`, cap, "auto"),
+    [work],
+  );
+  const stopAutoMode = useCallback<Ctx["stopAutoMode"]>(async () => {
+    setSolTyping(false);
+    return true;
+  }, []);
+  const updateAutomation = useCallback<Ctx["updateAutomation"]>(async (cid, patch) => {
+    setDb((d) => {
+      const cur = d.company_automation.find((a) => a.company_id === cid) ?? {
+        company_id: cid,
+        nightly_enabled: false,
+        nightly_cap_credits: 300,
+        voice_review_enabled: false,
+      };
+      return {
+        ...d,
+        company_automation: [
+          ...d.company_automation.filter((a) => a.company_id !== cid),
+          { ...cur, ...patch },
+        ],
+      };
+    });
+    return true;
+  }, []);
   const setIntegration = useCallback<Ctx["setIntegration"]>(
     async (cid, provider, enabled, config) => {
       if (!isFounder(cid)) return false;
@@ -1280,6 +1307,9 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       submitLead,
       followLink,
       setIntegration,
+      startAutoMode,
+      stopAutoMode,
+      updateAutomation,
       shortLinkBase: typeof window === "undefined" ? "/l" : `${window.location.origin}/l`,
       ...themeState,
     }),
@@ -1336,6 +1366,9 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       submitLead,
       followLink,
       setIntegration,
+      startAutoMode,
+      stopAutoMode,
+      updateAutomation,
     ],
   );
 

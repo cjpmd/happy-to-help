@@ -203,3 +203,22 @@ Non-trivial decisions made during the autonomous build run (`docs/AUTONOMOUS-RUN
 
 ## D56. One PostHog project, tagged by company
 - **Chosen:** the platform has one PostHog project (EU); hub pages send `$pageview` and `signed_up` with `company_slug`, only after the visitor allows analytics, using PostHog's capture API (no SDK or cookies). The worker queries each company's daily numbers with HogQL. Platform keys are used rather than per-company PostHog accounts.
+
+## D57. The scheduler lives in the agent worker
+- **Chosen:** every minute the worker computes what's due and claims each firing with `claim_schedule` (a unique index on kind, company, item and period) before queueing the job, so restarts and extra workers never double-fire. No pg_cron.
+- **Why:** the worker already holds the service role and runs continuously; one clock in TypeScript is easier to test than SQL schedules, and the unique index gives the same guarantee.
+
+## D58. UK time for schedules
+- **Chosen:** schedules are computed in Europe/London with `Intl` (so 07:00 stays 07:00 across BST), by a pure module (`src/lib/schedule.ts`) shared by the worker and the app. A routine that was missed (worker down) runs when the worker is back, the same day (or the same week for weekly ones).
+
+## D59. Auto Mode is a capped run of steps
+- **Chosen:** a session (1 to 8 hours, a cap the balance can cover, one at a time) is advanced by the scheduler one `auto_mode` job at a time; each step may reserve only what's left of the cap; the session ends when time or cap runs out, and Sol posts what it did. Stopping prevents new steps; the current one finishes. The cost shown before starting is the cap.
+
+## D60. The nightly loop
+- **Chosen:** opt-in per company with a nightly credit cap (default 300 when switched on). The scheduler picks the task deterministically (Sol's open tasks; key tasks for the current stage, then overdue, then soonest due) and the run works on it, proposing anything external for the morning.
+
+## D61. No Batch API for now
+- **Chosen:** overnight work runs as normal agent runs. The Claude Agent SDK runs multi-turn tool loops, which the Message Batches API can't serve; batching only fits single-call jobs (e.g. a brief written from precomputed facts), which can move to batches later without changing the scheduler.
+
+## D62. Credit expiry uses the database clock
+- **Chosen:** the scheduler only decides that expiry is due; `expire_credits` always runs with the database's `now()`. Found when a test clock in the future expired real credits.

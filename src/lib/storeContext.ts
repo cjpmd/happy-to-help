@@ -62,7 +62,33 @@ export type DB = WorkspaceDB & {
   /** Per-company provider switches, and what the platform has set up (Phase 7). */
   integration_settings: IntegrationSetting[];
   platform_integrations: { provider: string; configured: boolean }[];
+  /** Phase 8: Auto Mode sessions, what Sol does on its own, and the morning briefs. */
+  auto_sessions: AutoSession[];
+  company_automation: Automation[];
+  briefs: Brief[];
 };
+
+export interface AutoSession {
+  id: string;
+  company_id: string;
+  started_at: string;
+  ends_at: string;
+  cap_credits: number;
+  spent_credits: number;
+  steps: number;
+  status: "running" | "stopped" | "finished" | "cap_reached";
+}
+export interface Automation {
+  company_id: string;
+  nightly_enabled: boolean;
+  nightly_cap_credits: number;
+  voice_review_enabled: boolean;
+}
+export interface Brief {
+  company_id: string;
+  brief_date: string;
+  content: string;
+}
 
 export type IntegrationProvider = "resend" | "ayrshare" | "posthog";
 export interface IntegrationSetting {
@@ -244,6 +270,13 @@ export interface Ctx {
   submitLead: (s: L.LeadSubmission) => Promise<boolean>;
   /** Logs a short-link click and resolves to where it goes. */
   followLink: (code: string) => Promise<string | null>;
+  /** Starts a time-boxed Auto Mode session with a credit cap. */
+  startAutoMode: (companyId: string, hours: number, capCredits: number) => Promise<boolean>;
+  stopAutoMode: (companyId: string) => Promise<boolean>;
+  updateAutomation: (
+    companyId: string,
+    patch: Partial<Omit<Automation, "company_id">>,
+  ) => Promise<boolean>;
   /** A founder switches a provider on or off for their company. */
   setIntegration: (
     companyId: string,

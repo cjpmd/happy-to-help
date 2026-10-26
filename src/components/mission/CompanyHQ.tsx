@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { MissionHeader } from "./MissionHeader";
 import { AskSolBar } from "./AskSolBar";
 import { AttributionCard } from "./LinkLayer";
+import { BriefCard } from "./BriefCard";
 import {
   ChannelsCard,
   EvidenceCard,
@@ -101,6 +102,7 @@ export function CompanyHQ({
         onCustomise={readOnly ? undefined : () => setEditing(true)}
       />
       {!readOnly && <AskSolBar companyId={companyId} open={chatOpen} onOpenChange={setChatOpen} />}
+      {!readOnly && <BriefCard companyId={companyId} />}
       {/* Debrief is a phone thing: straight after a meeting (SPEC P). */}
       {!readOnly && (
         <Button asChild variant="outline" className="tab:hidden">

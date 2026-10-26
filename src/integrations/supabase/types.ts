@@ -391,6 +391,71 @@ export type Database = {
           },
         ];
       };
+      auto_sessions: {
+        Row: {
+          cap_credits: number;
+          company_id: string;
+          ends_at: string;
+          finished_at: string | null;
+          id: string;
+          spent_credits: number;
+          started_at: string;
+          started_by: string | null;
+          status: string;
+          steps: number;
+          stopped_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          cap_credits: number;
+          company_id: string;
+          ends_at: string;
+          finished_at?: string | null;
+          id?: string;
+          spent_credits?: number;
+          started_at?: string;
+          started_by?: string | null;
+          status?: string;
+          steps?: number;
+          stopped_by?: string | null;
+        };
+        Update: {
+          cap_credits?: number;
+          company_id?: string;
+          ends_at?: string;
+          finished_at?: string | null;
+          id?: string;
+          spent_credits?: number;
+          started_at?: string;
+          started_by?: string | null;
+          status?: string;
+          steps?: number;
+          stopped_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "auto_sessions_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "auto_sessions_started_by_fkey";
+            columns: ["started_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "auto_sessions_stopped_by_fkey";
+            columns: ["stopped_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       billing_products: {
         Row: {
           active: boolean;
@@ -424,6 +489,49 @@ export type Database = {
           stripe_price_id?: string | null;
         };
         Relationships: [];
+      };
+      briefs: {
+        Row: {
+          brief_date: string;
+          company_id: string;
+          content: string;
+          created_at: string;
+          facts: NonNullable<Json>;
+          run_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          brief_date: string;
+          company_id: string;
+          content: string;
+          created_at?: string;
+          facts?: NonNullable<Json>;
+          run_id?: string | null;
+        };
+        Update: {
+          brief_date?: string;
+          company_id?: string;
+          content?: string;
+          created_at?: string;
+          facts?: NonNullable<Json>;
+          run_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "briefs_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "briefs_run_id_fkey";
+            columns: ["run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       capture_settings: {
         Row: {
@@ -843,6 +951,49 @@ export type Database = {
           {
             foreignKeyName: "companies_created_by_fkey";
             columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      company_automation: {
+        Row: {
+          company_id: string;
+          nightly_cap_credits: number;
+          nightly_enabled: boolean;
+          updated_at: string;
+          updated_by: string | null;
+          voice_review_enabled: boolean;
+        };
+        ComputedFields: never;
+        Insert: {
+          company_id: string;
+          nightly_cap_credits?: number;
+          nightly_enabled?: boolean;
+          updated_at?: string;
+          updated_by?: string | null;
+          voice_review_enabled?: boolean;
+        };
+        Update: {
+          company_id?: string;
+          nightly_cap_credits?: number;
+          nightly_enabled?: boolean;
+          updated_at?: string;
+          updated_by?: string | null;
+          voice_review_enabled?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "company_automation_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: true;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "company_automation_updated_by_fkey";
+            columns: ["updated_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];
@@ -2459,6 +2610,9 @@ export type Database = {
           credits: number;
           enabled: boolean;
           id: string;
+          job_type: string;
+          last_run_at: string | null;
+          run_at: string;
           title: string;
           updated_at: string;
         };
@@ -2470,6 +2624,9 @@ export type Database = {
           credits: number;
           enabled?: boolean;
           id?: string;
+          job_type?: string;
+          last_run_at?: string | null;
+          run_at?: string;
           title: string;
           updated_at?: string;
         };
@@ -2480,6 +2637,9 @@ export type Database = {
           credits?: number;
           enabled?: boolean;
           id?: string;
+          job_type?: string;
+          last_run_at?: string | null;
+          run_at?: string;
           title?: string;
           updated_at?: string;
         };
@@ -2489,6 +2649,59 @@ export type Database = {
             columns: ["company_id"];
             isOneToOne: false;
             referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "routines_job_type_fkey";
+            columns: ["job_type"];
+            isOneToOne: false;
+            referencedRelation: "job_types";
+            referencedColumns: ["job_type"];
+          },
+        ];
+      };
+      schedule_runs: {
+        Row: {
+          company_id: string | null;
+          created_at: string;
+          id: string;
+          job_id: string | null;
+          kind: string;
+          period_key: string;
+          ref_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          company_id?: string | null;
+          created_at?: string;
+          id?: string;
+          job_id?: string | null;
+          kind: string;
+          period_key: string;
+          ref_id?: string | null;
+        };
+        Update: {
+          company_id?: string | null;
+          created_at?: string;
+          id?: string;
+          job_id?: string | null;
+          kind?: string;
+          period_key?: string;
+          ref_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "schedule_runs_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "schedule_runs_job_id_fkey";
+            columns: ["job_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_jobs";
             referencedColumns: ["id"];
           },
         ];
@@ -3464,6 +3677,10 @@ export type Database = {
           isSetofReturn: true;
         };
       };
+      claim_schedule: {
+        Args: { p_company: string; p_kind: string; p_period: string; p_ref: string };
+        Returns: boolean;
+      };
       complete_commitment: {
         Args: { p_commitment: string; p_status?: string };
         Returns: undefined;
@@ -3658,6 +3875,11 @@ export type Database = {
         Returns: number;
       };
       share_extracted_item: { Args: { p_item: string; p_shared: boolean }; Returns: undefined };
+      start_auto_mode: {
+        Args: { p_cap_credits: number; p_company: string; p_hours: number };
+        Returns: string;
+      };
+      stop_auto_mode: { Args: { p_company: string }; Returns: undefined };
       submit_lead: {
         Args: {
           p_email: string;
@@ -3673,6 +3895,15 @@ export type Database = {
         Returns: boolean;
       };
       unsubscribe_contact: { Args: { p_contact: string }; Returns: boolean };
+      update_automation: {
+        Args: {
+          p_company: string;
+          p_nightly_cap?: number;
+          p_nightly_enabled?: boolean;
+          p_voice_review?: boolean;
+        };
+        Returns: undefined;
+      };
       update_capture_settings: {
         Args: { p_auto_accept?: boolean; p_company: string; p_keep_audio_days?: number };
         Returns: undefined;

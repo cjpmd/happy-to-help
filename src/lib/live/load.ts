@@ -257,6 +257,28 @@ export const loaders = {
       platform_integrations: must(platform, "platform integrations"),
     };
   },
+  automation: async (sb) => {
+    const [sessions, automation, briefs] = await Promise.all([
+      sb
+        .from("auto_sessions")
+        .select("id, company_id, started_at, ends_at, cap_credits, spent_credits, steps, status")
+        .order("started_at", { ascending: false })
+        .limit(20),
+      sb
+        .from("company_automation")
+        .select("company_id, nightly_enabled, nightly_cap_credits, voice_review_enabled"),
+      sb
+        .from("briefs")
+        .select("company_id, brief_date, content")
+        .gte("brief_date", new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10)),
+    ]);
+    return {
+      // Statuses are checked by the table's constraint.
+      auto_sessions: must(sessions, "Auto Mode") as DB["auto_sessions"],
+      company_automation: must(automation, "automation"),
+      briefs: must(briefs, "briefs"),
+    };
+  },
   settings: async (sb, userId) => {
     const [prefs, layout, sharing, invites] = await Promise.all([
       sb.from("user_preferences").select("*").maybeSingle(),
@@ -303,6 +325,8 @@ export const TABLE_GROUPS: Partial<Record<keyof Database["public"]["Tables"], Gr
   tracked_links: "links",
   subscriptions: "billing",
   integration_settings: "billing",
+  auto_sessions: "automation",
+  briefs: "automation",
 };
 
 export async function loadGroups(sb: Client, userId: string, groups: Group[]) {
@@ -355,6 +379,9 @@ export function emptyDb(): DB {
     subscriptions: [],
     integration_settings: [],
     platform_integrations: [],
+    auto_sessions: [],
+    company_automation: [],
+    briefs: [],
     routines: [],
     documents: [],
     media: [],

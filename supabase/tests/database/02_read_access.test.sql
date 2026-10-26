@@ -12,7 +12,7 @@ language sql
 immutable
 as $$
   select array['voice_sources', 'voice_edit_events', 'captures', 'transcripts', 'extracted_items',
-    'ideas', 'commitments', 'feedback', 'consents', 'current_consents', 'leads', 'subscriptions', 'integration_settings']
+    'ideas', 'commitments', 'feedback', 'consents', 'current_consents', 'leads', 'subscriptions', 'integration_settings', 'briefs']
 $$;
 
 -- Expected readers of each company's data.
@@ -23,7 +23,7 @@ immutable
 as $$
   select case
     -- Stripe ids and raw events: the service role only.
-    when p_table in ('stripe_customers', 'stripe_events', 'integration_secrets') then false
+    when p_table in ('stripe_customers', 'stripe_events', 'integration_secrets', 'schedule_runs') then false
     when p_table = any (pg_temp.private_tables()) then
       case p_company
         when 'company_a' then p_person in ('founder', 'teammate')

@@ -108,9 +108,14 @@ export async function processJob(deps: RunnerDeps, job: Job): Promise<JobResult>
     .select("estimate_credits, cap_credits")
     .eq("job_type", job.job_type)
     .maybeSingle();
-  const estimate =
-    job.estimated_credits > 0 ? job.estimated_credits : (jt?.estimate_credits ?? spec.estimate);
-  const cap = Math.max(estimate, jt?.cap_credits ?? spec.cap);
+  // Scheduled work (the nightly loop, Auto Mode steps) can carry a lower ceiling than the job
+  // type's cap: what's left of the founder's cap.
+  const ceiling = typeof payload["max_credits"] === "number" ? payload["max_credits"] : Infinity;
+  const estimate = Math.min(
+    ceiling,
+    job.estimated_credits > 0 ? job.estimated_credits : (jt?.estimate_credits ?? spec.estimate),
+  );
+  const cap = Math.min(ceiling, Math.max(estimate, jt?.cap_credits ?? spec.cap));
   const summary = must(
     await db.rpc("credit_summary", { p_company: job.company_id }),
     "credit summary",
