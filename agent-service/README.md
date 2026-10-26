@@ -28,17 +28,17 @@ npm test                                        # against the local stack (reset
 
 ## Layout
 
-| File | What it does |
-|---|---|
-| `src/config.ts` | Model IDs per tier (routine: Haiku, planning: Sonnet, strategy: Opus) and worker settings, from env |
-| `src/jobs.ts` | Job types: model tier, skills, credit estimate and cap, tools, prompt |
-| `src/memory.ts` | The company's CLAUDE.md, generated from the database |
-| `src/workspace.ts` | Writes the run's workspace: CLAUDE.md, `.claude/skills/*`, data snapshot |
-| `src/tools.ts` | Read tools and `propose_*` tools (which only write pending approvals) |
-| `src/gate.ts` | `canUseTool`: a job may use only its own tools; no shell, writes or web |
-| `src/runtime/` | `claude.ts` (Agent SDK), `mock.ts`, and the shared interface |
-| `src/runner.ts` | One job end to end, with credits, retries and escalation |
-| `src/worker.ts` | The polling loop, plus the stale-run reaper |
-| `skills/` | Playbooks: `social-post`, `claims-check` |
+| File               | What it does                                                                                        |
+| ------------------ | --------------------------------------------------------------------------------------------------- |
+| `src/config.ts`    | Model IDs per tier (routine: Haiku, planning: Sonnet, strategy: Opus) and worker settings, from env |
+| `src/jobs.ts`      | Job types: model tier, skills, credit estimate and cap, tools, prompt                               |
+| `src/memory.ts`    | The company's CLAUDE.md, generated from the database                                                |
+| `src/workspace.ts` | Writes the run's workspace: CLAUDE.md, `.claude/skills/*`, data snapshot                            |
+| `src/tools.ts`     | Read tools and `propose_*` tools (which only write pending approvals)                               |
+| `src/gate.ts`      | `canUseTool`: a job may use only its own tools; no shell, writes or web                             |
+| `src/runtime/`     | `claude.ts` (Agent SDK), `mock.ts`, and the shared interface                                        |
+| `src/runner.ts`    | One job end to end, with credits, retries and escalation                                            |
+| `src/worker.ts`    | The polling loop, plus the stale-run reaper                                                         |
+| `skills/`          | Playbooks: `social-post`, `claims-check`                                                            |
 
 Credit rules (CLAUDE.md rule 3): the reservation is the job's cap or the available balance (plus cohort pool), whichever is smaller, and never less than the estimate; `maxBudgetUsd` is that reservation converted with `credit_config`. Agents never publish, send or spend: `propose_*` tools create approvals that the executor carries out after GO.

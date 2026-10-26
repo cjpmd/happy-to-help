@@ -96,3 +96,15 @@ Non-trivial decisions made during the autonomous build run (`docs/AUTONOMOUS-RUN
 
 ## D25. Chat runs through the worker until Phase 4
 - **Chosen:** in live mode a chat message queues a `chat` job; the worker writes Sol's reply as a chat message. Phase 4 adds the streaming endpoint.
+
+## D26. One catalogue for job estimates
+- **Question:** credit estimates lived in three places that disagreed (`ACTION_COSTS`, `agentClient.TASK_CREDITS`, literals in components).
+- **Chosen:** the `job_types` table holds each job's estimate and cap. `enqueue_job` uses it (a caller can't lower an estimate), the agent service reserves from it, and the app shows it through `useEstimate()`. The demo uses `ACTION_COSTS`. Approval fees for founder-made approvals (30 outreach, 90 ad budget) stay in their RPCs.
+- **Change it:** update rows in `job_types` with the service role; the app picks them up through Realtime.
+
+## D27. Streaming chat in an Edge Function, mocked without a key
+- **Chosen:** `supabase/functions/chat` streams Sol's reply as server-sent events and runs the full credit flow per turn (reserve, settle from token usage and `model_prices`, refund on failure). Haiku by default; Sonnet when the message asks for planning. Without `ANTHROPIC_API_KEY` (or with `CHAT_MOCK=1`) it streams the demo's replies and charges the estimate, so the flow is testable at no cost.
+
+## D28. Local Edge Functions behind a TLS-re-signing proxy
+- **Question:** the local edge runtime couldn't download npm packages in the build sandbox ("invalid peer certificate").
+- **Chosen:** `scripts/dev/warm-functions-cache.sh` fills the runtime's cache from a Deno 2.1.4 container that trusts the proxy's CA. Not needed on a normal machine or on hosted Supabase.

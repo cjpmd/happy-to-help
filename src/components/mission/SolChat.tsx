@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ArrowUp } from "lucide-react";
-import { useStore, useBalance, useSolStatus } from "@/lib/store";
+import { useStore, useBalance, useSolStatus, useEstimate } from "@/lib/store";
 import { fmtTime } from "@/lib/format";
 import { SolAvatar } from "./primitives";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
-import { ACTION_COSTS, actionQuote } from "@/lib/credits";
+import { actionQuote } from "@/lib/credits";
 import { Why } from "./WorkControls";
 import { cn } from "@/lib/utils";
 
@@ -19,16 +19,17 @@ export function SolChat({
   /** Fill the container (in a sheet) instead of showing as a card. */
   fill?: boolean;
 }) {
-  const { db, sendChat, solTyping } = useStore();
+  const { db, sendChat, solTyping, chatDraft } = useStore();
+  const chatCost = useEstimate("chat");
   const sol = useSolStatus(companyId);
   const balance = useBalance(companyId);
-  const quote = actionQuote(balance, ACTION_COSTS.chat);
+  const quote = actionQuote(balance, chatCost);
   const [text, setText] = useState("");
   const msgs = db.chat_messages.filter((m) => m.company_id === companyId);
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "nearest" });
-  }, [msgs.length, solTyping]);
+  }, [msgs.length, solTyping, chatDraft?.text]);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -81,11 +82,20 @@ export function SolChat({
             </div>
           </div>
         ))}
-        {solTyping && (
-          <div className="flex items-center gap-2">
-            <SolAvatar size={20} />
-            <span className="animate-pulse text-xs text-muted-foreground">Sol is thinking…</span>
+        {chatDraft?.companyId === companyId && chatDraft.text ? (
+          <div className="flex gap-2" aria-live="polite">
+            <SolAvatar size={20} className="mt-0.5" />
+            <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-muted px-3 py-2 text-sm leading-relaxed">
+              {chatDraft.text}
+            </div>
           </div>
+        ) : (
+          solTyping && (
+            <div className="flex items-center gap-2">
+              <SolAvatar size={20} />
+              <span className="animate-pulse text-xs text-muted-foreground">Sol is thinking…</span>
+            </div>
+          )
         )}
         <div ref={endRef} />
       </div>
@@ -102,14 +112,14 @@ export function SolChat({
             <Button
               type="submit"
               disabled={!text.trim() || !quote.affordable || solTyping}
-              aria-label={`Send, about ${ACTION_COSTS.chat} credits`}
+              aria-label={`Send, about ${chatCost} credits`}
               className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-opacity disabled:opacity-30"
             >
               <ArrowUp className="h-4 w-4" />
             </Button>
           </div>
           <p className="px-2 pt-1 text-[10px] text-muted-foreground">
-            ≈ {ACTION_COSTS.chat} CR ·{" "}
+            ≈ {chatCost} CR ·{" "}
             {quote.affordable
               ? `${quote.after.toLocaleString("en-GB")} CR left after`
               : "Insufficient credits"}{" "}

@@ -10,6 +10,7 @@ import { defaultPreferences, defaultSharing, type Preferences, type Sharing } fr
 import type { ThemePref } from "../theme";
 import { ALL_GROUPS, TABLE_GROUPS, emptyDb, loadGroups, type Group } from "./load";
 import { preferencesRow } from "./mappers";
+import { AgentError, enqueueJob, sendChatMessage, setLiveEstimates } from "../agentClient";
 
 const COMPANY_KEY = "gumption-company";
 /** How long the "Sol is typing" indicator waits for a reply before giving up. */
@@ -41,6 +42,7 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [companyId, setCompanyIdState] = useState("");
   const [solTyping, setSolTyping] = useState(false);
+  const [chatDraft, setChatDraft] = useState<Ctx["chatDraft"]>(null);
   const [now, setNow] = useState(() => new Date());
   const userId = session?.user.id ?? "";
   const pending = useRef(new Set<Group>());
@@ -162,6 +164,14 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Estimates for the agent client.
+  useEffect(() => {
+    if (db.job_types.length)
+      setLiveEstimates(
+        Object.fromEntries(db.job_types.map((j) => [j.job_type, j.estimate_credits])),
+      );
+  }, [db.job_types]);
+
   // A Sol reply ends the typing indicator.
   const lastSol = db.chat_messages.filter((m) => m.sender === "sol").at(-1)?.id;
   useEffect(() => {
@@ -214,18 +224,26 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
     },
     [sb, call],
   );
+  // Sol's reply streams from the chat Edge Function; the founder's message and the reply are
+  // saved server-side and arrive through Realtime.
   const sendChat = useCallback<Ctx["sendChat"]>(
     async (cid, text) => {
-      const ok = await call(
-        () => sb.rpc("post_chat_message", { p_company: cid, p_content: text }),
-        ["chat_messages"],
-      );
-      if (ok === false) return;
       setSolTyping(true);
-      if (typingTimer.current) clearTimeout(typingTimer.current);
-      typingTimer.current = setTimeout(() => setSolTyping(false), TYPING_TIMEOUT_MS);
+      setChatDraft({ companyId: cid, text: "" });
+      void reload(["chat_messages"]);
+      try {
+        await sendChatMessage(cid, text, (delta) =>
+          setChatDraft((d) => ({ companyId: cid, text: (d?.text ?? "") + delta })),
+        );
+      } catch (e) {
+        toast.error(e instanceof AgentError ? e.message : "Sol couldn't reply. Please try again.");
+      } finally {
+        await reload(["chat_messages", "credit_ledger", "agent_runs"]);
+        setChatDraft(null);
+        setSolTyping(false);
+      }
     },
-    [sb, call],
+    [reload],
   );
   const approveGate = useCallback<Ctx["approveGate"]>(
     async (gateId) =>
@@ -283,23 +301,23 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
   const work = useCallback<Ctx["work"]>(
     async (cid, title, cost, kind = "task", target) => {
       const jobType = JOB_TYPES[kind] ?? "task";
-      const isTask = kind === "task" && target;
-      const id = await call(
-        () =>
-          sb.rpc("enqueue_job", {
-            p_company: cid,
-            p_job_type: jobType,
-            p_payload: { title, ...(target ? { target } : {}) },
-            ...(isTask ? { p_task: target } : {}),
-            p_estimated_credits: cost,
-          }),
-        ["agent_runs"],
-      );
-      if (!id) return false;
+      try {
+        await enqueueJob(
+          cid,
+          jobType,
+          { title, ...(target ? { target } : {}) },
+          kind === "task" ? target : undefined,
+          kind === "auto" ? cost : undefined,
+        );
+      } catch (e) {
+        toast.error(e instanceof AgentError ? e.message : "Couldn't queue the work");
+        return false;
+      }
+      void reload(["agent_runs"]);
       toast.success("Queued. Sol will pick it up shortly.");
       return true;
     },
-    [sb, call],
+    [reload],
   );
   const saveLayout = useCallback<Ctx["saveLayout"]>(
     (layout) => {
@@ -431,6 +449,7 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       signIn,
       signOut,
       solTyping,
+      chatDraft,
       decideApproval,
       editApproval,
       askWhy,
@@ -463,6 +482,7 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       signIn,
       signOut,
       solTyping,
+      chatDraft,
       decideApproval,
       editApproval,
       askWhy,

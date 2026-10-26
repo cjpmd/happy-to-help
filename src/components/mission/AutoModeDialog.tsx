@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useStore } from "@/lib/store";
+import { useStore, useEstimate } from "@/lib/store";
 import { autoModeCost } from "@/lib/credits";
 import {
   Dialog,
@@ -23,6 +23,7 @@ export function AutoModeDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const { work } = useStore();
+  const autoPerHour = useEstimate("autoHour");
   const [hours, setHours] = useState(AUTO_MODE_DEFAULT_HOURS);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -51,10 +52,15 @@ export function AutoModeDialog({
         </div>
         <CostButton
           label={`Start ${hours}-hour session`}
-          cost={autoModeCost(hours)}
+          cost={autoModeCost(hours, autoPerHour)}
           onConfirm={() => {
             onOpenChange(false);
-            return work(companyId, `Auto Mode: ${hours}-hour plan`, autoModeCost(hours), "auto");
+            return work(
+              companyId,
+              `Auto Mode: ${hours}-hour plan`,
+              autoModeCost(hours, autoPerHour),
+              "auto",
+            );
           }}
         />
         <Why reason="A time-boxed work period keeps the credit commitment visible and bounded. The hourly demo estimate and your available balance determine the cost before you start." />

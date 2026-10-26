@@ -94,8 +94,16 @@ export async function processJob(deps: RunnerDeps, job: Job): Promise<JobResult>
   const input = jobInput(job, chatText);
   const title = input.title ?? spec.label;
 
-  // Estimate and check the balance (plus any cohort pool) before creating anything.
-  const estimate = job.estimated_credits > 0 ? job.estimated_credits : spec.estimate;
+  // Estimate and check the balance (plus any cohort pool) before creating anything. The
+  // job_types table is the source of estimates and caps; the spec's are the fallback.
+  const { data: jt } = await db
+    .from("job_types")
+    .select("estimate_credits, cap_credits")
+    .eq("job_type", job.job_type)
+    .maybeSingle();
+  const estimate =
+    job.estimated_credits > 0 ? job.estimated_credits : (jt?.estimate_credits ?? spec.estimate);
+  const cap = Math.max(estimate, jt?.cap_credits ?? spec.cap);
   const summary = must(
     await db.rpc("credit_summary", { p_company: job.company_id }),
     "credit summary",
@@ -124,7 +132,7 @@ export async function processJob(deps: RunnerDeps, job: Job): Promise<JobResult>
     );
     return { outcome: "insufficient_credits" };
   }
-  const reserve = Math.max(estimate, Math.min(spec.cap, available));
+  const reserve = Math.max(estimate, Math.min(cap, available));
   const model = config.models[spec.tier];
 
   const run = must(

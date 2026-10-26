@@ -40,9 +40,9 @@ export const ACTION_COSTS = {
 export function actionQuote(balance: number, credits: number) {
   return { credits, after: balance - credits, affordable: credits >= 0 && balance >= credits };
 }
-export function autoModeCost(hours: number) {
+export function autoModeCost(hours: number, perHour: number = ACTION_COSTS.autoHour) {
   if (!Number.isInteger(hours) || hours < 1 || hours > 8) throw new Error("Choose 1–8 hours");
-  return hours * ACTION_COSTS.autoHour;
+  return hours * perHour;
 }
 
 export interface CreditSummary {

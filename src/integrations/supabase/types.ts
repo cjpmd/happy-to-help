@@ -1216,6 +1216,37 @@ export type Database = {
           },
         ];
       };
+      job_types: {
+        Row: {
+          cap_credits: number;
+          estimate_credits: number;
+          job_type: string;
+          label: string;
+          pillar: Database["public"]["Enums"]["pillar"];
+          tier: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          cap_credits: number;
+          estimate_credits: number;
+          job_type: string;
+          label: string;
+          pillar: Database["public"]["Enums"]["pillar"];
+          tier: string;
+          updated_at?: string;
+        };
+        Update: {
+          cap_credits?: number;
+          estimate_credits?: number;
+          job_type?: string;
+          label?: string;
+          pillar?: Database["public"]["Enums"]["pillar"];
+          tier?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       media_assets: {
         Row: {
           company_id: string;
@@ -1306,6 +1337,28 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      model_prices: {
+        Row: {
+          input_per_mtok: number;
+          model: string;
+          output_per_mtok: number;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          input_per_mtok: number;
+          model: string;
+          output_per_mtok: number;
+          updated_at?: string;
+        };
+        Update: {
+          input_per_mtok?: number;
+          model?: string;
+          output_per_mtok?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
       };
       profiles: {
         Row: {
@@ -1699,6 +1752,7 @@ export type Database = {
       append_run_step: { Args: { p_run: string; p_step: Json }; Returns: undefined };
       approve_gate: { Args: { p_gate: string }; Returns: Database["public"]["Enums"]["stage"] };
       ask_why: { Args: { p_approval: string }; Returns: undefined };
+      begin_chat_turn: { Args: { p_company: string; p_content: string }; Returns: string };
       check_claims: { Args: { p_company: string; p_text: string }; Returns: Json };
       claim_agent_job: {
         Args: { p_job_types?: string[]; p_worker: string };

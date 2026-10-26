@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Pause, Settings2 } from "lucide-react";
-import { useCompany, useSolStatus, useStore } from "@/lib/store";
+import { useCompany, useSolStatus, useStore, useEstimate } from "@/lib/store";
 import { autoModeCost } from "@/lib/credits";
 import {
   currentGate,
@@ -43,6 +43,7 @@ export function MissionHeader({
   onCustomise?: (() => void) | undefined;
 }) {
   const { db, user, solTyping, stopAuto, now } = useStore();
+  const autoPerHour = useEstimate("autoHour");
   const c = useCompany(companyId);
   const sol = useSolStatus(companyId);
   const [auto, setAuto] = useState(false);
@@ -130,7 +131,8 @@ export function MissionHeader({
               className="min-h-11 border-ink bg-transparent text-[12px]"
               onClick={() => setAuto(true)}
             >
-              Auto Mode · {AUTO_MODE_DEFAULT_HOURS}h ≈ {autoModeCost(AUTO_MODE_DEFAULT_HOURS)} CR
+              Auto Mode · {AUTO_MODE_DEFAULT_HOURS}h ≈{" "}
+              {autoModeCost(AUTO_MODE_DEFAULT_HOURS, autoPerHour)} CR
             </Button>
             <AutoModeDialog companyId={companyId} open={auto} onOpenChange={setAuto} />
           </>

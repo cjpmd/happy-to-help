@@ -12,3 +12,12 @@ Built: `agent-service/` runs every job on a mock runtime by default (no model ca
 4. Check the model IDs in `MODEL_ROUTINE`, `MODEL_PLANNING` and `MODEL_STRATEGY` are the ones you want to pay for.
 5. Start one worker, queue a test job from the app (Grow → Write post), and check the run in LOG shows a real cost.
 
+## 2. Deploy the Edge Functions (chat and enqueue)
+
+Built: `supabase/functions/chat` and `supabase/functions/enqueue-job`. Chat streams demo replies until a key is set.
+
+1. Link the CLI to the project: `npx supabase link --project-ref <ref>`.
+2. Set secrets: `npx supabase secrets set ANTHROPIC_API_KEY=... ALLOWED_ORIGIN=https://<your app domain>` (optionally `MODEL_ROUTINE`, `MODEL_PLANNING`).
+3. Deploy: `npx supabase functions deploy chat enqueue-job`.
+4. In the app, send Sol a message and check the run in LOG shows a real cost.
+

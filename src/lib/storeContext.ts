@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 import type * as T from "./types";
 import type { LayoutItem, Preferences, Routine, Sharing, WorkspaceDB } from "./workspace";
-import { creditBalance } from "./credits";
+import { ACTION_COSTS, creditBalance } from "./credits";
 import { checkClaims, unbuiltFeatures } from "./workspace";
 import { solStatus } from "./mission";
 import type { Theme, ThemePref } from "./theme";
@@ -34,7 +34,16 @@ export type DB = WorkspaceDB & {
   cohorts: T.Cohort[];
   cohort_companies: T.CohortCompany[];
   cohort_mentors: T.CohortMentor[];
+  /** Credit estimates per job type (the job_types table). */
+  job_types: JobType[];
 };
+
+export interface JobType {
+  job_type: string;
+  label: string;
+  estimate_credits: number;
+  cap_credits: number;
+}
 
 export type NewCompany = Omit<
   T.Company,
@@ -60,6 +69,8 @@ export interface Ctx {
   signIn: (email: string) => Promise<string | null>;
   signOut: () => Promise<void>;
   solTyping: boolean;
+  /** Sol's reply while it streams in (live chat). */
+  chatDraft: { companyId: string; text: string } | null;
   /** Each action resolves to true when it happened; on failure it has already told the user why. */
   decideApproval: (id: string, status: "approved" | "declined") => Promise<boolean>;
   editApproval: (id: string, changes: Record<string, string>) => Promise<boolean>;
@@ -179,6 +190,49 @@ export function useClaimsCheck(companyId?: string) {
   const sector = db.companies.find((c) => c.id === cid)?.sector;
   const unbuilt = unbuiltFeatures(db.documents, cid);
   return (text: string) => checkClaims(text, sector, unbuilt);
+}
+
+/** What the UI calls each kind of work, and the job type that does it. */
+export const WORK_KINDS = {
+  chat: "chat",
+  social: "social_post",
+  email: "email_reply",
+  image: "media_image",
+  video: "media_video",
+  document: "document_update",
+  task: "task",
+  autoHour: "auto_mode",
+} as const;
+export type WorkKind = keyof typeof WORK_KINDS;
+
+/** The demo's job estimates, from the same constants the demo has always used. */
+export function demoJobTypes(): JobType[] {
+  const est: Record<WorkKind, number> = {
+    chat: ACTION_COSTS.chat,
+    social: ACTION_COSTS.social,
+    email: ACTION_COSTS.email,
+    image: ACTION_COSTS.image,
+    video: ACTION_COSTS.video,
+    document: ACTION_COSTS.document,
+    task: 150,
+    autoHour: ACTION_COSTS.autoHour,
+  };
+  return (Object.keys(WORK_KINDS) as WorkKind[]).map((k) => ({
+    job_type: WORK_KINDS[k],
+    label: k,
+    estimate_credits: est[k],
+    cap_credits: est[k] * 3,
+  }));
+}
+
+/** "≈ N credits" for a kind of work, before it runs (SPEC B4). */
+export function useEstimate(kind: WorkKind): number {
+  const { db } = useStore();
+  const jt = db.job_types.find((j) => j.job_type === WORK_KINDS[kind]);
+  return (
+    jt?.estimate_credits ??
+    demoJobTypes().find((j) => j.job_type === WORK_KINDS[kind])!.estimate_credits
+  );
 }
 
 /** A person's name from their id, for "decided by" and comments. */
