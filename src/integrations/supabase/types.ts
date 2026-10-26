@@ -1298,6 +1298,7 @@ export type Database = {
           created_at: string;
           direction: Database["public"]["Enums"]["email_direction"];
           id: string;
+          provider_message_id: string | null;
           thread_id: string;
         };
         ComputedFields: never;
@@ -1307,6 +1308,7 @@ export type Database = {
           created_at?: string;
           direction: Database["public"]["Enums"]["email_direction"];
           id?: string;
+          provider_message_id?: string | null;
           thread_id: string;
         };
         Update: {
@@ -1315,6 +1317,7 @@ export type Database = {
           created_at?: string;
           direction?: Database["public"]["Enums"]["email_direction"];
           id?: string;
+          provider_message_id?: string | null;
           thread_id?: string;
         };
         Relationships: [
@@ -1874,6 +1877,79 @@ export type Database = {
           },
         ];
       };
+      integration_secrets: {
+        Row: {
+          company_id: string;
+          provider: string;
+          secret: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          company_id: string;
+          provider: string;
+          secret: string;
+          updated_at?: string;
+        };
+        Update: {
+          company_id?: string;
+          provider?: string;
+          secret?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "integration_secrets_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      integration_settings: {
+        Row: {
+          company_id: string;
+          config: NonNullable<Json>;
+          enabled: boolean;
+          provider: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          company_id: string;
+          config?: NonNullable<Json>;
+          enabled?: boolean;
+          provider: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          company_id?: string;
+          config?: NonNullable<Json>;
+          enabled?: boolean;
+          provider?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "integration_settings_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "integration_settings_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       investors: {
         Row: {
           company_id: string;
@@ -2242,6 +2318,28 @@ export type Database = {
         };
         Relationships: [];
       };
+      platform_integrations: {
+        Row: {
+          checked_at: string;
+          configured: boolean;
+          mode: string;
+          provider: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          checked_at?: string;
+          configured?: boolean;
+          mode?: string;
+          provider: string;
+        };
+        Update: {
+          checked_at?: string;
+          configured?: boolean;
+          mode?: string;
+          provider?: string;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
           created_at: string;
@@ -2438,8 +2536,11 @@ export type Database = {
           channel: Database["public"]["Enums"]["social_channel"];
           company_id: string;
           created_at: string;
+          external_id: string | null;
           id: string;
           metrics: NonNullable<Json>;
+          metrics_synced_at: string | null;
+          provider: string | null;
           scheduled_for: string | null;
           status: Database["public"]["Enums"]["post_status"];
           text: string;
@@ -2451,8 +2552,11 @@ export type Database = {
           channel: Database["public"]["Enums"]["social_channel"];
           company_id: string;
           created_at?: string;
+          external_id?: string | null;
           id?: string;
           metrics?: NonNullable<Json>;
+          metrics_synced_at?: string | null;
+          provider?: string | null;
           scheduled_for?: string | null;
           status?: Database["public"]["Enums"]["post_status"];
           text: string;
@@ -2463,8 +2567,11 @@ export type Database = {
           channel?: Database["public"]["Enums"]["social_channel"];
           company_id?: string;
           created_at?: string;
+          external_id?: string | null;
           id?: string;
           metrics?: NonNullable<Json>;
+          metrics_synced_at?: string | null;
+          provider?: string | null;
           scheduled_for?: string | null;
           status?: Database["public"]["Enums"]["post_status"];
           text?: string;
@@ -3489,6 +3596,17 @@ export type Database = {
         Returns: string;
       };
       reap_stale_runs: { Args: { p_stale?: string }; Returns: number };
+      receive_inbound_email: {
+        Args: {
+          p_body: string;
+          p_company: string;
+          p_from_address: string;
+          p_from_name: string;
+          p_message_id: string;
+          p_subject: string;
+        };
+        Returns: string;
+      };
       record_consent: {
         Args: {
           p_basis?: string;
@@ -3521,6 +3639,10 @@ export type Database = {
       };
       save_voice_profile: { Args: { p_company: string; p_profile: Json }; Returns: string };
       set_idea_status: { Args: { p_idea: string; p_status: string }; Returns: undefined };
+      set_integration: {
+        Args: { p_company: string; p_config?: Json; p_enabled: boolean; p_provider: string };
+        Returns: undefined;
+      };
       set_lead_status: { Args: { p_lead: string; p_status: string }; Returns: undefined };
       set_response_policy: {
         Args: {
@@ -3550,6 +3672,7 @@ export type Database = {
         };
         Returns: boolean;
       };
+      unsubscribe_contact: { Args: { p_contact: string }; Returns: boolean };
       update_capture_settings: {
         Args: { p_auto_accept?: boolean; p_company: string; p_keep_audio_days?: number };
         Returns: undefined;

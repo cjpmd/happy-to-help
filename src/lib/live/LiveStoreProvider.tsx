@@ -724,6 +724,20 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
     },
     [sb],
   );
+  const setIntegration = useCallback<Ctx["setIntegration"]>(
+    async (cid, provider, enabled, config) =>
+      (await call(
+        () =>
+          sb.rpc("set_integration", {
+            p_company: cid,
+            p_provider: provider,
+            p_enabled: enabled,
+            ...(config ? { p_config: config as Json } : {}),
+          }),
+        ["billing", "activity_events"],
+      )) !== false,
+    [sb, call],
+  );
   const estimateCapture = useCallback<Ctx["estimateCapture"]>(
     async (seconds) => {
       const { data } = await sb.rpc("capture_estimate", {
@@ -820,6 +834,7 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       fetchForm,
       submitLead,
       followLink,
+      setIntegration,
       shortLinkBase: SHORT_LINK_BASE,
       ...themeState,
     }),
@@ -881,6 +896,7 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       fetchForm,
       submitLead,
       followLink,
+      setIntegration,
       themeState,
     ],
   );

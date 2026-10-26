@@ -11,6 +11,13 @@ import { mockProviders } from "./executor/providers.js";
 import { runtimeFor } from "./runtime/index.js";
 import { transcriptionFromEnv } from "./capture/transcription.js";
 import { purgeExpiredAudio } from "./capture/prepare.js";
+import {
+  platformKeys,
+  providersFor,
+  reportPlatform,
+  syncPostHog,
+  syncSocialAnalytics,
+} from "./integrations/index.js";
 import type { AgentRuntime } from "./runtime/types.js";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -50,6 +57,14 @@ async function main() {
   // Phase 7 picks real providers per company; until then everything goes to the mocks.
   const providers = mockProviders();
   const transcription = transcriptionFromEnv();
+  const keys = platformKeys();
+  const unsubscribeSecret = process.env["UNSUBSCRIBE_SECRET"];
+  const unsubscribe = unsubscribeSecret
+    ? { secret: unsubscribeSecret, base: config.supabaseUrl }
+    : undefined;
+  await reportPlatform(db, keys);
+  let lastSocialSync = 0;
+  let lastMetricsSync = 0;
   let stopping = false;
   for (const sig of ["SIGINT", "SIGTERM"] as const)
     process.on(sig, () => {
@@ -71,11 +86,29 @@ async function main() {
         const purged = await purgeExpiredAudio(db);
         if (purged) console.log(`Deleted ${purged} recording(s) past their keep period`);
       }
+      // Analytics back in from the real providers (Phase 8 moves these onto the scheduler).
+      if (Date.now() - lastSocialSync > 60 * 60_000) {
+        lastSocialSync = Date.now();
+        const n = await syncSocialAnalytics(db, keys);
+        if (n) console.log(`Synced analytics for ${n} post(s)`);
+      }
+      if (Date.now() - lastMetricsSync > 6 * 60 * 60_000) {
+        lastMetricsSync = Date.now();
+        const n = await syncPostHog(db, keys);
+        if (n) console.log(`Synced site metrics for ${n} company(ies)`);
+      }
       // Approved actions first: the founder is waiting on them.
       const approval = await claimApproval(db, config.workerId);
       if (approval) {
         await executeApproval(
-          { db, providers, workerId: config.workerId, log: console.log },
+          {
+            db,
+            providers,
+            providersFor: (companyId) => providersFor(db, keys, companyId),
+            ...(unsubscribe ? { unsubscribe } : {}),
+            workerId: config.workerId,
+            log: console.log,
+          },
           approval,
         );
         continue;

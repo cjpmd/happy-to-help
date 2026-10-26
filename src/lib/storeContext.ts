@@ -59,7 +59,18 @@ export type DB = WorkspaceDB & {
   current_consents: L.ConsentState[];
   /** The company's Stripe subscription, if any (Phase 6). */
   subscriptions: Subscription[];
+  /** Per-company provider switches, and what the platform has set up (Phase 7). */
+  integration_settings: IntegrationSetting[];
+  platform_integrations: { provider: string; configured: boolean }[];
 };
+
+export type IntegrationProvider = "resend" | "ayrshare" | "posthog";
+export interface IntegrationSetting {
+  company_id: string;
+  provider: IntegrationProvider;
+  enabled: boolean;
+  config: { from_name?: string; reply_to?: string };
+}
 
 export interface Subscription {
   company_id: string;
@@ -233,6 +244,13 @@ export interface Ctx {
   submitLead: (s: L.LeadSubmission) => Promise<boolean>;
   /** Logs a short-link click and resolves to where it goes. */
   followLink: (code: string) => Promise<string | null>;
+  /** A founder switches a provider on or off for their company. */
+  setIntegration: (
+    companyId: string,
+    provider: IntegrationProvider,
+    enabled: boolean,
+    config?: IntegrationSetting["config"],
+  ) => Promise<boolean>;
   /** Where short links are served. */
   shortLinkBase: string;
   /** The transcript of a capture (founders and teammates only). */

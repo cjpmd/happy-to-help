@@ -46,6 +46,7 @@ describe("live mappers", () => {
           company_id: "c",
           direction: "draft",
           body: "Reply",
+          provider_message_id: null,
           created_at: "2026-10-20T12:00:00Z",
         },
         {
@@ -54,6 +55,7 @@ describe("live mappers", () => {
           company_id: "c",
           direction: "received",
           body: "Hello",
+          provider_message_id: null,
           created_at: "2026-10-20T11:00:00Z",
         },
       ],

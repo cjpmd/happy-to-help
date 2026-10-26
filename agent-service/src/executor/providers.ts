@@ -15,6 +15,8 @@ export interface SendEmailInput {
   to: string[];
   subject: string;
   body: string;
+  /** Extra headers, e.g. List-Unsubscribe on marketing email. */
+  headers?: Record<string, string>;
 }
 export interface SetBudgetInput {
   companyId: string;

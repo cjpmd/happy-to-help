@@ -45,6 +45,8 @@ export function demoDb(): DB {
     capture_settings: [],
     ...demoLinkData(seed.companies, seed.NOW),
     subscriptions: [],
+    integration_settings: [],
+    platform_integrations: [],
   };
 }
 

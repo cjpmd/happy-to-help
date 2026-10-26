@@ -193,3 +193,13 @@ Non-trivial decisions made during the autonomous build run (`docs/AUTONOMOUS-RUN
 
 ## D53. When credits are granted
 - **Chosen:** subscriptions are granted on `invoice.paid` (each month, plan bucket, expiring at that period's end), not on the checkout, so renewals and the first month work the same way; one-off products on `checkout.session.completed` when `payment_status` is `paid`. Subscription changes update `subscriptions` and the company's plan.
+
+## D54. Real providers need two keys turned
+- **Chosen:** a provider is real for a company only when the platform has its key (agent-service env) and the company's founder has switched it on (`integration_settings`). Otherwise the mock is used. Per-company secrets (Ayrshare profile keys) live in `integration_secrets`, readable only by the service role. The worker reports which platform keys exist so the app can say "Not set up yet".
+- **Why:** PHASES asks for per-company flags so each company can stay mocked; this also means deploying keys can't switch anything on by itself.
+
+## D55. Marketing email and PECR
+- **Chosen:** outreach is sent one recipient at a time so each email carries its own unsubscribe link (an HMAC of company and address) and `List-Unsubscribe` / one-click headers; the unsubscribe function records a withdrawn consent at once; the executor skips anyone whose current marketing consent is withdrawn and refuses real marketing email if the signing secret isn't configured. Consent checks before campaigns (who may be emailed at all) come with Phase 14 imports and Phase 15 campaigns.
+
+## D56. One PostHog project, tagged by company
+- **Chosen:** the platform has one PostHog project (EU); hub pages send `$pageview` and `signed_up` with `company_slug`, only after the visitor allows analytics, using PostHog's capture API (no SDK or cookies). The worker queries each company's daily numbers with HogQL. Platform keys are used rather than per-company PostHog accounts.

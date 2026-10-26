@@ -29,6 +29,7 @@ import {
 import { fmtDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { HQCard } from "./HQCards";
+import { track } from "@/lib/analytics";
 import { Panel, Pill } from "./primitives";
 
 const copy = (text: string, what: string) =>
@@ -42,10 +43,13 @@ export function LeadFormView({
   form,
   linkCode,
   page,
+  companySlug,
 }: {
   form: PublicForm;
   linkCode?: string | undefined;
   page: string;
+  /** For analytics, when the visitor allowed it. */
+  companySlug?: string;
 }) {
   const { submitLead } = useStore();
   const [name, setName] = useState("");
@@ -71,7 +75,10 @@ export function LeadFormView({
       ...(trap ? { trap } : {}),
     });
     setBusy(false);
-    if (ok) setSent(true);
+    if (ok) {
+      setSent(true);
+      if (companySlug) track("signed_up", { company_slug: companySlug });
+    }
   };
   if (sent)
     return (
@@ -167,7 +174,7 @@ export function analyticsAllowed(): boolean {
 }
 
 /** Cookie consent on public pages (PECR). Only strictly necessary storage until they accept. */
-export function CookieBanner() {
+export function CookieBanner({ onAccept }: { onAccept?: () => void }) {
   const [choice, setChoice] = useState<string | null>("unknown");
   useEffect(() => {
     try {
@@ -183,6 +190,7 @@ export function CookieBanner() {
       // Private browsing: the choice holds for this page view only.
     }
     setChoice(c);
+    if (c === "accepted") onAccept?.();
   };
   if (choice !== null) return null;
   return (
