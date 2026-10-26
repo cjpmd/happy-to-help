@@ -668,7 +668,11 @@ export function ResponseTimesCard({ companyId }: { companyId: string }) {
         <Readout
           label="Median reply"
           value={r.median === null ? "—" : shortDuration(r.median)}
-          note={<span className="text-muted-foreground">{r.count} {r.count === 1 ? "reply" : "replies"}</span>}
+          note={
+            <span className="text-muted-foreground">
+              {r.count} {r.count === 1 ? "reply" : "replies"}
+            </span>
+          }
         />
         <Readout
           label="Oldest waiting"
