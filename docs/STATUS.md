@@ -11,8 +11,8 @@ Restyle first, then the remaining Phase 1 groups, then the engine, then the v2 d
 | # | Phase | Branch | Status |
 |---|---|---|---|
 | 0 | Merge SPEC/PHASES additions, CLAUDE.md summary | `phase-0-docs-merge` | Done |
-| 1 | Finish Phase 1: restyle step 5 (Telemetry), 1b schema additions, 1c live data layer, 1d server-side writes, 1e bug fixes | `phase-1-finish` | Next |
-| 2 | Credits engine | `phase-2-credits` | |
+| 1 | Finish Phase 1: restyle step 5 (Telemetry), 1b schema additions, 1c live data layer, 1d server-side writes, 1e bug fixes | `phase-1-finish` | Done |
+| 2 | Credits engine | `phase-2-credits` | Next |
 | 3 | Agent service | `phase-3-agent-service` | |
 | 4 | Connect the app to the engine | `phase-4-connect` | |
 | 5 | Approvals executor | `phase-5-executor` | |
@@ -37,6 +37,29 @@ Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, con
 
 - `npx supabase start` runs the whole local stack in Docker (Postgres, Auth, REST, Realtime, Storage, Edge Functions). The local DB port is 54332 and the mail port 54334 (moved from the defaults; see DECISIONS.md D2). API: `http://127.0.0.1:54321`.
 - `npx supabase test db` runs the pgTAP tests against it; `scripts/db/test-local.sh` still runs them on plain Postgres 16.
+
+### Checks (run before merging each phase)
+
+| Check | Command |
+|---|---|
+| Types | `npx tsc --noEmit` |
+| Lint | `npm run lint` |
+| Unit tests | `npm test` |
+| Build | `npm run build` |
+| Database (pgTAP) | `npx supabase test db` (or `scripts/db/test-local.sh`) |
+| Integration (API + RLS) | `npm run test:integration` (local stack running and reset) |
+| Live end to end | `npm run e2e:live` (set `CHROMIUM_PATH` if Playwright's browser isn't installed) |
+| HQ fit | `npm run check:fit` |
+
+### Phase 1 (finished 26 Oct 2026)
+
+- **Restyle:** step 5 finished with the Telemetry page (`src/components/mission/Telemetry.tsx`, maths in `src/lib/telemetry.ts`): 14/30/90-day trends as small multiples with hover and keyboard reading, the funnel (activation marked as sample data), and cost per signup by channel in three columns. Every screen now uses the Mission HQ tokens.
+- **1b schema:** `20261026100000_mission_timeline.sql` adds `companies.started_at` and `activation_definition`, `stage_gates.target_date` (four gates, none on Grow), `tasks.actor/key/stage`, `compliance_items.statutory`, `user_preferences.theme` and `metrics_daily.activated`. The seed has StudyBuddy's key tasks, run r9 and approval a7.
+- **1c data layer:** `src/integrations/supabase/` (client and generated types, `npm run db:types`). The store is now one API with two providers (DECISIONS D5): demo (in memory) and live (Supabase, Realtime refresh). Magic-link sign-in, an auth gate on app routes, and onboarding for people with no company. Seed-only screens now read from the store.
+- **1d writes:** `20261026100100_app_rpcs.sql`: `create_company`, `join_cohort`, `accept_invites`, `decide_approval`, `edit_approval`, `ask_why`, `request_ad_budget`, `draft_outreach`, `approve_gate`, `complete_task`, `enqueue_job`, `post_chat_message`, `check_claims`. 71 new pgTAP checks (`06_app_rpcs.test.sql`).
+- **1e bugs:** B1 (toasts follow real outcomes), B2 (flagged drafts can be edited), B3 (decisions store ids), B4 (claims checked against the approval's company), B5 (gate approval advances the stage), B6 (onboarding keeps every answer), B7 (StudyBuddy content no longer leaks), B11 (investors move without drag) are fixed. B8 (seed run r8 shows as running forever) is left for the Phase 3 stale-run reaper.
+- **Mocked in Phase 1:** Sol's chat replies and all agent work (live mode queues `agent_jobs`; nothing processes them until Phase 3). Approving in live mode records the decision only (D13).
+- **Known issues:** mentors and viewers still see founder-only buttons; the server refuses those actions with a clear message. Team invites send no email (Phase 7).
 
 ## Phase 0 audit and Phase 1 history
 

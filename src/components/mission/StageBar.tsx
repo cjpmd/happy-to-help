@@ -77,15 +77,18 @@ export function StageBar({
                 })}
               </div>
             )}
-            {canApprove && g?.status === "ready" && (
-              <Button
-                size="sm"
-                className="mt-2 h-7 w-full text-xs"
-                onClick={() => approveGate(g.id)}
-              >
-                Approve gate
-              </Button>
-            )}
+            {canApprove &&
+              g &&
+              (g.status === "ready" ||
+                (g.status === "in_progress" && g.criteria.every((c) => c.current >= c.target))) && (
+                <Button
+                  size="sm"
+                  className="mt-2 h-7 w-full text-xs"
+                  onClick={() => void approveGate(g.id)}
+                >
+                  Approve gate
+                </Button>
+              )}
           </div>
         );
       })}

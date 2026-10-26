@@ -110,7 +110,7 @@ export function RoutinesPage({ embedded }: { embedded?: boolean }) {
                       className="ml-3"
                       size="sm"
                       variant="outline"
-                      onClick={() => toggleRoutine(r.id)}
+                      onClick={() => void toggleRoutine(r.id)}
                     >
                       <Pause className="h-3 w-3" />
                       Pause
@@ -119,8 +119,8 @@ export function RoutinesPage({ embedded }: { embedded?: boolean }) {
                     <CostButton
                       label="Enable routine"
                       cost={cost}
-                      onConfirm={() => {
-                        if (!toggleRoutine(r.id)) toast.error("Not enough credits");
+                      onConfirm={async () => {
+                        if (!(await toggleRoutine(r.id))) toast.error("Not enough credits");
                         else
                           toast.success(
                             "Enabled in demo — scheduling needs your connected service",
@@ -263,8 +263,8 @@ export function EmailPage({ embedded }: { embedded?: boolean }) {
                 label="Prepare batch for approval"
                 cost={30}
                 disabled={!consent || !body.trim() || !recipients.trim()}
-                onConfirm={() => {
-                  if (draftOutreach(body, recipients)) {
+                onConfirm={async () => {
+                  if (await draftOutreach(body, recipients)) {
                     toast.success("Batch added to approvals — nothing sent");
                     setBody("");
                     setRecipients("");
@@ -449,8 +449,9 @@ export function AdsPage({ embedded }: { embedded?: boolean }) {
           label="Request budget change"
           cost={90}
           disabled={!valid}
-          onConfirm={() => {
-            if (proposeBudget(+budget, +cap)) toast.success("Budget change awaiting approval");
+          onConfirm={async () => {
+            if (await proposeBudget(+budget, +cap))
+              toast.success("Budget change awaiting approval");
           }}
         />
         <Why reason="Every budget change stays under your explicit daily cap and requires approval. Clicks and signups provide the baseline for deciding whether the test is worth extending." />
@@ -664,7 +665,7 @@ export function SettingsPage() {
 }
 
 export function TeamPage() {
-  const { db, companyId, invite, user } = useStore();
+  const { db, companyId, invite, user, mode } = useStore();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"founder" | "teammate" | "mentor" | "viewer">("teammate");
   return (
@@ -681,9 +682,15 @@ export function TeamPage() {
             toast.error("Already invited");
             return;
           }
-          invite(email, role);
-          setEmail("");
-          toast.success("Demo invitation added — no email sent");
+          void invite(email, role).then((ok) => {
+            if (!ok) return;
+            setEmail("");
+            toast.success(
+              mode === "demo"
+                ? "Demo invitation added — no email sent"
+                : "Invited. They join when they sign in with that email.",
+            );
+          });
         }}
         className="flex flex-wrap gap-2 border-b pb-6"
       >
@@ -739,7 +746,7 @@ export function TeamPage() {
 }
 
 export function OwnershipPage() {
-  const { db, companyId, user } = useStore();
+  const { db, companyId, user, mode } = useStore();
   const c = useCompany();
   const sharing = db.sharing[companyId] ?? defaultSharing();
   const { updateSharing } = useStore();
@@ -779,7 +786,7 @@ export function OwnershipPage() {
       }
       zip.file(
         "ownership.txt",
-        `${c.name}\nFounder: ${user.full_name}\nGitHub repository: not connected — add the real repository link after connection.\nDomain: ${c.slug}.app (proposed only)\nAll exported records are demo data.`,
+        `${c.name}\nFounder: ${user.full_name}\nGitHub repository: not connected — add the real repository link after connection.\nDomain: ${c.slug}.app (proposed only)\n${mode === "demo" ? "All exported records are demo data." : `Exported ${new Date().toISOString()}.`}`,
       );
       const blob = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(blob);

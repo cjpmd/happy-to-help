@@ -3,6 +3,7 @@ import { actionQuote, autoModeCost } from "@/lib/credits";
 import {
   businessDefaults,
   checkClaims,
+  unbuiltFeatures,
   defaultLayout,
   defaultSharing,
   hasProof,
@@ -50,10 +51,33 @@ describe("Founder guardrails", () => {
     expect(checkClaims("The best revision app")[0]?.reason).toBe("Unverifiable superlative"));
   it("flags promises of results", () =>
     expect(checkClaims("We guarantee better results")[0]?.reason).toBe("Promises results"));
-  it("flags an unbuilt feature", () =>
-    expect(checkClaims("Your weak-spots report is ready")[0]?.reason).toBe(
-      "Feature not built yet",
-    ));
+  it("flags a feature the roadmap says isn't built yet", () => {
+    expect(
+      checkClaims("Your weak-spots report is ready", "general", ["Weak-spots report"])[0]?.reason,
+    ).toBe("Feature not built yet");
+    expect(checkClaims("Your weak-spots report is ready")).toEqual([]);
+  });
+  it("treats roadmap titles as plain text, not patterns", () => {
+    expect(checkClaims("Try C++ (beta)", "general", ["C++ (beta)"]).length).toBe(0);
+    expect(checkClaims("Try a.b now", "general", ["a.b"])[0]?.phrase).toBe("a.b");
+    expect(checkClaims("Try axb now", "general", ["a.b"])).toEqual([]);
+  });
+  it("lists unfinished roadmap outcomes as unbuilt features", () => {
+    const docs = [
+      {
+        id: "d",
+        company_id: "c",
+        title: "Product roadmap",
+        versions: [],
+        outcomes: [
+          { title: "Quiz engine", complete: true },
+          { title: "Teacher dashboard", complete: false },
+        ],
+      },
+    ];
+    expect(unbuiltFeatures(docs, "c")).toEqual(["Teacher dashboard"]);
+    expect(unbuiltFeatures(docs, "other")).toEqual([]);
+  });
   it.each(["legal", "finance", "health", "education"] as const)(
     "uses stricter checks for %s",
     (sector) => {

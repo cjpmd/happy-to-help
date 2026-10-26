@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { RouteTabs } from "@/components/mission/RouteTabs";
 import { AdsPage, MediaPage } from "@/components/mission/WorkspacePages";
 import { useStore } from "@/lib/store";
-import { social_posts } from "@/lib/seed";
 import { PageHeader, Panel, Pill, StatusPill } from "@/components/mission/primitives";
 import { ClaimsCheck, CostButton, Why } from "@/components/mission/WorkControls";
 import { pageHead } from "@/lib/seo";
@@ -60,13 +59,13 @@ const COLS: SocialPost["status"][] = ["draft", "awaiting_approval", "scheduled",
 function GrowOverview() {
   const { companyId, db } = useStore();
   const posts = [
-    ...social_posts.filter((p) => p.company_id === companyId),
+    ...db.social_posts.filter((p) => p.company_id === companyId),
     ...db.approvals
       .filter(
         (a): a is ApprovalOf<"publish_post"> =>
           a.company_id === companyId &&
           a.action_type === "publish_post" &&
-          !social_posts.some((p) => p.text === a.payload.text),
+          !db.social_posts.some((p) => p.text === a.payload.text),
       )
       .map((a) => ({
         id: a.id,

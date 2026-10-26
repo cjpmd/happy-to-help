@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { RouteTabs } from "@/components/mission/RouteTabs";
 import { DocumentsPage, EmailPage } from "@/components/mission/WorkspacePages";
 import { useStore } from "@/lib/store";
-import { contacts } from "@/lib/seed";
 import { PageHeader, Panel, Pill, SolAvatar, StatusPill } from "@/components/mission/primitives";
 import { pageHead } from "@/lib/seo";
 import { fmtDate } from "@/lib/format";
@@ -45,7 +44,11 @@ function Run() {
 
 function RunOverview() {
   const { companyId, db } = useStore();
-  const people = contacts.filter((c) => c.company_id === companyId);
+  const people = db.contacts.filter((c) => c.company_id === companyId);
+  // Sol's latest inbox summary is the last step of its most recent inbox run.
+  const inboxRun = db.agent_runs
+    .filter((r) => r.company_id === companyId && r.status === "succeeded" && /inbox/i.test(r.task))
+    .sort((a, b) => (b.finished_at ?? "").localeCompare(a.finished_at ?? ""))[0];
   const todo = db.tasks.filter((t) => t.company_id === companyId && t.pillar === "run");
   return (
     <div>
@@ -54,13 +57,18 @@ function RunOverview() {
           <div className="flex gap-3">
             <SolAvatar size={24} />
             <div className="space-y-2 text-sm leading-relaxed">
-              <p>
-                14 new emails overnight. I archived 9 newsletters and replied to 2 support
-                questions.
-              </p>
-              <p className="font-medium">
-                3 teacher enquiries need you — they're asking about school licences.
-              </p>
+              {inboxRun ? (
+                <>
+                  <p>{inboxRun.steps.at(-1)?.summary ?? inboxRun.task}</p>
+                  {inboxRun.finished_at && (
+                    <p className="text-xs text-muted-foreground">{fmtDate(inboxRun.finished_at)}</p>
+                  )}
+                </>
+              ) : (
+                <p className="text-muted-foreground">
+                  No inbox summary yet. Sol writes one each morning once company email is set up.
+                </p>
+              )}
             </div>
           </div>
         </Panel>

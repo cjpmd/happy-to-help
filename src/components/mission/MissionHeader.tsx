@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Pause, Settings2 } from "lucide-react";
 import { useCompany, useSolStatus, useStore } from "@/lib/store";
-import { NOW } from "@/lib/seed";
 import { autoModeCost } from "@/lib/credits";
 import {
   currentGate,
@@ -43,13 +42,13 @@ export function MissionHeader({
   /** Opens the HQ card settings. */
   onCustomise?: (() => void) | undefined;
 }) {
-  const { db, user, solTyping, stopAuto } = useStore();
+  const { db, user, solTyping, stopAuto, now } = useStore();
   const c = useCompany(companyId);
   const sol = useSolStatus(companyId);
   const [auto, setAuto] = useState(false);
   const gate = currentGate(db.stage_gates.filter((g) => g.company_id === companyId));
   const metric = gateMetric(gate);
-  const day = missionDay(c, NOW);
+  const day = missionDay(c, now);
   const gDay = gate ? gateDay(gate, c) : null;
   const until = gDay === null ? null : gDay - day;
   const solLine =
@@ -68,7 +67,7 @@ export function MissionHeader({
         <p className="label-caps truncate text-[12px] tracking-[0.16em] text-muted-foreground">
           {readOnly
             ? `Mission ${c.name} · mentor view`
-            : `${greeting(NOW)}, ${firstName(user.full_name)} · Mission ${c.name}`}
+            : `${greeting(now)}, ${firstName(user.full_name)} · Mission ${c.name}`}
         </p>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <h1

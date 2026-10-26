@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,8 +47,13 @@ function Choice({
 }
 
 function Onboarding() {
-  const { createCompany } = useStore();
+  const { createCompany, mode, auth } = useStore();
   const navigate = useNavigate();
+  const [saving, setSaving] = useState(false);
+  // Live mode: you sign in first, then set up the mission.
+  useEffect(() => {
+    if (mode === "live" && auth === "signed_out") void navigate({ to: "/" });
+  }, [mode, auth, navigate]);
   const [step, setStep] = useState(0);
   const [f, setF] = useState({
     name: "",
@@ -178,16 +183,22 @@ function Onboarding() {
   const s = steps[step] ?? steps[0]!;
   const last = step === steps.length - 1;
 
-  const finish = () => {
-    createCompany({
+  // Every answer is kept, including stage, website and cohort code (bug B6).
+  const finish = async () => {
+    setSaving(true);
+    const id = await createCompany({
       name: f.name.trim(),
       description: f.idea.trim(),
       customer_type: f.type as "B2B" | "B2C",
       target_customer: f.customer,
       goal_90d: f.goal,
       sector: f.sector as Sector,
+      starting_stage: f.stage || null,
+      existing_website_url: f.url.trim() || null,
+      cohort_code: f.code.trim() || undefined,
     });
-    navigate({ to: "/hq" });
+    setSaving(false);
+    if (id) void navigate({ to: "/hq" });
   };
 
   return (
@@ -213,7 +224,7 @@ function Onboarding() {
           onSubmit={(e) => {
             e.preventDefault();
             if (!s.ok) return;
-            if (last) finish();
+            if (last) void finish();
             else setStep(step + 1);
           }}
         >
@@ -228,7 +239,7 @@ function Onboarding() {
               <ArrowLeft className="h-4 w-4" />
               Back
             </Button>
-            <Button type="submit" disabled={!s.ok}>
+            <Button type="submit" disabled={!s.ok || saving}>
               {last ? "Create company" : "Continue"}
               <ArrowRight className="h-4 w-4" />
             </Button>
@@ -236,7 +247,9 @@ function Onboarding() {
         </form>
         {last && (
           <p className="mt-4 text-xs text-muted-foreground">
-            Your company starts at the Idea stage with 1,500 welcome credits.
+            {mode === "demo"
+              ? "Your company starts at the Idea stage with 1,500 welcome credits."
+              : "Your company starts at the Idea stage. Choose a plan in Billing, or use your cohort's credits if you have a code."}
           </p>
         )}
       </div>

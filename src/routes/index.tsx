@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PRODUCT_NAME } from "@/lib/brand";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useStore } from "@/lib/store";
 import { Mail, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,9 +18,16 @@ export const Route = createFileRoute("/")({
 });
 
 function SignIn() {
+  const { mode, auth, signIn } = useStore();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
   const navigate = useNavigate();
+  // Already signed in (or back from the magic link): straight to HQ.
+  useEffect(() => {
+    if (mode === "live" && auth === "signed_in") void navigate({ to: "/hq" });
+  }, [mode, auth, navigate]);
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       <div className="flex flex-col px-6 py-8 sm:px-12">
@@ -36,16 +44,23 @@ function SignIn() {
               <p className="mt-1 text-sm text-muted-foreground">
                 We've sent a magic link to {email}. It expires in 1 hour.
               </p>
-              <Button className="mt-4 w-full" onClick={() => navigate({ to: "/hq" })}>
-                Continue to demo <ArrowRight className="h-4 w-4" />
-              </Button>
+              {mode === "demo" && (
+                <Button className="mt-4 w-full" onClick={() => navigate({ to: "/hq" })}>
+                  Continue to demo <ArrowRight className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           ) : (
             <form
               className="mt-8 space-y-3"
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
-                if (email) setSent(true);
+                if (!email) return;
+                setSending(true);
+                const err = await signIn(email);
+                setSending(false);
+                setError(err);
+                if (!err) setSent(true);
               }}
             >
               <label className="text-sm font-medium" htmlFor="email">
@@ -60,19 +75,30 @@ function SignIn() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="h-11"
               />
-              <Button type="submit" className="h-11 w-full">
+              {error && (
+                <p className="text-sm text-destructive" role="alert">
+                  {error}
+                </p>
+              )}
+              <Button type="submit" className="h-11 w-full" disabled={sending}>
                 Email me a magic link
               </Button>
             </form>
           )}
-          <div className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
-            <Link to="/hq" className="hover:text-foreground">
-              Explore the demo →
-            </Link>
-            <Link to="/onboarding" className="hover:text-foreground">
-              New founder? Start here →
-            </Link>
-          </div>
+          {mode === "demo" ? (
+            <div className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
+              <Link to="/hq" className="hover:text-foreground">
+                Explore the demo →
+              </Link>
+              <Link to="/onboarding" className="hover:text-foreground">
+                New founder? Start here →
+              </Link>
+            </div>
+          ) : (
+            <p className="mt-6 text-sm text-muted-foreground">
+              New here? Use the same link: we'll set up your mission after you sign in.
+            </p>
+          )}
         </div>
         <p className="text-xs text-muted-foreground">© 2026 {PRODUCT_NAME}. Made in Glasgow.</p>
       </div>

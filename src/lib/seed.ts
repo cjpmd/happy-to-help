@@ -92,6 +92,7 @@ export const cohorts: T.Cohort[] = [
     credit_pool: 60000,
   },
 ];
+export const cohort_mentors: T.CohortMentor[] = [{ cohort_id: "h1", user_id: "u2" }];
 export const cohort_companies: T.CohortCompany[] = [
   { cohort_id: "h1", company_id: "c1", credit_cap: 15000 },
   { cohort_id: "h1", company_id: "c2", credit_cap: 8000 },
@@ -516,7 +517,7 @@ export const approvals: T.Approval[] = [
     action_type: "file_document",
     estimated_credits: 20,
     status: "approved",
-    decided_by: "Aisha Grant",
+    decided_by: "u1",
     decided_at: ago(30),
     created_at: ago(40),
     payload: {
@@ -532,7 +533,7 @@ export const approvals: T.Approval[] = [
     action_type: "publish_post",
     estimated_credits: 40,
     status: "declined",
-    decided_by: "Aisha Grant",
+    decided_by: "u1",
     decided_at: ago(50),
     created_at: ago(60),
     payload: {
@@ -999,20 +1000,26 @@ export const investors: T.Investor[] = [
   },
 ];
 
-export const grants = [
+export const grants: T.Grant[] = [
   {
+    id: "gr1",
+    company_id: "c1",
     name: "Tay Founders Award",
     amount: "Up to £50,000",
     deadline: "2026-11-02",
     status: "Drafting",
   },
   {
+    id: "gr2",
+    company_id: "c1",
     name: "Campus Spark Challenge",
     amount: "£10,000 + support",
     deadline: "2027-01-20",
     status: "Eligible",
   },
   {
+    id: "gr3",
+    company_id: "c1",
     name: "Northern Innovation Fund",
     amount: "£25,000–£250,000",
     deadline: "2026-12-10",
@@ -1084,6 +1091,7 @@ function series(
       signups: Math.max(0, Math.round(base[1] * g * wobble)),
       paying_customers: Math.round(base[2] + i * (base[2] ? 0.4 : 0)),
       mrr: +(Math.round(base[2] + i * (base[2] ? 0.4 : 0)) * base[3]).toFixed(2),
+      activated: Math.max(0, Math.round(base[1] * 0.6 * g)),
     };
   });
 }
@@ -1101,5 +1109,40 @@ export const gate_comments: T.GateComment[] = [
     author: "Dr Morag Fraser",
     text: "Great interview depth. Push on the parent-pays assumption before Launch.",
     created_at: ago(72),
+  },
+];
+
+export const site_versions: T.SiteVersion[] = [
+  {
+    id: "sv1",
+    company_id: "c1",
+    version: "v0.8",
+    summary: "Quiz engine and landing page",
+    preview_url: "/site/studybuddy",
+    published_at: ago(24 * 13),
+  },
+  {
+    id: "sv2",
+    company_id: "c1",
+    version: "v0.9",
+    summary: "Add streak counter to quiz results page",
+    preview_url: "/site/studybuddy?preview=1",
+    published_at: ago(5),
+  },
+  {
+    id: "sv3",
+    company_id: "c2",
+    version: "v0.1",
+    summary: "Landing page and waitlist form",
+    preview_url: "/site/kelpie-energy",
+    published_at: ago(24 * 9),
+  },
+  {
+    id: "sv4",
+    company_id: "c3",
+    version: "v1.0",
+    summary: "Public launch",
+    preview_url: "/site/thrift-loop",
+    published_at: ago(24 * 25),
   },
 ];

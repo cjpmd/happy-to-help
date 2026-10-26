@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Check } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { compliance_items } from "@/lib/seed";
 import { PageHeader, Panel, Pill, humanise } from "@/components/mission/primitives";
 import { complianceTone } from "@/lib/compliance";
 import { DocumentsPage } from "@/components/mission/WorkspacePages";
@@ -15,8 +14,8 @@ export const Route = createFileRoute("/_app/legal")({
 });
 
 function Legal() {
-  const { companyId } = useStore();
-  const items = compliance_items
+  const { companyId, db } = useStore();
+  const items = db.compliance_items
     .filter((c) => c.company_id === companyId)
     .sort((a, b) => a.due_date.localeCompare(b.due_date));
   const done = items.filter((i) => i.status === "done").length;

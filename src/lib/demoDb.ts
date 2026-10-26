@@ -1,0 +1,48 @@
+import * as seed from "./seed";
+import type { DB } from "./storeContext";
+import { businessDefaults, defaultLayout, workspaceSeed, type LayoutItem } from "./workspace";
+
+/** The demo store's starting data, from src/lib/seed.ts. */
+export function demoDb(): DB {
+  return {
+    ...workspaceSeed(seed.companies, seed.tasks),
+    profiles: seed.profiles,
+    companies: seed.companies.map((c) => ({
+      ...c,
+      sector: c.id === "c1" ? ("education" as const) : ("general" as const),
+      channels: businessDefaults(c.customer_type),
+    })),
+    approvals: seed.approvals,
+    agent_runs: seed.agent_runs,
+    activity_events: seed.activity_events,
+    credit_ledger: seed.credit_ledger,
+    chat_messages: seed.chat_messages,
+    stage_gates: seed.stage_gates,
+    investors: seed.investors,
+    gate_comments: seed.gate_comments,
+    company_members: seed.company_members,
+    evidence_items: seed.evidence_items,
+    social_posts: seed.social_posts,
+    compliance_items: seed.compliance_items,
+    metrics_daily: seed.metrics_daily,
+    contacts: seed.contacts,
+    grants: seed.grants,
+    site_versions: seed.site_versions,
+    cohorts: seed.cohorts,
+    cohort_companies: seed.cohort_companies,
+    cohort_mentors: seed.cohort_mentors,
+  };
+}
+
+/** A saved HQ layout is usable if it lists each card exactly once. */
+export function isValidLayout(value: unknown): value is LayoutItem[] {
+  return (
+    Array.isArray(value) &&
+    value.length === defaultLayout().length &&
+    new Set(value.map((x: LayoutItem) => x.id)).size === value.length &&
+    value.every(
+      (x: LayoutItem) =>
+        defaultLayout().some((y) => y.id === x.id) && typeof x.visible === "boolean",
+    )
+  );
+}

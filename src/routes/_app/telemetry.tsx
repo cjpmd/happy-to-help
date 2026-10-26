@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useStore } from "@/lib/store";
 import { PageHeader } from "@/components/mission/primitives";
-import { TelemetryCard } from "@/components/mission/HQCards";
+import { TelemetryPage } from "@/components/mission/Telemetry";
 import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/telemetry")({
@@ -9,16 +8,14 @@ export const Route = createFileRoute("/_app/telemetry")({
   component: Telemetry,
 });
 
-// Placeholder until 1a-design step 5 adds the funnel, cost per signup and trends.
 function Telemetry() {
-  const { companyId } = useStore();
   return (
     <div>
       <PageHeader
         title="Telemetry"
-        description="How the mission is doing: visitors, signups and paying customers."
+        description="How the mission is doing: trends, the signup funnel and what each signup cost."
       />
-      <TelemetryCard companyId={companyId} />
+      <TelemetryPage />
     </div>
   );
 }

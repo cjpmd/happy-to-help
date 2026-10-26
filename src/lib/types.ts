@@ -27,6 +27,9 @@ export interface Company {
   goal_90d?: string;
   /** Mission start (day 0 of the flight plan). */
   started_at?: string;
+  /** Onboarding answers kept as given. */
+  starting_stage?: string | null;
+  existing_website_url?: string | null;
 }
 export interface CompanyMember {
   company_id: string;
@@ -38,6 +41,10 @@ export interface Cohort {
   name: string;
   institution: string;
   credit_pool: number;
+}
+export interface CohortMentor {
+  cohort_id: string;
+  user_id: string;
 }
 export interface CohortCompany {
   cohort_id: string;
@@ -81,6 +88,8 @@ export interface Task {
   /** The stage a key task belongs to. */
   stage?: Stage;
   completed_at?: string | null;
+  /** Who does the work. Unset in older demo data: worked out from proof and status. */
+  actor?: "sol" | "founder" | "mentor";
 }
 export type RunStatus = "queued" | "running" | "succeeded" | "failed" | "needs_approval";
 export interface RunStep {
@@ -150,9 +159,12 @@ interface ApprovalBase {
   run_id: string | null;
   estimated_credits: number;
   status: "pending" | "approved" | "declined";
+  /** The person's id (not their name). */
   decided_by?: string | null;
   decided_at?: string | null;
   created_at: string;
+  /** Set when a founder asked for it themselves. */
+  requested_by?: string | null;
 }
 export type ApprovalOf<K extends ApprovalAction> = ApprovalBase & {
   action_type: K;
@@ -227,6 +239,24 @@ export interface MetricsDaily {
   signups: number;
   paying_customers: number;
   mrr: number;
+  /** Users who did what the company counts as activation (sample data until defined). */
+  activated?: number;
+}
+export interface Grant {
+  id: string;
+  company_id: string;
+  name: string;
+  amount: string;
+  deadline: string | null;
+  status: string;
+}
+export interface SiteVersion {
+  id: string;
+  company_id: string;
+  version: string;
+  summary: string;
+  preview_url: string | null;
+  published_at: string;
 }
 export interface Contact {
   id: string;

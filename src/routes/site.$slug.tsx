@@ -18,11 +18,23 @@ function Site() {
   const { db } = useStore();
   const c = db.companies.find((x) => x.slug === slug);
   const name = c?.name ?? slug;
+  // The stand-in site shows only what the company has built: its finished roadmap outcomes.
+  const built =
+    db.documents
+      .find((d) => d.company_id === c?.id && d.title === "Product roadmap")
+      ?.outcomes?.filter((o) => o.complete)
+      .map((o) => o.title)
+      .slice(0, 3) ?? [];
+  const changes = db.approvals.filter(
+    (a) => a.company_id === c?.id && a.status === "pending" && a.action_type === "publish_site",
+  ).length;
   return (
     <div className="min-h-screen bg-background">
       {preview && (
         <div className="bg-warning-soft py-1.5 text-center text-xs font-medium text-warning">
-          Preview — includes 1 change awaiting approval
+          {changes
+            ? `Preview — includes ${changes} ${changes === 1 ? "change" : "changes"} awaiting approval`
+            : "Preview"}
         </div>
       )}
       <nav className="flex items-center justify-between px-6 py-4">
@@ -41,7 +53,7 @@ function Site() {
         <p className="mt-4 text-muted-foreground">
           {c?.description.split(".").slice(1).join(".").trim()}
         </p>
-        <ClaimsCheck text={c?.description ?? ""} />
+        {c && <ClaimsCheck text={c.description} companyId={c.id} />}
         <div className="mx-auto mt-8 flex max-w-sm gap-2">
           <div className="h-11 flex-1 rounded-lg border bg-card" />
           <div className="flex h-11 items-center rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground">
@@ -49,17 +61,15 @@ function Site() {
           </div>
         </div>
       </section>
-      <section className="mx-auto grid max-w-4xl gap-4 px-6 pb-16 sm:grid-cols-3">
-        {[
-          "10 minutes a day",
-          "Learns your weak spots",
-          preview ? "🔥 Daily streaks (new)" : "Built for SQA",
-        ].map((t) => (
-          <div key={t} className="rounded-xl border bg-card p-5 text-sm font-medium shadow-card">
-            {t}
-          </div>
-        ))}
-      </section>
+      {built.length > 0 && (
+        <section className="mx-auto grid max-w-4xl gap-4 px-6 pb-16 sm:grid-cols-3">
+          {built.map((t) => (
+            <div key={t} className="rounded-xl border bg-card p-5 text-sm font-medium shadow-card">
+              {t}
+            </div>
+          ))}
+        </section>
+      )}
     </div>
   );
 }
