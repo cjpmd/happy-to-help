@@ -23,7 +23,13 @@ export interface FounderRules {
 
 export interface ApprovalForRules {
   action_type:
-    "publish_post" | "send_email" | "ad_spend" | "file_document" | "publish_site" | "update_voice";
+    | "publish_post"
+    | "send_email"
+    | "ad_spend"
+    | "file_document"
+    | "publish_site"
+    | "update_voice"
+    | "update_memory";
   payload: Record<string, unknown>;
   /** The decider's role in the company. */
   deciderRole: "founder" | "mentor" | "teammate" | "viewer" | null;
@@ -50,6 +56,14 @@ export function checkRules(
     return {
       ok: false,
       reason: "Only a founder or mentor can approve actions.",
+      needsFounder: true,
+    };
+
+  // Memory comes from the founder's own conversations, which mentors never see (SPEC P).
+  if (a.action_type === "update_memory" && !byFounder)
+    return {
+      ok: false,
+      reason: "Only a founder can add to Sol's memory from a conversation.",
       needsFounder: true,
     };
 

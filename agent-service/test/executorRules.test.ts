@@ -65,3 +65,15 @@ describe("executor rules", () => {
     expect(recipients("Ms Khan").count).toBe(1);
   });
 });
+
+describe("memory updates", () => {
+  it("need a founder's GO", () => {
+    const a = { action_type: "update_memory" as const, payload: { fact: "Open 8 till 4" } };
+    const rules = { adThreshold: 20, outreachThreshold: 25, publishing: false };
+    expect(checkRules({ ...a, deciderRole: "founder" }, rules).ok).toBe(true);
+    expect(checkRules({ ...a, deciderRole: "mentor" }, rules)).toMatchObject({
+      ok: false,
+      needsFounder: true,
+    });
+  });
+});

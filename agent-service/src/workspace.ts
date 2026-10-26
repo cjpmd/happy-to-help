@@ -44,6 +44,12 @@ export async function loadMemoryInput(db: Db, companyId: string): Promise<Memory
     .eq("company_id", companyId)
     .order("created_at", { ascending: false })
     .limit(5);
+  const { data: facts } = await db
+    .from("memory_facts")
+    .select("fact")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false })
+    .limit(30);
   const voiceDoc = docRows.find((d) => d.title === "Brand & voice guide");
   const voice = voiceDoc
     ? await db
@@ -69,6 +75,7 @@ export async function loadMemoryInput(db: Db, companyId: string): Promise<Memory
       ? voiceText(profile) + examplesText(examples ?? [])
       : (voice?.data?.content ?? null),
     unbuilt: outcomes.filter((o) => !o.complete).map((o) => o.title),
+    facts: (facts ?? []).map((f) => f.fact),
     openTasks: must(tasks, "tasks"),
     declined: must(declined, "declined approvals").map((a) => {
       const p = a.payload as Record<string, unknown>;

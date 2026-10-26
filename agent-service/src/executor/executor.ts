@@ -36,6 +36,7 @@ const PILLAR: Record<Approval["action_type"], "grow" | "run" | "build" | "legal"
   publish_site: "build",
   file_document: "legal",
   update_voice: "grow",
+  update_memory: "run",
 };
 
 function label(a: Approval): string {
@@ -53,6 +54,8 @@ function label(a: Approval): string {
       return `filing: ${String(p["document"])}`;
     case "update_voice":
       return `brand voice v${String(p["version"])}`;
+    case "update_memory":
+      return `memory: ${String(p["fact"]).slice(0, 80)}`;
   }
 }
 
@@ -300,6 +303,23 @@ async function perform(
       if (error) throw new Error(`adopt voice: ${error.message}`);
       return { provider: "internal", profile_id: String(p["profile_id"]) };
     }
+    case "update_memory": {
+      // Internal: the fact joins the company memory Sol reads on every run.
+      const row = must(
+        await db
+          .from("memory_facts")
+          .insert({
+            company_id: a.company_id,
+            fact: String(p["fact"]),
+            source_item_id: typeof p["item_id"] === "string" ? p["item_id"] : null,
+            approved_by: a.decided_by ?? null,
+          })
+          .select("id")
+          .single(),
+        "remember fact",
+      );
+      return { provider: "internal", memory_fact_id: row.id };
+    }
   }
 }
 
@@ -502,6 +522,7 @@ export async function executeApproval(deps: ExecutorDeps, a: Approval): Promise<
     publish_site: "Published",
     file_document: "Filed",
     update_voice: "Adopted",
+    update_memory: "Remembered",
   }[a.action_type];
   await event(db, a.company_id, PILLAR[a.action_type], `${verb} ${label(a)}`, run.id);
   log(`approval ${a.id}: done (${charged} credits)`);

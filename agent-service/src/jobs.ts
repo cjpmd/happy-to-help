@@ -145,6 +145,31 @@ JOBS["voice_update"] = {
     "Use the voice-update skill: review this week's edits to your drafts and, if they show a pattern, propose a change to the voice for the founder to approve.",
 };
 
+JOBS["capture_process"] = {
+  label: "Read a meeting or note",
+  pillar: "run",
+  tier: "planning",
+  skills: ["capture-extract"],
+  estimate: 40,
+  cap: 200,
+  maxTurns: 8,
+  tools: ["get_capture", "get_capture_context", "propose_extraction"],
+  prompt: ({ target }) =>
+    `Use the capture-extract skill on capture ${target ?? "(missing)"}: read it, match what you find against existing tasks, ideas and contacts, and propose the items for the founder's review.`,
+};
+JOBS["commitment_followup"] = {
+  label: "Draft a promised follow-up",
+  pillar: "run",
+  tier: "routine",
+  skills: ["claims-check"],
+  estimate: 20,
+  cap: 60,
+  maxTurns: 6,
+  tools: ["get_company", "get_commitment", "propose_followup", "check_claims"],
+  prompt: ({ target }) =>
+    `The founder promised someone a follow-up (promise ${target ?? "(missing)"}). Read it with get_commitment and draft a short, warm follow-up in the brand voice that does exactly what was promised, then propose it with propose_followup. If something promised is an attachment you don't have, say in the email that it's attached and leave a [placeholder] for the founder.`,
+};
+
 export function jobSpec(jobType: string): JobSpec | undefined {
   return JOBS[jobType];
 }

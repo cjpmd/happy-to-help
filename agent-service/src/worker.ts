@@ -9,6 +9,8 @@ import { processJob, type Job } from "./runner.js";
 import { claimApproval, executeApproval } from "./executor/executor.js";
 import { mockProviders } from "./executor/providers.js";
 import { runtimeFor } from "./runtime/index.js";
+import { transcriptionFromEnv } from "./capture/transcription.js";
+import { purgeExpiredAudio } from "./capture/prepare.js";
 import type { AgentRuntime } from "./runtime/types.js";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -47,6 +49,7 @@ async function main() {
   const runtime = runtimeFor(config.runtime);
   // Phase 7 picks real providers per company; until then everything goes to the mocks.
   const providers = mockProviders();
+  const transcription = transcriptionFromEnv();
   let stopping = false;
   for (const sig of ["SIGINT", "SIGTERM"] as const)
     process.on(sig, () => {
@@ -54,7 +57,7 @@ async function main() {
       stopping = true;
     });
   console.log(
-    `Agent worker ${config.workerId} started (${runtime.name} runtime, ${providers.name} providers)`,
+    `Agent worker ${config.workerId} started (${runtime.name} runtime, ${providers.name} providers, ${transcription.name} transcription)`,
   );
   let lastReap = 0;
   while (!stopping) {
@@ -65,6 +68,8 @@ async function main() {
           p_stale: `${config.staleAfterMinutes} minutes`,
         });
         if (data) console.log(`Recovered ${data} stale run(s)`);
+        const purged = await purgeExpiredAudio(db);
+        if (purged) console.log(`Deleted ${purged} recording(s) past their keep period`);
       }
       // Approved actions first: the founder is waiting on them.
       const approval = await claimApproval(db, config.workerId);
@@ -76,7 +81,7 @@ async function main() {
         continue;
       }
       const job = await claimNext(db, config.workerId);
-      if (job) await processJob({ db, config, runtime, log: console.log }, job);
+      if (job) await processJob({ db, config, runtime, transcription, log: console.log }, job);
       else await sleep(config.pollIntervalMs);
     } catch (e) {
       console.error("Worker error:", e instanceof Error ? e.message : e);

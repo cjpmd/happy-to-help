@@ -6,6 +6,7 @@ import { gate } from "../gate.js";
 import { callTool } from "../tools.js";
 import type { AgentRuntime, RunOutcome, RunRequest } from "./types.js";
 import { analyseVoice } from "../../../src/lib/voice.js";
+import { extractItems } from "../../../src/lib/capture.js";
 
 interface Post {
   channel: string;
@@ -183,6 +184,53 @@ export const mockRuntime: AgentRuntime = {
           changes: `You removed ${avoid.map((w) => `"${w}"`).join(", ")} in several edits, so I'll stop using them.`,
         });
         return done("I've proposed a small change to the voice from your edits.");
+      }
+
+      case "capture_process": {
+        const id = req.input.target ?? "";
+        const cap = await step("get_capture", { capture_id: id });
+        if (cap.isError) return { ...done(cap.text), status: "error", error: cap.text };
+        const { transcript, segments } = JSON.parse(cap.text) as {
+          transcript: string;
+          segments: { start: number; text: string }[];
+        };
+        const ctx = JSON.parse((await step("get_capture_context")).text) as {
+          today: string;
+          team: { name: string; role: string }[];
+          contacts: { name: string }[];
+        };
+        const items = extractItems(transcript, {
+          now: new Date(`${ctx.today}T09:00:00Z`),
+          teammates: ctx.team.filter((m) => m.role === "teammate").map((m) => m.name),
+          contacts: ctx.contacts.map((c) => c.name),
+        }).map((it) => {
+          // Link back to the moment in the recording it came from.
+          const seg = segments.find((sg) => it.quote?.includes(sg.text));
+          return seg ? { ...it, at_seconds: Math.floor(seg.start) } : it;
+        });
+        const saved = await step("propose_extraction", { capture_id: id, items });
+        if (saved.isError) return { ...done(saved.text), status: "error", error: saved.text };
+        return done(
+          items.length
+            ? `I found ${items.length} things in it. They're on the review card: nothing is created until you accept.`
+            : "I read it but didn't find any actions, decisions or promises.",
+        );
+      }
+
+      case "commitment_followup": {
+        const id = req.input.target ?? "";
+        const c = JSON.parse((await step("get_commitment", { commitment_id: id })).text) as {
+          to_name: string;
+          what: string;
+        };
+        const first = c.to_name.split(" ")[0] ?? c.to_name;
+        const what = c.what.replace(/^i'?ll |^i will |^we'?ll /i, "");
+        await step("propose_followup", {
+          commitment_id: id,
+          subject: "Following up",
+          body: `Hi ${first},\n\nAs promised, following up: ${what.charAt(0).toLowerCase()}${what.slice(1)}\n\nAny questions, just reply to this email.\n\nThanks`,
+        });
+        return done("I've drafted the follow-up you promised. It's waiting for your GO.");
       }
 
       case "task":
