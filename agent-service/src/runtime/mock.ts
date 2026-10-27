@@ -9,6 +9,7 @@ import { analyseVoice } from "../../../src/lib/voice.js";
 import { extractItems } from "../../../src/lib/capture.js";
 import { briefText, type BriefFacts } from "../../../src/lib/brief.js";
 import { evidencePlanFor, investorUpdate, type Deadline } from "../../../src/lib/skills.js";
+import { draftReply, triageMessage } from "../../../src/lib/inbox.js";
 
 interface Post {
   channel: string;
@@ -296,6 +297,39 @@ export const mockRuntime: AgentRuntime = {
         return done(
           `I've added ${plan.assumptions.length} assumptions to test, and a smoke test: ${plan.smokeTest}`,
         );
+      }
+
+      case "inbox_triage": {
+        const id = req.input.target ?? "";
+        const m = JSON.parse((await step("get_inbox_item", { item_id: id })).text) as {
+          subject: string;
+          message: string;
+        };
+        const t = triageMessage(m.subject ?? "", m.message ?? "");
+        const r = await step("save_triage", { item_id: id, ...t });
+        return done(r.text);
+      }
+
+      case "inbox_draft": {
+        const id = req.input.target ?? "";
+        const m = JSON.parse((await step("get_inbox_item", { item_id: id })).text) as {
+          subject: string;
+          message: string;
+          from: { name: string };
+          company: string;
+          sign_off: string | null;
+        };
+        const t = triageMessage(m.subject ?? "", m.message ?? "");
+        const r = await step("propose_reply", {
+          item_id: id,
+          body: draftReply({
+            name: m.from.name ?? "",
+            category: t.category,
+            company: m.company,
+            signOff: m.sign_off,
+          }),
+        });
+        return done(r.text);
       }
 
       case "task":

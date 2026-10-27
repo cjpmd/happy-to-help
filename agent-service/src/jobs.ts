@@ -250,6 +250,32 @@ JOBS["evidence_plan"] = {
     `Use the evidence-plan skill on this idea: "${target ?? title ?? "(no idea given)"}". Turn it into testable assumptions and a smoke test, and add them to the evidence board.`,
 };
 
+// SPEC M: triage with the smallest model, drafting with the mid-tier one.
+JOBS["inbox_triage"] = {
+  label: "Triage a message",
+  pillar: "run",
+  tier: "routine",
+  skills: ["inbox-triage"],
+  estimate: 5,
+  cap: 15,
+  maxTurns: 4,
+  tools: ["get_inbox_item", "save_triage"],
+  prompt: ({ target }) =>
+    `Use the inbox-triage skill on inbox item ${target ?? "(missing)"}: read it and save the triage. Don't draft anything.`,
+};
+JOBS["inbox_draft"] = {
+  label: "Draft a reply",
+  pillar: "run",
+  tier: "planning",
+  skills: ["inbox-reply", "claims-check"],
+  estimate: 15,
+  cap: 45,
+  maxTurns: 6,
+  tools: ["get_inbox_item", "propose_reply", "check_claims"],
+  prompt: ({ target }) =>
+    `Use the inbox-reply skill on inbox item ${target ?? "(missing)"}: draft the reply in the company's voice and propose it.`,
+};
+
 export function jobSpec(jobType: string): JobSpec | undefined {
   return JOBS[jobType];
 }

@@ -8,6 +8,17 @@ import { enqueue, testConfig, testDb } from "./local.js";
 
 const db = testDb();
 const CROFT = "c0000000-0000-4000-8000-000000000004";
+// Unique per run, so these tests can run again without a database reset.
+const RUN = Date.now().toString(36);
+const DAY = new Date(
+  Date.UTC(
+    2031 + Math.floor(Math.random() * 60),
+    Math.floor(Math.random() * 12),
+    1 + Math.floor(Math.random() * 28),
+  ),
+)
+  .toISOString()
+  .slice(0, 10);
 
 async function run(jobType: string, payload: Record<string, string> = {}) {
   await db.from("agent_jobs").update({ status: "done" }).eq("status", "queued");
@@ -22,11 +33,16 @@ describe("compliance calendar", () => {
   it("adds the usual UK deadlines once and flags anything overdue", async () => {
     await db.from("compliance_items").insert({
       company_id: CROFT,
-      title: "File the old return",
+      title: `File the old return ${RUN}`,
       category: "HMRC",
       due_date: "2026-01-01",
       status: "upcoming",
     });
+    const { count: before } = await db
+      .from("compliance_items")
+      .select("id", { count: "exact", head: true })
+      .eq("company_id", CROFT)
+      .eq("source", "sol");
     expect((await run("compliance_review")).outcome).toBe("done");
     const { data: added } = await db
       .from("compliance_items")
@@ -39,7 +55,7 @@ describe("compliance calendar", () => {
       .from("compliance_items")
       .select("status")
       .eq("company_id", CROFT)
-      .eq("title", "File the old return")
+      .eq("title", `File the old return ${RUN}`)
       .single();
     expect(old!.status).toBe("overdue");
     await run("compliance_review");
@@ -49,12 +65,14 @@ describe("compliance calendar", () => {
       .eq("company_id", CROFT)
       .eq("source", "sol");
     expect(count).toBe(added!.length);
+    expect(added!.length).toBeGreaterThanOrEqual(before ?? 0);
   });
 });
 
 describe("investor update and evidence plan", () => {
   it("drafts the investor update as a document for the founder to send", async () => {
-    expect((await run("investor_update")).outcome).toBe("done");
+    const res = await run("investor_update");
+    expect(res.outcome).toBe("done");
     const { data: doc } = await db
       .from("documents")
       .select("id, document_versions(content)")
@@ -66,23 +84,21 @@ describe("investor update and evidence plan", () => {
     const { count } = await db
       .from("approvals")
       .select("id", { count: "exact", head: true })
-      .eq("company_id", CROFT)
-      .eq("action_type", "send_email")
-      .eq("status", "pending");
+      .eq("run_id", res.runId!);
     expect(count).toBe(0); // nothing is sent
   });
 
   it("turns an idea into assumptions on the evidence board", async () => {
-    expect((await run("evidence_plan", { target: "Seasonal veg boxes for offices" })).outcome).toBe(
-      "done",
-    );
+    expect(
+      (await run("evidence_plan", { target: `Seasonal veg boxes for offices ${RUN}` })).outcome,
+    ).toBe("done");
     const { data } = await db
       .from("evidence_items")
       .select("title, status, data")
       .eq("company_id", CROFT)
       .eq("type", "assumption");
     const mine = (data ?? []).filter(
-      (e) => (e.data as { idea?: string }).idea === "Seasonal veg boxes for offices",
+      (e) => (e.data as { idea?: string }).idea === `Seasonal veg boxes for offices ${RUN}`,
     );
     expect(mine).toHaveLength(3);
     expect(mine.every((e) => e.status === "untested")).toBe(true);
@@ -91,7 +107,7 @@ describe("investor update and evidence plan", () => {
 
 describe("monitoring", () => {
   it("records errors, including a run that failed for good", async () => {
-    await reportError(db, "scheduler", new Error("Test failure"), {
+    await reportError(db, "scheduler", new Error(`Test failure ${RUN}`), {
       companyId: CROFT,
       step: "test",
     });
@@ -99,7 +115,7 @@ describe("monitoring", () => {
       .from("error_events")
       .select("source, message, context")
       .eq("company_id", CROFT)
-      .eq("message", "Test failure")
+      .eq("message", `Test failure ${RUN}`)
       .single();
     expect(data).toMatchObject({ source: "scheduler", context: { step: "test" } });
     await db.from("agent_jobs").update({ status: "done" }).eq("status", "queued");
@@ -124,7 +140,7 @@ describe("cost reconciliation", () => {
     const body = {
       data: [
         {
-          starting_at: "2030-03-04T00:00:00Z",
+          starting_at: `${DAY}T00:00:00Z`,
           results: [
             {
               model: "claude-sonnet-5-5",
@@ -139,33 +155,31 @@ describe("cost reconciliation", () => {
     };
     expect(parseUsageReport(body)).toEqual([
       {
-        day: "2030-03-04",
+        day: DAY,
         model: "claude-sonnet-5-5",
         input_tokens: 500_000,
         output_tokens: 50_000,
       },
     ]);
     const fetcher = (async () => new Response(JSON.stringify(body))) as unknown as typeof fetch;
-    expect(await importAnthropicUsage(db, "admin-key", "2030-03-01", "2030-03-31", fetcher)).toBe(
-      1,
-    );
+    expect(await importAnthropicUsage(db, "admin-key", DAY, DAY, fetcher)).toBe(1);
     await db.from("agent_runs").insert({
       company_id: CROFT,
       task: "Reconciliation test",
       pillar: "run",
       model: "claude-sonnet-5-5",
       status: "succeeded",
-      started_at: "2030-03-04T10:00:00Z",
+      started_at: `${DAY}T10:00:00Z`,
       cost_usd: 1.2,
     });
     const { data } = await db.rpc("cost_reconciliation", {
-      p_from: "2030-03-04",
-      p_to: "2030-03-04",
+      p_from: DAY,
+      p_to: DAY,
     });
     // 0.5M input × $2 + 0.05M output × $10 = $1.50 reported; our runs said $1.20.
     expect(data).toEqual([
       {
-        day: "2030-03-04",
+        day: DAY,
         model: "claude-sonnet-5-5",
         runs: 1,
         estimated_usd: 1.2,

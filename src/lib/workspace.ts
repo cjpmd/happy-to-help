@@ -193,6 +193,8 @@ export function hasProof(proof?: Proof) {
  * approval; keep the two in step. `unbuilt` lists features the company hasn't built yet
  * (its unfinished roadmap outcomes), which public text mustn't promise.
  */
+const SIGN_OFFS = /\b(best wishes|best regards|kind regards|all the best|best of luck)\b/gi;
+
 export function checkClaims(text: string, sector: Sector = "general", unbuilt: string[] = []) {
   const rules = [
     {
@@ -214,9 +216,11 @@ export function checkClaims(text: string, sector: Sector = "general", unbuilt: s
       pattern: new RegExp(`\\b(${feature.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&")})\\b`, "gi"),
       reason: "Feature not built yet",
     });
+  // Sign-offs aren't claims ("Best wishes"). Blanked to the same length, so positions hold.
+  const checked = text.replace(SIGN_OFFS, (m) => " ".repeat(m.length));
   return rules
     .flatMap((r) =>
-      Array.from(text.matchAll(r.pattern), (m) => ({
+      Array.from(checked.matchAll(r.pattern), (m) => ({
         phrase: m[0],
         start: m.index ?? 0,
         end: (m.index ?? 0) + m[0].length,

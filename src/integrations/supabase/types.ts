@@ -2108,6 +2108,103 @@ export type Database = {
           },
         ];
       };
+      inbox_items: {
+        Row: {
+          approval_id: string | null;
+          category: string | null;
+          channel: string;
+          company_id: string;
+          contact_id: string | null;
+          created_at: string;
+          flags: NonNullable<Json>;
+          id: string;
+          language: string | null;
+          message_id: string;
+          mode: Database["public"]["Enums"]["response_mode"] | null;
+          processed_at: string | null;
+          reason: string | null;
+          sentiment: string | null;
+          status: string;
+          thread_id: string;
+          urgency: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          approval_id?: string | null;
+          category?: string | null;
+          channel?: string;
+          company_id: string;
+          contact_id?: string | null;
+          created_at?: string;
+          flags?: NonNullable<Json>;
+          id?: string;
+          language?: string | null;
+          message_id: string;
+          mode?: Database["public"]["Enums"]["response_mode"] | null;
+          processed_at?: string | null;
+          reason?: string | null;
+          sentiment?: string | null;
+          status?: string;
+          thread_id: string;
+          urgency?: string | null;
+        };
+        Update: {
+          approval_id?: string | null;
+          category?: string | null;
+          channel?: string;
+          company_id?: string;
+          contact_id?: string | null;
+          created_at?: string;
+          flags?: NonNullable<Json>;
+          id?: string;
+          language?: string | null;
+          message_id?: string;
+          mode?: Database["public"]["Enums"]["response_mode"] | null;
+          processed_at?: string | null;
+          reason?: string | null;
+          sentiment?: string | null;
+          status?: string;
+          thread_id?: string;
+          urgency?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inbox_items_approval_id_fkey";
+            columns: ["approval_id"];
+            isOneToOne: false;
+            referencedRelation: "approvals";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inbox_items_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inbox_items_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inbox_items_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: true;
+            referencedRelation: "email_messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inbox_items_thread_id_fkey";
+            columns: ["thread_id"];
+            isOneToOne: false;
+            referencedRelation: "email_threads";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       integration_secrets: {
         Row: {
           company_id: string;
@@ -2663,6 +2760,7 @@ export type Database = {
           company_id: string;
           disclosure_on_approved: boolean;
           disclosure_text: string;
+          inbox_daily_cap: number;
           policy_reviewed_at: string | null;
           policy_reviewed_by: string | null;
           updated_at: string;
@@ -2672,6 +2770,7 @@ export type Database = {
           company_id: string;
           disclosure_on_approved?: boolean;
           disclosure_text?: string;
+          inbox_daily_cap?: number;
           policy_reviewed_at?: string | null;
           policy_reviewed_by?: string | null;
           updated_at?: string;
@@ -2680,6 +2779,7 @@ export type Database = {
           company_id?: string;
           disclosure_on_approved?: boolean;
           disclosure_text?: string;
+          inbox_daily_cap?: number;
           policy_reviewed_at?: string | null;
           policy_reviewed_by?: string | null;
           updated_at?: string;
@@ -3780,6 +3880,7 @@ export type Database = {
         Args: { p_company: string; p_kind: string; p_period: string; p_ref: string };
         Returns: boolean;
       };
+      close_inbox_item: { Args: { p_item: string; p_status?: string }; Returns: undefined };
       complete_commitment: {
         Args: { p_commitment: string; p_status?: string };
         Returns: undefined;
@@ -3917,8 +4018,13 @@ export type Database = {
       };
       heartbeat_agent_job: { Args: { p_job: string; p_worker: string }; Returns: boolean };
       import_contacts: { Args: { p_company: string; p_rows: Json }; Returns: number };
+      import_contacts_checked: {
+        Args: { p_company: string; p_rows: Json; p_soft_opt_in_confirmed?: boolean };
+        Returns: Json;
+      };
       join_cohort: { Args: { p_code: string; p_company: string }; Returns: string };
       post_chat_message: { Args: { p_company: string; p_content: string }; Returns: string };
+      process_inbox_item: { Args: { p_item: string }; Returns: string };
       propose_voice_profile: {
         Args: { p_company: string; p_profile: Json; p_run: string; p_source: string };
         Returns: string;
@@ -4028,6 +4134,7 @@ export type Database = {
           p_company: string;
           p_disclosure_on_approved?: boolean;
           p_disclosure_text?: string;
+          p_inbox_daily_cap?: number;
           p_mark_reviewed?: boolean;
         };
         Returns: undefined;

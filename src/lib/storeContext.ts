@@ -62,6 +62,8 @@ export type DB = WorkspaceDB & {
   /** Per-company provider switches, and what the platform has set up (Phase 7). */
   integration_settings: IntegrationSetting[];
   platform_integrations: { provider: string; configured: boolean }[];
+  /** Phase 14: every message that came in, and what Sol did with it. */
+  inbox_items: InboxItem[];
   /** Phase 8: Auto Mode sessions, what Sol does on its own, and the morning briefs. */
   auto_sessions: AutoSession[];
   company_automation: Automation[];
@@ -162,6 +164,43 @@ export interface ContactRow {
   email: string;
   kind: "customer" | "lead";
   value: string;
+  /** Marketing permission from the file: "consent" (needs evidence) or "soft_opt_in". */
+  consent?: "consent" | "soft_opt_in";
+  consent_evidence?: string;
+}
+
+/** What a consent-checked import did (Phase 14). */
+export interface ImportResult {
+  added: number;
+  consent: number;
+  soft_opt_in: number;
+  service_only: number;
+}
+
+export interface InboxItem {
+  id: string;
+  company_id: string;
+  thread_id: string;
+  channel: string;
+  contact_id: string | null;
+  status:
+    | "new"
+    | "waiting_for_budget"
+    | "triaging"
+    | "drafting"
+    | "awaiting_approval"
+    | "sent"
+    | "escalated"
+    | "spam"
+    | "closed";
+  category: string | null;
+  sentiment: string | null;
+  urgency: string | null;
+  flags: Record<string, boolean>;
+  mode: "auto_send" | "draft" | "escalate" | null;
+  reason: string | null;
+  approval_id: string | null;
+  created_at: string;
 }
 
 export interface Ctx {
@@ -219,8 +258,19 @@ export interface Ctx {
   invite: (email: string, role: T.CompanyMember["role"]) => Promise<boolean>;
   markDone: (id: string) => Promise<boolean>;
   stopAuto: () => void;
-  /** Adds contacts from a CSV, skipping emails already known. Resolves to how many were added. */
-  importContacts: (companyId: string, rows: ContactRow[]) => Promise<number | null>;
+  /**
+   * Adds contacts from a CSV, skipping emails already known, and records each one's marketing
+   * permission (no evidence means service only). softOptIn: the founder confirmed the PECR
+   * soft opt-in conditions for existing customers.
+   */
+  importContacts: (
+    companyId: string,
+    rows: ContactRow[],
+    softOptIn?: boolean,
+  ) => Promise<ImportResult | null>;
+  /** The inbox pipeline (Phase 14): ask Sol to deal with a message now, or close it. */
+  processInboxItem: (id: string) => Promise<boolean>;
+  closeInboxItem: (id: string, status?: "closed" | "spam") => Promise<boolean>;
   /** Saves website copy or past emails for the voice analysis. */
   addVoiceSource: (
     companyId: string,
@@ -240,7 +290,12 @@ export interface Ctx {
   ) => Promise<boolean>;
   updateResponseSettings: (
     companyId: string,
-    patch: { disclosure_text?: string; disclosure_on_approved?: boolean; mark_reviewed?: boolean },
+    patch: {
+      disclosure_text?: string;
+      disclosure_on_approved?: boolean;
+      mark_reviewed?: boolean;
+      inbox_daily_cap?: number;
+    },
   ) => Promise<boolean>;
   /** Resolves to the new capture's id, or null. */
   createCapture: (c: NewCapture) => Promise<string | null>;

@@ -122,10 +122,17 @@ export function analyseVoice(texts: string[]): VoiceRead | null {
 }
 
 /** Parses a contacts CSV: a header row with name/email columns (any order), then rows. */
-export function parseContactsCsv(csv: string): {
-  rows: { name: string; email: string; kind: "customer" | "lead"; value: string }[];
-  skipped: number;
-} {
+export interface CsvContact {
+  name: string;
+  email: string;
+  kind: "customer" | "lead";
+  value: string;
+  /** From a consent or opt-in column: "consent" (with evidence) or "soft_opt_in". */
+  consent?: "consent" | "soft_opt_in";
+  consent_evidence?: string;
+}
+
+export function parseContactsCsv(csv: string): { rows: CsvContact[]; skipped: number } {
   const lines = csv.split(/\r?\n/).filter((l) => l.trim());
   const split = (line: string) => {
     const out: string[] = [];
@@ -149,10 +156,20 @@ export function parseContactsCsv(csv: string): {
   const col = (...names: string[]) => header.findIndex((h) => names.some((n) => h.includes(n)));
   const iEmail = col("email", "e-mail");
   const iName = col("name");
-  const iKind = col("type", "kind", "status", "stage");
+  // Consent columns first, so "marketing status" isn't read as the contact's type.
+  const iConsent = col("consent", "opt-in", "optin", "opted in", "marketing");
+  const iEvidence = header.findIndex(
+    (h, i) =>
+      i !== iConsent &&
+      ["consent date", "opt-in date", "signed up", "source", "evidence"].some((n) => h.includes(n)),
+  );
+  const kindCols = header.map((h, i) =>
+    i !== iConsent && ["type", "kind", "status", "stage"].some((n) => h.includes(n)) ? i : -1,
+  );
+  const iKind = kindCols.find((i) => i >= 0) ?? -1;
   const iValue = col("value", "plan", "notes");
   if (iEmail < 0) return { rows: [], skipped: Math.max(0, lines.length - 1) };
-  const rows: { name: string; email: string; kind: "customer" | "lead"; value: string }[] = [];
+  const rows: CsvContact[] = [];
   let skipped = 0;
   for (const line of lines.slice(1)) {
     const cells = split(line);
@@ -168,7 +185,26 @@ export function parseContactsCsv(csv: string): {
         ? "customer"
         : "lead",
       value: (iValue >= 0 ? cells[iValue] : "")?.trim() ?? "",
+      ...consentFrom(
+        iConsent >= 0 ? cells[iConsent] : undefined,
+        iEvidence >= 0 ? cells[iEvidence] : undefined,
+      ),
     });
   }
   return { rows, skipped };
+}
+
+/** "yes", "opted in", "true" → consent (with the evidence column); "soft" → soft opt-in. */
+function consentFrom(
+  cell: string | undefined,
+  evidence: string | undefined,
+): Pick<CsvContact, "consent" | "consent_evidence"> {
+  const v = (cell ?? "").trim().toLowerCase();
+  if (/^(soft|soft opt-?in|customer)$/.test(v)) return { consent: "soft_opt_in" };
+  if (/^(y|yes|true|1|opted in|opt-?in|subscribed|consented)$/.test(v))
+    return {
+      consent: "consent",
+      ...(evidence?.trim() ? { consent_evidence: evidence.trim() } : {}),
+    };
+  return {};
 }

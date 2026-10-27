@@ -138,8 +138,13 @@ describe("replies from Sol", () => {
     expect(await drainApprovals({ db, providers: mockProviders(), workerId: "test" })).toEqual([
       "blocked",
     ]);
-    const { data } = await db.from("approvals").select("execution_error").eq("id", id).single();
-    expect(data!.execution_error).toMatch(/always go to you/);
+    // It isn't sent: it waits for the founder's GO, with the reason (Phase 14).
+    const { data } = await db.from("approvals").select("status, payload").eq("id", id).single();
+    expect(data!.status).toBe("pending");
+    expect((data!.payload as { held_reason: string; auto_send: boolean }).held_reason).toMatch(
+      /always go to you/,
+    );
+    expect((data!.payload as { auto_send: boolean }).auto_send).toBe(false);
   });
 
   it("adds the AI disclosure to replies Sol drafted", async () => {

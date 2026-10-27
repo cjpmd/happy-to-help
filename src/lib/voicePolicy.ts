@@ -85,6 +85,8 @@ export interface ResponseSettings {
   disclosure_text: string;
   disclosure_on_approved: boolean;
   policy_reviewed_at: string | null;
+  /** Daily credits Sol may spend on the inbox by itself; 0 is off. */
+  inbox_daily_cap: number;
 }
 
 export const CATEGORY_LABELS: Record<PolicyCategory | Situation, string> = {
@@ -168,6 +170,7 @@ export function defaultSettings(companyId: string): ResponseSettings {
     disclosure_text: DEFAULT_DISCLOSURE,
     disclosure_on_approved: true,
     policy_reviewed_at: null,
+    inbox_daily_cap: 0,
   };
 }
 

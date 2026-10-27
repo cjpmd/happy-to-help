@@ -4,7 +4,7 @@ import type { Session } from "@supabase/supabase-js";
 import { getSupabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import type * as T from "../types";
-import { StoreCtx, type Ctx, type DB } from "../storeContext";
+import { StoreCtx, type Ctx, type DB, type ImportResult } from "../storeContext";
 import { useThemeState } from "../useThemeState";
 import { defaultPreferences, defaultSharing, type Preferences, type Sharing } from "../workspace";
 import type { ThemePref } from "../theme";
@@ -434,13 +434,32 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
   );
   const stopAuto = useCallback(() => setSolTyping(false), []);
   const importContacts = useCallback<Ctx["importContacts"]>(
-    async (cid, rows) => {
-      const n = await call(
-        () => sb.rpc("import_contacts", { p_company: cid, p_rows: rows as unknown as Json }),
-        ["contacts", "activity_events"],
+    async (cid, rows, softOptIn = false) => {
+      const r = await call(
+        () =>
+          sb.rpc("import_contacts_checked", {
+            p_company: cid,
+            p_rows: rows as unknown as Json,
+            p_soft_opt_in_confirmed: softOptIn,
+          }),
+        ["contacts", "links", "activity_events", "people"],
       );
-      return n === false ? null : (n ?? 0);
+      return r ? (r as unknown as ImportResult) : null;
     },
+    [sb, call],
+  );
+  const processInboxItem = useCallback<Ctx["processInboxItem"]>(
+    async (id) =>
+      (await call(() => sb.rpc("process_inbox_item", { p_item: id }), ["inbox", "agent_runs"])) !==
+      false,
+    [sb, call],
+  );
+  const closeInboxItem = useCallback<Ctx["closeInboxItem"]>(
+    async (id, status = "closed") =>
+      (await call(
+        () => sb.rpc("close_inbox_item", { p_item: id, p_status: status }),
+        ["inbox"],
+      )) !== false,
     [sb, call],
   );
   const addVoiceSource = useCallback<Ctx["addVoiceSource"]>(
@@ -507,6 +526,9 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
               ? { p_disclosure_on_approved: patch.disclosure_on_approved }
               : {}),
             ...(patch.mark_reviewed ? { p_mark_reviewed: true } : {}),
+            ...(patch.inbox_daily_cap !== undefined
+              ? { p_inbox_daily_cap: patch.inbox_daily_cap }
+              : {}),
           }),
         ["voice"],
       )) !== false,
@@ -899,6 +921,8 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       markDone,
       stopAuto,
       importContacts,
+      processInboxItem,
+      closeInboxItem,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,
@@ -965,6 +989,8 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       markDone,
       stopAuto,
       importContacts,
+      processInboxItem,
+      closeInboxItem,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,

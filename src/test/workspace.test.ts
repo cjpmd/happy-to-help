@@ -103,3 +103,12 @@ describe("Founder guardrails", () => {
     expect(monthlyCost("weekly", 60)).toBe(240);
   });
 });
+
+describe("claims check and sign-offs", () => {
+  it("doesn't flag 'Best wishes' but still flags a superlative", () => {
+    expect(checkClaims("Thanks!\n\nBest wishes\nRory")).toEqual([]);
+    expect(checkClaims("All the best, from the best bakery").map((f) => f.phrase)).toEqual([
+      "best",
+    ]);
+  });
+});

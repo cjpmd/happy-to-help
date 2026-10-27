@@ -1,6 +1,7 @@
 import * as seed from "./seed";
 import { demoJobTypes, type DB } from "./storeContext";
 import { demoLinkData } from "./demoLinks";
+import { demoInboxItems } from "./demoInbox";
 import { defaultPolicies, defaultSettings, defaultVoice } from "./voicePolicy";
 import { businessDefaults, isLayout, workspaceSeed, type LayoutItem } from "./workspace";
 
@@ -50,6 +51,7 @@ export function demoDb(): DB {
     auto_sessions: [],
     company_automation: [],
     briefs: [],
+    inbox_items: demoInboxItems(seed.harbour_emails),
   };
 }
 

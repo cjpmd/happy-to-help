@@ -304,6 +304,11 @@ async function perform(
           direction: "sent",
           body,
         });
+      if (typeof p["inbox_item_id"] === "string")
+        await db
+          .from("inbox_items")
+          .update({ status: "sent", processed_at: now })
+          .eq("id", p["inbox_item_id"]);
       return { provider: providers.name, message_ids: r.messageIds, recipients: count };
     }
     case "ad_spend": {
@@ -419,6 +424,35 @@ async function withDisclosure(db: Db, a: Approval): Promise<string> {
 }
 
 /** What an automatic reply needs to know about the company (see checkAutoSend). */
+/**
+ * An automatic reply the rules wouldn't let go out becomes an ordinary draft waiting for the
+ * founder's GO, with the reason (Phase 14), rather than a dead end.
+ */
+async function holdForFounder(db: Db, a: Approval, reason: string): Promise<ExecutionOutcome> {
+  const p = a.payload as Record<string, unknown>;
+  await db
+    .from("approvals")
+    .update({
+      status: "pending",
+      decided_at: null,
+      execution_status: "not_started",
+      execution_error: null,
+      payload: { ...p, auto_send: false, held_reason: reason } as { [k: string]: Json },
+    })
+    .eq("id", a.id);
+  if (typeof p["inbox_item_id"] === "string")
+    await db
+      .from("inbox_items")
+      .update({ status: "awaiting_approval" })
+      .eq("id", p["inbox_item_id"]);
+  await say(
+    db,
+    a.company_id,
+    `I didn't send a reply to ${String(p["to"])} on my own: ${reason} It's waiting for your GO.`,
+  );
+  return "blocked";
+}
+
 async function autoSendContext(db: Db, a: Approval) {
   const p = a.payload as Record<string, unknown>;
   const triage = (p["triage"] ?? {}) as Record<string, unknown>;
@@ -485,6 +519,7 @@ export async function executeApproval(deps: ExecutorDeps, a: Approval): Promise<
         await founderRules(db, a.company_id),
         deps.limits ?? DEFAULT_LIMITS,
       );
+  if (!rule.ok && auto) return holdForFounder(db, a, rule.reason);
   if (!rule.ok) return block(db, a, rule.reason, rule.needsFounder);
   if (
     a.action_type === "send_email" &&

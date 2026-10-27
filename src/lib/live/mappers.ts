@@ -447,6 +447,7 @@ export function mapResponseSettings(s: Row<"response_settings">): V.ResponseSett
     disclosure_text: s.disclosure_text,
     disclosure_on_approved: s.disclosure_on_approved,
     policy_reviewed_at: s.policy_reviewed_at,
+    inbox_daily_cap: s.inbox_daily_cap,
   };
 }
 

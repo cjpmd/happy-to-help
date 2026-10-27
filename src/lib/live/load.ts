@@ -279,6 +279,19 @@ export const loaders = {
       briefs: must(briefs, "briefs"),
     };
   },
+  inbox: async (sb) => ({
+    // Statuses and modes are checked by the table's constraints.
+    inbox_items: must(
+      await sb
+        .from("inbox_items")
+        .select(
+          "id, company_id, thread_id, channel, contact_id, status, category, sentiment, urgency, flags, mode, reason, approval_id, created_at",
+        )
+        .order("created_at", { ascending: false })
+        .limit(RECENT),
+      "inbox",
+    ) as unknown as DB["inbox_items"],
+  }),
   settings: async (sb, userId) => {
     const [prefs, layout, sharing, invites] = await Promise.all([
       sb.from("user_preferences").select("*").maybeSingle(),
@@ -327,6 +340,7 @@ export const TABLE_GROUPS: Partial<Record<keyof Database["public"]["Tables"], Gr
   integration_settings: "billing",
   auto_sessions: "automation",
   briefs: "automation",
+  inbox_items: "inbox",
 };
 
 export async function loadGroups(sb: Client, userId: string, groups: Group[]) {
@@ -382,6 +396,7 @@ export function emptyDb(): DB {
     auto_sessions: [],
     company_automation: [],
     briefs: [],
+    inbox_items: [],
     routines: [],
     documents: [],
     media: [],

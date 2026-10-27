@@ -232,3 +232,13 @@ Non-trivial decisions made during the autonomous build run (`docs/AUTONOMOUS-RUN
 
 ## D65. Rate limits as insert triggers
 - **Chosen:** fixed-window counters keyed by person and action, enforced by `before insert` triggers on the tables behind costly or abusable actions (agent jobs, chat, recordings, links, examples), so every path is covered whichever RPC or function inserts. The service role is exempt. Limits are generous for real use and documented in SECURITY-REVIEW.md.
+
+## D66. The inbox pipeline is two jobs
+- **Chosen:** triage (smallest model) and drafting (mid-tier) are separate jobs, because a run uses one model and SPEC M routes them differently. The policy decision is code (`decideMode`, mirroring the executor's hard rules), not the model's choice; the model only classifies. Processing starts only within a daily budget the founder sets (default 0, so nothing spends credits until they choose), with a "do it now" button per message.
+
+## D67. A refused automatic reply becomes a draft
+- **Chosen:** when the executor's `checkAutoSend` refuses an automatic reply (voice not approved, policy not reviewed, a hard rule), the approval goes back to pending with the reason and the founder is told, rather than ending as "blocked".
+- **Why:** the customer still needs an answer; the rules decide who sends it, not whether there's a reply.
+
+## D68. Imports and PECR
+- **Chosen:** a contact imported with an opt-in needs evidence (a date or source) to count as consent; a soft opt-in counts only for customers and only when the founder confirms the conditions; everyone else is recorded as "not given" (service only), and a Stay legal task explains what to do. Never inferred from a "subscribed" column alone without evidence.
