@@ -1,14 +1,14 @@
 // GET or POST /functions/v1/unsubscribe?co=&e=&t= : the link in every marketing email (Phase 7,
 // PECR). Checks the signed token and records the opt-out at once. POST is the one-click
 // unsubscribe mail apps send (RFC 8058). Public: deployed with verify_jwt = false.
-import { serviceClient } from "../_shared/http.ts";
+import { escapeHtml, htmlHeaders, serviceClient } from "../_shared/http.ts";
 import { checkUnsubscribeToken } from "../_shared/unsubscribe.ts";
 
 const page = (title: string, text: string, status = 200) =>
   new Response(
-    `<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title></head>` +
-      `<body style="font-family:system-ui,sans-serif;max-width:32rem;margin:4rem auto;padding:0 1rem;line-height:1.5"><h1 style="font-size:1.5rem">${title}</h1><p>${text}</p></body></html>`,
-    { status, headers: { "Content-Type": "text/html; charset=utf-8" } },
+    `<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title></head>` +
+      `<body style="font-family:system-ui,sans-serif;max-width:32rem;margin:4rem auto;padding:0 1rem;line-height:1.5"><h1 style="font-size:1.5rem">${escapeHtml(title)}</h1><p>${escapeHtml(text)}</p></body></html>`,
+    { status, headers: htmlHeaders },
   );
 
 Deno.serve(async (req) => {

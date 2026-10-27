@@ -36,6 +36,7 @@ import { PageHeader, Pill, StatusPill } from "./primitives";
 import { CostButton, ClaimsCheck, Why } from "./WorkControls";
 import { IntegrationsSection } from "./Integrations";
 import { AutomationPanel } from "./Automation";
+import { PlatformHealthSection } from "./PlatformHealth";
 import { nextRun } from "@/lib/schedule";
 
 const selectClass = "h-9 rounded-md border bg-background px-2 text-sm";
@@ -684,6 +685,7 @@ export function SettingsPage() {
           </div>
         ))}
         <IntegrationsSection />
+        <PlatformHealthSection />
       </section>
     </>
   );

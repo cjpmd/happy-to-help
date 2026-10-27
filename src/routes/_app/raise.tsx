@@ -3,6 +3,7 @@ import { useStore } from "@/lib/store";
 import { PageHeader, Panel, Pill, humanise } from "@/components/mission/primitives";
 import { pageHead } from "@/lib/seo";
 import { DocumentsPage } from "@/components/mission/WorkspacePages";
+import { InvestorUpdateButton } from "@/components/mission/SkillButtons";
 import { fmtDate } from "@/lib/format";
 import type { InvestorStage } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -37,6 +38,7 @@ function Raise() {
       <PageHeader
         title="Raise"
         description="Move investors between stages as conversations move on: drag a card, or pick its stage."
+        actions={<InvestorUpdateButton />}
       />
       <div className="-mx-4 overflow-x-auto px-4 pb-2">
         <div className="grid min-w-[1000px] grid-cols-6 gap-3">

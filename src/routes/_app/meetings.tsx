@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { RouteTabs } from "@/components/mission/RouteTabs";
 import { PageHeader, Panel, Pill } from "@/components/mission/primitives";
 import { AddMeeting, ReviewCard, ShareToggle } from "@/components/mission/Capture";
+import { PlanEvidence } from "@/components/mission/SkillButtons";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -272,6 +273,11 @@ function Ideas() {
             </div>
             {i.evidence_plan && (
               <p className="mt-1 text-xs text-muted-foreground">{i.evidence_plan}</p>
+            )}
+            {i.status === "hypothesis" && (
+              <div className="mt-2">
+                <PlanEvidence idea={i.title} />
+              </div>
             )}
           </li>
         ))}

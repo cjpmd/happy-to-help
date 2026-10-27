@@ -213,6 +213,43 @@ JOBS["nightly"] = {
     `It's the nightly loop. The highest-leverage open task for the current stage is "${title ?? "the next task"}". Make real progress on it, propose anything external for approval, and stop well within the budget.`,
 };
 
+JOBS["compliance_review"] = {
+  label: "Check the compliance calendar",
+  pillar: "legal",
+  tier: "routine",
+  skills: ["compliance-calendar"],
+  estimate: 20,
+  cap: 60,
+  maxTurns: 6,
+  tools: ["get_compliance", "add_compliance_items"],
+  prompt: () =>
+    "Use the compliance-calendar skill: check the company's calendar against the usual UK deadlines, add what's missing, and flag anything overdue.",
+};
+JOBS["investor_update"] = {
+  label: "Investor update",
+  pillar: "raise",
+  tier: "planning",
+  skills: ["investor-update", "claims-check"],
+  estimate: 60,
+  cap: 200,
+  maxTurns: 8,
+  tools: ["get_investor_facts", "save_investor_update", "check_claims"],
+  prompt: () =>
+    "Use the investor-update skill: write this month's investor update from the facts and save it as a draft for the founder to send.",
+};
+JOBS["evidence_plan"] = {
+  label: "Plan the evidence for an idea",
+  pillar: "grow",
+  tier: "planning",
+  skills: ["evidence-plan"],
+  estimate: 40,
+  cap: 120,
+  maxTurns: 6,
+  tools: ["get_company", "add_assumptions"],
+  prompt: ({ title, target }) =>
+    `Use the evidence-plan skill on this idea: "${target ?? title ?? "(no idea given)"}". Turn it into testable assumptions and a smoke test, and add them to the evidence board.`,
+};
+
 export function jobSpec(jobType: string): JobSpec | undefined {
   return JOBS[jobType];
 }

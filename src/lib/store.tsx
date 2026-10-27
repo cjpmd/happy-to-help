@@ -1041,6 +1041,7 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
     return true;
   }, []);
   const loadTranscript = useCallback<Ctx["loadTranscript"]>(async () => null, []);
+  const loadPlatformHealth = useCallback<Ctx["loadPlatformHealth"]>(async () => null, []);
   // Link layer: the demo keeps links, hubs and leads in memory.
   const createLink = useCallback<Ctx["createLink"]>(async (cid, l) => {
     const code = Math.random()
@@ -1310,6 +1311,7 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       startAutoMode,
       stopAutoMode,
       updateAutomation,
+      loadPlatformHealth,
       shortLinkBase: typeof window === "undefined" ? "/l" : `${window.location.origin}/l`,
       ...themeState,
     }),
@@ -1369,6 +1371,7 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       startAutoMode,
       stopAutoMode,
       updateAutomation,
+      loadPlatformHealth,
     ],
   );
 

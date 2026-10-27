@@ -208,6 +208,7 @@ begin
     insert into public.schedule_runs (kind, company_id, period_key) values ('routine', c, '2026-10-27');
     insert into public.briefs (company_id, brief_date, content) values (c, '2026-10-27', 'Good morning.');
     insert into public.auto_sessions (company_id, ends_at, cap_credits, status) values (c, now() + interval '1 hour', 100, 'finished');
+    insert into public.error_events (source, message, company_id) values ('worker', 'Fixture error', c);
   end loop;
 end;
 $$;

@@ -1,6 +1,6 @@
 // POST /functions/v1/billing-portal { company_id }: a Stripe Customer Portal link, where a
 // founder changes plan, updates their card or cancels (Phase 6). Test mode only.
-import { caller, cors, json, serviceClient } from "../_shared/http.ts";
+import { caller, cors, fetchWithTimeout, json, readJson, serviceClient } from "../_shared/http.ts";
 import { checkStripeKey } from "../_shared/billing.ts";
 
 Deno.serve(async (req) => {
@@ -8,7 +8,9 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Use POST" }, 405);
   const who = await caller(req);
   if (!who) return json({ error: "Sign in first" }, 401);
-  const { company_id } = (await req.json().catch(() => ({}))) as { company_id?: string };
+  const body = await readJson<{ company_id?: string }>(req);
+  if (body instanceof Response) return body;
+  const { company_id } = body;
   if (!company_id) return json({ error: "company_id is required" }, 400);
   const { data: member } = await who.sb
     .from("company_members")
@@ -28,7 +30,7 @@ Deno.serve(async (req) => {
     .maybeSingle();
   if (!customer) return json({ error: "Buy a plan first; then you can manage it here" }, 400);
   const origin = Deno.env.get("APP_URL") ?? req.headers.get("origin") ?? "http://127.0.0.1:8080";
-  const res = await fetch("https://api.stripe.com/v1/billing_portal/sessions", {
+  const res = await fetchWithTimeout("https://api.stripe.com/v1/billing_portal/sessions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${key}`,

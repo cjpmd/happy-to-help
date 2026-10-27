@@ -68,6 +68,18 @@ export type DB = WorkspaceDB & {
   briefs: Brief[];
 };
 
+export interface PlatformHealth {
+  errors: { id: number; source: string; message: string; created_at: string }[];
+  costs: {
+    day: string;
+    model: string;
+    runs: number;
+    estimated_usd: number;
+    actual_usd: number;
+    difference_pct: number | null;
+  }[];
+}
+
 export interface AutoSession {
   id: string;
   company_id: string;
@@ -286,6 +298,8 @@ export interface Ctx {
   ) => Promise<boolean>;
   /** Where short links are served. */
   shortLinkBase: string;
+  /** Platform admins: recent errors and the cost reconciliation (Phase 9). */
+  loadPlatformHealth: () => Promise<PlatformHealth | null>;
   /** The transcript of a capture (founders and teammates only). */
   loadTranscript: (captureId: string) => Promise<string | null>;
 }
@@ -391,6 +405,9 @@ export const WORK_KINDS = {
   autoHour: "auto_mode",
   voice: "voice_analysis",
   capture: "capture_process",
+  compliance: "compliance_review",
+  investor: "investor_update",
+  evidence: "evidence_plan",
 } as const;
 export type WorkKind = keyof typeof WORK_KINDS;
 
@@ -407,6 +424,9 @@ export function demoJobTypes(): JobType[] {
     autoHour: ACTION_COSTS.autoHour,
     voice: 150,
     capture: 40,
+    compliance: 20,
+    investor: 60,
+    evidence: 40,
   };
   return (Object.keys(WORK_KINDS) as WorkKind[]).map((k) => ({
     job_type: WORK_KINDS[k],

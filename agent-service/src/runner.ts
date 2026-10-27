@@ -11,6 +11,7 @@ import { jobSpec, type JobSpec } from "./jobs.js";
 import type { AgentRuntime, RunOutcome, RunStep } from "./runtime/types.js";
 import { loadMemoryInput, prepareWorkspace } from "./workspace.js";
 import { failCapture, prepareCapture } from "./capture/prepare.js";
+import { reportError } from "./errors.js";
 import { mockTranscription, type TranscriptionProvider } from "./capture/transcription.js";
 
 export type Job = Tables<"agent_jobs">;
@@ -280,6 +281,12 @@ export async function processJob(deps: RunnerDeps, job: Job): Promise<JobResult>
       return { outcome: "retry", runId: run.id, charged: 0 };
     }
     await finishJob(db, job, "failed", outcome.error ?? "run failed");
+    await reportError(db, "worker", outcome.error ?? "run failed", {
+      companyId: job.company_id,
+      job_id: job.id,
+      job_type: job.job_type,
+      run_id: run.id,
+    });
     if (job.job_type === "capture_process" && input.target)
       await failCapture(db, input.target, outcome.error ?? "run failed");
     await event(

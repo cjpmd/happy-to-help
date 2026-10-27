@@ -24,6 +24,8 @@ as $$
   select case
     -- Stripe ids and raw events: the service role only.
     when p_table in ('stripe_customers', 'stripe_events', 'integration_secrets', 'schedule_runs') then false
+    -- Platform errors: admins only.
+    when p_table = 'error_events' then p_person = 'admin'
     when p_table = any (pg_temp.private_tables()) then
       case p_company
         when 'company_a' then p_person in ('founder', 'teammate')

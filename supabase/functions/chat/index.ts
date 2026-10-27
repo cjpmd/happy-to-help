@@ -9,7 +9,7 @@
 // founder asks for planning (SPEC C). Without ANTHROPIC_API_KEY (or with CHAT_MOCK=1) it streams
 // the demo's replies at no cost to us.
 import Anthropic from "npm:@anthropic-ai/sdk@1.3.0";
-import { caller, cors, json, serviceClient } from "../_shared/http.ts";
+import { caller, cors, json, readJson, reportEdgeError, serviceClient } from "../_shared/http.ts";
 import {
   chatSystemPrompt,
   chatTier,
@@ -33,12 +33,8 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Use POST" }, 405);
   const who = await caller(req);
   if (!who) return json({ error: "Sign in first" }, 401);
-  let body: { company_id?: string; message?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return json({ error: "Send a JSON body" }, 400);
-  }
+  const body = await readJson<{ company_id?: string; message?: string }>(req);
+  if (body instanceof Response) return body;
   const companyId = body.company_id ?? "";
   const message = (body.message ?? "").trim();
 
@@ -231,7 +227,9 @@ Deno.serve(async (req) => {
           sender: "sol",
           content: "Sorry, I couldn't reply just then. Nothing was charged. Please try again.",
         });
-        send("error", { error: e instanceof Error ? e.message : "Chat failed" });
+        await reportEdgeError("chat", e, { company: companyId, run: run.id });
+        // People see a plain message; the details go to error monitoring.
+        send("error", { error: "Sol couldn't reply just then. Nothing was charged." });
       } finally {
         controller.close();
       }
