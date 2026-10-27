@@ -75,3 +75,12 @@ Built: Resend, Ayrshare and PostHog adapters in `agent-service/src/integrations/
 1. Create a PostHog project on EU Cloud. Set the project's public key as `VITE_POSTHOG_KEY` for the app (events are sent only after a visitor allows analytics on the hub page).
 2. Create a personal API key with query access; set `POSTHOG_PROJECT_ID` and `POSTHOG_PERSONAL_API_KEY` on the agent service.
 3. The founder switches Site analytics on; the worker fills `metrics_daily` (visitors, signups) every six hours. Add PostHog to the privacy notice as a sub-processor.
+
+## 7. Cost reconciliation against Anthropic's usage
+
+Built: `agent-service/src/reconcile.ts` imports the organisation's daily usage by model from the Anthropic Admin API into `anthropic_usage` (priced with `model_prices`), and `cost_reconciliation` compares it with what our runs reported. Admins see the 30-day totals in Settings → Platform health. Without a key, only our side shows.
+
+1. In the Anthropic Console, create an **Admin API key** (Settings → Admin keys; organisation admins only).
+2. Set `ANTHROPIC_ADMIN_KEY` on the agent service. On the 1st of each month the worker imports the previous month.
+3. To check a period now: `cd agent-service && npm run reconcile -- 2026-10-01 2026-10-31`.
+4. Keep `model_prices` in line with Anthropic's price list, or the comparison will drift.

@@ -2,7 +2,7 @@
 // plan, a top-up or the Launch Pack (Phase 6). Founders only. Test mode only: live keys are
 // refused. With no Stripe key and BILLING_MOCK=1 it applies the purchase straight away, so the
 // flow can be tried locally without Stripe.
-import { caller, cors, json, serviceClient } from "../_shared/http.ts";
+import { caller, cors, fetchWithTimeout, json, readJson, serviceClient } from "../_shared/http.ts";
 import {
   checkStripeKey,
   checkoutForm,
@@ -15,12 +15,8 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Use POST" }, 405);
   const who = await caller(req);
   if (!who) return json({ error: "Sign in first" }, 401);
-  let body: { company_id?: string; product?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return json({ error: "Send a JSON body" }, 400);
-  }
+  const body = await readJson<{ company_id?: string; product?: string }>(req);
+  if (body instanceof Response) return body;
   if (!body.company_id || !body.product)
     return json({ error: "company_id and product are required" }, 400);
 
@@ -94,7 +90,7 @@ Deno.serve(async (req) => {
     .select("customer_id")
     .eq("company_id", body.company_id)
     .maybeSingle();
-  const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+  const res = await fetchWithTimeout("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${key}`,

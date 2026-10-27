@@ -10,6 +10,7 @@ import type { Json } from "./db/types.js";
 import { ITEM_KINDS, commitmentsDue, matchContact, matchTask } from "../../src/lib/capture.js";
 import { localTime } from "../../src/lib/schedule.js";
 import type { BriefFacts } from "../../src/lib/brief.js";
+import { missingDeadlines, ukDeadlines } from "../../src/lib/skills.js";
 
 export interface ToolContext {
   db: Db;
@@ -744,6 +745,201 @@ TOOLS.push(
         .from("chat_messages")
         .insert({ company_id: ctx.companyId, sender: "sol", content });
       return { text: "Saved and sent." };
+    },
+  }),
+);
+
+// Skills from Phase 9: compliance calendar, investor update, evidence plan.
+TOOLS.push(
+  def({
+    name: "get_compliance",
+    description:
+      "The company's compliance calendar (title, category, due date, status), and the UK deadlines a small limited company would normally have, worked out from when it started.",
+    shape: {},
+    readOnly: true,
+    handler: async (ctx) => {
+      const [items, company, consents] = await Promise.all([
+        ctx.db
+          .from("compliance_items")
+          .select("title, category, due_date, status, statutory")
+          .eq("company_id", ctx.companyId),
+        ctx.db.from("companies").select("started_at, created_at").eq("id", ctx.companyId).single(),
+        ctx.db
+          .from("consents")
+          .select("id", { count: "exact", head: true })
+          .eq("company_id", ctx.companyId)
+          .eq("purpose", "marketing"),
+      ]);
+      const today = new Date().toISOString().slice(0, 10);
+      const started = (company.data?.started_at ?? company.data?.created_at ?? today).slice(0, 10);
+      return {
+        text: json({
+          today,
+          calendar: items.data ?? [],
+          usual_uk_deadlines: ukDeadlines(started, today, {
+            emailMarketing: (consents.count ?? 0) > 0,
+          }),
+        }),
+      };
+    },
+  }),
+  def({
+    name: "add_compliance_items",
+    description:
+      "Adds deadlines to the compliance calendar (internal, no approval needed) and marks anything past its date as overdue. Items already in the calendar are skipped.",
+    shape: {
+      items: z
+        .array(
+          z.object({
+            title: z.string().min(1).max(200),
+            category: z.string().min(1).max(60),
+            due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+            statutory: z.boolean(),
+          }),
+        )
+        .max(20),
+    },
+    readOnly: false,
+    handler: async (ctx, { items }) => {
+      const { data: existing } = await ctx.db
+        .from("compliance_items")
+        .select("title, due_date")
+        .eq("company_id", ctx.companyId);
+      const add = missingDeadlines(items, existing ?? []);
+      if (add.length)
+        await ctx.db.from("compliance_items").insert(
+          add.map((i) => ({
+            ...i,
+            company_id: ctx.companyId,
+            status: "upcoming" as const,
+            source: "sol",
+          })),
+        );
+      const today = new Date().toISOString().slice(0, 10);
+      const { count } = await ctx.db
+        .from("compliance_items")
+        .update({ status: "overdue" }, { count: "exact" })
+        .eq("company_id", ctx.companyId)
+        .lt("due_date", today)
+        .in("status", ["upcoming", "in_progress"]);
+      return { text: `Added ${add.length} deadline(s); ${count ?? 0} marked overdue.` };
+    },
+  }),
+  def({
+    name: "get_investor_facts",
+    description:
+      "Facts for the monthly investor update: this month's and last month's revenue, visitors and signups, the stage, recently completed tasks and investors in the pipeline.",
+    shape: {},
+    readOnly: true,
+    handler: async (ctx) => {
+      const since = new Date(Date.now() - 62 * 86_400_000).toISOString().slice(0, 10);
+      const [metrics, company, done, investors] = await Promise.all([
+        ctx.db
+          .from("metrics_daily")
+          .select("date, visitors, signups, mrr")
+          .eq("company_id", ctx.companyId)
+          .gte("date", since)
+          .order("date"),
+        ctx.db.from("companies").select("name, stage").eq("id", ctx.companyId).single(),
+        ctx.db
+          .from("tasks")
+          .select("title, completed_at")
+          .eq("company_id", ctx.companyId)
+          .eq("status", "done")
+          .gte("completed_at", new Date(Date.now() - 31 * 86_400_000).toISOString())
+          .limit(10),
+        ctx.db.from("investors").select("name, firm, stage").eq("company_id", ctx.companyId),
+      ]);
+      const rows = metrics.data ?? [];
+      const cut = new Date(Date.now() - 31 * 86_400_000).toISOString().slice(0, 10);
+      const thisMonth = rows.filter((r) => r.date >= cut);
+      const lastMonth = rows.filter((r) => r.date < cut);
+      const sum = (xs: typeof rows, k: "visitors" | "signups") => xs.reduce((n, r) => n + r[k], 0);
+      return {
+        text: json({
+          company: company.data?.name,
+          stage: company.data?.stage,
+          visitors: sum(thisMonth, "visitors"),
+          signups: sum(thisMonth, "signups"),
+          mrr: Number(thisMonth[thisMonth.length - 1]?.mrr ?? 0),
+          previous_mrr: Number(lastMonth[lastMonth.length - 1]?.mrr ?? 0),
+          wins: (done.data ?? []).map((t) => t.title),
+          investors: investors.data ?? [],
+        }),
+      };
+    },
+  }),
+  def({
+    name: "save_investor_update",
+    description:
+      'Saves the investor update as a new version of the company\'s "Investor updates" document (internal; the founder sends it).',
+    shape: { content: z.string().min(1).max(20000) },
+    readOnly: false,
+    handler: async (ctx, { content }) => {
+      let { data: doc } = await ctx.db
+        .from("documents")
+        .select("id")
+        .eq("company_id", ctx.companyId)
+        .eq("title", "Investor updates")
+        .maybeSingle();
+      if (!doc) {
+        const made = await ctx.db
+          .from("documents")
+          .insert({ company_id: ctx.companyId, title: "Investor updates" })
+          .select("id")
+          .single();
+        doc = made.data;
+      }
+      if (!doc) return { isError: true, text: "Couldn't create the document." };
+      const { data: latest } = await ctx.db
+        .from("document_versions")
+        .select("version")
+        .eq("document_id", doc.id)
+        .order("version", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const { error } = await ctx.db.from("document_versions").insert({
+        document_id: doc.id,
+        company_id: ctx.companyId,
+        version: (latest?.version ?? 0) + 1,
+        content,
+        run_id: ctx.runId,
+      });
+      if (error) return { isError: true, text: `Not saved: ${error.message}` };
+      return { text: `Saved as version ${(latest?.version ?? 0) + 1} of Investor updates.` };
+    },
+  }),
+  def({
+    name: "add_assumptions",
+    description:
+      "Adds testable assumptions to the evidence board (internal), each with how to test it and what counts as a pass, plus the smoke test to run.",
+    shape: {
+      idea: z.string().min(1).max(500),
+      smoke_test: z.string().min(1).max(1000),
+      assumptions: z
+        .array(
+          z.object({
+            title: z.string().min(1).max(300),
+            test: z.string().min(1).max(500),
+            pass: z.string().min(1).max(300),
+          }),
+        )
+        .min(1)
+        .max(5),
+    },
+    readOnly: false,
+    handler: async (ctx, { idea, smoke_test, assumptions }) => {
+      const { error } = await ctx.db.from("evidence_items").insert(
+        assumptions.map((a) => ({
+          company_id: ctx.companyId,
+          type: "assumption" as const,
+          title: a.title,
+          status: "untested" as const,
+          data: { test: a.test, pass: a.pass, idea, smoke_test, source: "sol" },
+        })),
+      );
+      if (error) return { isError: true, text: `Not saved: ${error.message}` };
+      return { text: `Added ${assumptions.length} assumptions to test.` };
     },
   }),
 );

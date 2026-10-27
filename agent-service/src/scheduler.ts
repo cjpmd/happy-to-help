@@ -4,6 +4,7 @@
 // happen once per company and period even with several workers.
 import type { Db } from "./db/client.js";
 import type { Json } from "./db/types.js";
+import { importAnthropicUsage } from "./reconcile.js";
 import {
   NIGHTLY_AT,
   VOICE_REVIEW_AT,
@@ -149,6 +150,22 @@ export async function runScheduler(db: Db, now = new Date()): Promise<SchedulerR
     // credits early.
     await db.rpc("expire_credits", {});
     out.expired = true;
+  }
+
+  // Housekeeping: old rate-limit windows, daily; the cost reconciliation, monthly.
+  if (await claim(db, "rate_limit_cleanup", null, null, t.date))
+    await db
+      .from("rate_limit_hits")
+      .delete()
+      .lt("window_start", new Date(Date.now() - 86_400_000).toISOString());
+  const adminKey = process.env["ANTHROPIC_ADMIN_KEY"];
+  if (adminKey && t.date.endsWith("-01") && (await claim(db, "reconcile", null, null, t.date))) {
+    const d = new Date(`${t.date}T00:00:00Z`);
+    const from = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - 1, 1))
+      .toISOString()
+      .slice(0, 10);
+    const to = new Date(d.getTime() - 86_400_000).toISOString().slice(0, 10);
+    await importAnthropicUsage(db, adminKey, from, to);
   }
 
   out.autoSteps = await advanceAutoMode(db, now);

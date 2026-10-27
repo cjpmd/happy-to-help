@@ -285,6 +285,34 @@ export type Database = {
           },
         ];
       };
+      anthropic_usage: {
+        Row: {
+          cost_usd: number;
+          day: string;
+          imported_at: string;
+          input_tokens: number;
+          model: string;
+          output_tokens: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          cost_usd?: number;
+          day: string;
+          imported_at?: string;
+          input_tokens?: number;
+          model: string;
+          output_tokens?: number;
+        };
+        Update: {
+          cost_usd?: number;
+          day?: string;
+          imported_at?: string;
+          input_tokens?: number;
+          model?: string;
+          output_tokens?: number;
+        };
+        Relationships: [];
+      };
       approvals: {
         Row: {
           action_type: Database["public"]["Enums"]["approval_action"];
@@ -1086,6 +1114,7 @@ export type Database = {
           created_at: string;
           due_date: string;
           id: string;
+          source: string;
           status: Database["public"]["Enums"]["compliance_status"];
           statutory: boolean;
           title: string;
@@ -1098,6 +1127,7 @@ export type Database = {
           created_at?: string;
           due_date: string;
           id?: string;
+          source?: string;
           status?: Database["public"]["Enums"]["compliance_status"];
           statutory?: boolean;
           title: string;
@@ -1109,6 +1139,7 @@ export type Database = {
           created_at?: string;
           due_date?: string;
           id?: string;
+          source?: string;
           status?: Database["public"]["Enums"]["compliance_status"];
           statutory?: boolean;
           title?: string;
@@ -1523,6 +1554,55 @@ export type Database = {
             columns: ["company_id"];
             isOneToOne: false;
             referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      error_events: {
+        Row: {
+          company_id: string | null;
+          context: NonNullable<Json>;
+          created_at: string;
+          id: number;
+          level: string;
+          message: string;
+          source: string;
+          user_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          company_id?: string | null;
+          context?: NonNullable<Json>;
+          created_at?: string;
+          id?: never;
+          level?: string;
+          message: string;
+          source: string;
+          user_id?: string | null;
+        };
+        Update: {
+          company_id?: string | null;
+          context?: NonNullable<Json>;
+          created_at?: string;
+          id?: never;
+          level?: string;
+          message?: string;
+          source?: string;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "error_events_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "error_events_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];
@@ -2516,6 +2596,25 @@ export type Database = {
           id?: string;
           is_admin?: boolean;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      rate_limit_hits: {
+        Row: {
+          hits: number;
+          key: string;
+          window_start: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          hits?: number;
+          key: string;
+          window_start: string;
+        };
+        Update: {
+          hits?: number;
+          key?: string;
+          window_start?: string;
         };
         Relationships: [];
       };
@@ -3686,6 +3785,18 @@ export type Database = {
         Returns: undefined;
       };
       complete_task: { Args: { p_task: string }; Returns: undefined };
+      cost_reconciliation: {
+        Args: { p_from: string; p_to: string };
+        Returns: {
+          actual_usd: number;
+          day: string;
+          difference_pct: number;
+          difference_usd: number;
+          estimated_usd: number;
+          model: string;
+          runs: number;
+        }[];
+      };
       create_capture: {
         Args: {
           p_audio_path?: string;
@@ -3836,6 +3947,10 @@ export type Database = {
       };
       refund_run: { Args: { p_reason?: string; p_run: string }; Returns: number };
       release_hold: { Args: { p_note?: string; p_run: string }; Returns: number };
+      report_client_error: {
+        Args: { p_company?: string; p_context?: Json; p_message: string };
+        Returns: undefined;
+      };
       request_ad_budget: {
         Args: { p_company: string; p_daily_budget: number; p_hard_cap: number };
         Returns: string;

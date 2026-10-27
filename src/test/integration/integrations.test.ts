@@ -69,7 +69,7 @@ describe("unsubscribe", () => {
     );
     const res = await fetch(good);
     expect(res.status).toBe(200);
-    expect(await res.text()).toContain("You're unsubscribed");
+    expect(await res.text()).toContain("You&#39;re unsubscribed"); // HTML-escaped
     const admin = adminClient();
     const { data: lucy } = await admin
       .from("contacts")

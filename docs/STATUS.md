@@ -23,8 +23,8 @@ Restyle first, then the remaining Phase 1 groups, then the engine, then the v2 d
 | 6 | Stripe billing (test mode) | `phase-6-stripe` | Done |
 | 7 | Real integrations (flagged, mocked by default) | `phase-7-integrations` | Done |
 | 8 | Scheduler, routines, Auto Mode | `phase-8-scheduler` | Done |
-| 9 | More skills and hardening | `phase-9-hardening` | Next |
-| 14 | Customers: inbox and contacts | `phase-14-inbox` | |
+| 9 | More skills and hardening | `phase-9-hardening` | Done |
+| 14 | Customers: inbox and contacts | `phase-14-inbox` | Next |
 | 15 | Campaigns | `phase-15-campaigns` | |
 | 16 | Listening | `phase-16-listening` | |
 | 17 | Process bots | `phase-17-bots` | |
@@ -162,6 +162,16 @@ Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, con
 - App: Auto Mode starts a real capped session in live mode, with the spend and end time in the header and a stop button; routines show their next and last run; "While you sleep" settings for the nightly loop and voice review.
 - Batch API: not used (D61).
 - Tests: `16_scheduler.test.sql`, the new tables in the read-access matrix, `agent-service/test/scheduler.test.ts` (routine fires once from 07:00 and the brief arrives, the nightly loop within its cap, voice review skipped without edits, Auto Mode steps to the cap and the end), and `src/test/schedule.test.ts` (UK time across BST, cadences, next run, the task picker, the brief text).
+
+### Phase 9 (finished 27 Oct 2026)
+
+- Skills: `morning-brief` (Phase 8), `compliance-calendar` (adds the usual UK Companies House, HMRC, ICO and PECR deadlines from when the company started, flags overdue items; "Check my deadlines" in Stay legal), `investor-update` (a monthly update from the company's own numbers, saved as a draft document; "Draft investor update" in Raise), `evidence-plan` (an idea becomes three assumptions with tests and pass marks, plus a smoke test, on the evidence board; from the Evidence board and from ideas in Meetings). Their plain versions are in `src/lib/skills.ts`.
+- `20261029110000_hardening.sql`: `error_events` (admins read), `anthropic_usage` and `cost_reconciliation`, `rate_limit_hits` with `private.limit_inserts` triggers, `report_client_error`, job types `compliance_review` and `evidence_plan`.
+- Error monitoring (D63): the worker, runner, executor, scheduler, Edge Functions and the app (uncaught errors, a few per visit) record to `error_events`; admins see them with the 30-day cost check in Settings → Platform health.
+- Cost reconciliation (D64): `npm run reconcile` and a monthly import of Anthropic's usage report (HANDOFF 7).
+- Rate limits in the database (D65).
+- RLS review and Edge Function security pass: `docs/SECURITY-REVIEW.md`; body-size limits, provider timeouts, escaped HTML with a strict CSP, and plain error messages with details sent to monitoring.
+- Tests: `17_hardening.test.sql` (pinned direct-write allowlist, policies for every grant, rate limits, error reports, reconciliation), the read matrix (errors admin-only), `agent-service/test/skills.test.ts`, `src/test/skills.test.ts`.
 
 ## Phase 0 audit and Phase 1 history
 

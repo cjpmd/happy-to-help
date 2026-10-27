@@ -222,3 +222,13 @@ Non-trivial decisions made during the autonomous build run (`docs/AUTONOMOUS-RUN
 
 ## D62. Credit expiry uses the database clock
 - **Chosen:** the scheduler only decides that expiry is due; `expire_credits` always runs with the database's `now()`. Found when a test clock in the future expired real credits.
+
+## D63. Error monitoring in our own database
+- **Chosen:** an `error_events` table fed by every part of the system and read by platform admins in the app, rather than an external service now. Recording never throws. Sentry or similar can be added later without changing callers.
+- **Why:** no new account or data processor needed (HANDOFF rules), and errors sit next to the runs and companies they concern.
+
+## D64. What "reconciliation" compares
+- **Chosen:** each run's SDK-reported cost (`agent_runs.cost_usd`) against Anthropic's own usage report for the organisation, priced with `model_prices`, per day and model; mock runs excluded. A gap means token accounting or prices drifted; the invoice itself is the final check.
+
+## D65. Rate limits as insert triggers
+- **Chosen:** fixed-window counters keyed by person and action, enforced by `before insert` triggers on the tables behind costly or abusable actions (agent jobs, chat, recordings, links, examples), so every path is covered whichever RPC or function inserts. The service role is exempt. Limits are generous for real use and documented in SECURITY-REVIEW.md.

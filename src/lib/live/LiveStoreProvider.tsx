@@ -34,6 +34,9 @@ const JOB_TYPES: Record<string, string> = {
   social: "social_post",
   auto: "auto_mode",
   voice: "voice_analysis",
+  compliance: "compliance_review",
+  investor: "investor_update",
+  evidence: "evidence_plan",
 };
 
 /**
@@ -778,6 +781,32 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       )) !== false,
     [sb, call],
   );
+  const loadPlatformHealth = useCallback<Ctx["loadPlatformHealth"]>(async () => {
+    const from = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10);
+    const [errors, costs] = await Promise.all([
+      sb
+        .from("error_events")
+        .select("id, source, message, created_at")
+        .order("created_at", { ascending: false })
+        .limit(25),
+      sb.rpc("cost_reconciliation", {
+        p_from: from,
+        p_to: new Date().toISOString().slice(0, 10),
+      }),
+    ]);
+    if (errors.error || costs.error) return null;
+    return {
+      errors: errors.data,
+      costs: (costs.data ?? []).map((c) => ({
+        day: c.day,
+        model: c.model,
+        runs: Number(c.runs),
+        estimated_usd: Number(c.estimated_usd),
+        actual_usd: Number(c.actual_usd),
+        difference_pct: c.difference_pct === null ? null : Number(c.difference_pct),
+      })),
+    };
+  }, [sb]);
   const estimateCapture = useCallback<Ctx["estimateCapture"]>(
     async (seconds) => {
       const { data } = await sb.rpc("capture_estimate", {
@@ -798,6 +827,28 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
     },
     [sb],
   );
+  // Error monitoring: the app's own crashes are reported (a few per visit, deduplicated).
+  useEffect(() => {
+    if (auth !== "signed_in") return;
+    const seen = new Set<string>();
+    const report = (message: string, context: Record<string, string>) => {
+      if (!message || seen.has(message) || seen.size >= 5) return;
+      seen.add(message);
+      void sb.rpc("report_client_error", {
+        p_message: message,
+        p_context: { ...context, page: window.location.pathname },
+      });
+    };
+    const onError = (e: ErrorEvent) => report(e.message, { file: e.filename ?? "" });
+    const onRejection = (e: PromiseRejectionEvent) =>
+      report(e.reason instanceof Error ? e.reason.message : String(e.reason), { kind: "promise" });
+    window.addEventListener("error", onError);
+    window.addEventListener("unhandledrejection", onRejection);
+    return () => {
+      window.removeEventListener("error", onError);
+      window.removeEventListener("unhandledrejection", onRejection);
+    };
+  }, [auth, sb]);
   const signIn = useCallback<Ctx["signIn"]>(
     async (email) => {
       const { error } = await sb.auth.signInWithOtp({
@@ -878,6 +929,7 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       startAutoMode,
       stopAutoMode,
       updateAutomation,
+      loadPlatformHealth,
       shortLinkBase: SHORT_LINK_BASE,
       ...themeState,
     }),
@@ -943,6 +995,7 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       startAutoMode,
       stopAutoMode,
       updateAutomation,
+      loadPlatformHealth,
       themeState,
     ],
   );

@@ -2,7 +2,13 @@
 // address, {company-slug}@{INBOUND_DOMAIN} (Phase 7). Checks the Svix signature, finds the
 // company, and files the message in its Customers inbox (receive_inbound_email). Phase 14 adds
 // triage and drafted replies. Public: deployed with verify_jwt = false.
-import { json, serviceClient } from "../_shared/http.ts";
+import {
+  fetchWithTimeout,
+  json,
+  readBody,
+  reportEdgeError,
+  serviceClient,
+} from "../_shared/http.ts";
 import { verifySvix } from "../_shared/svix.ts";
 
 interface Received {
@@ -36,7 +42,8 @@ Deno.serve(async (req) => {
   const secret = Deno.env.get("RESEND_WEBHOOK_SECRET");
   const domain = Deno.env.get("INBOUND_DOMAIN")?.toLowerCase();
   if (!secret || !domain) return json({ error: "Inbound email isn't set up" }, 503);
-  const body = await req.text();
+  const body = await readBody(req, 1024 * 1024);
+  if (body === null) return json({ error: "Too large" }, 413);
   const ok = await verifySvix(
     secret,
     {
@@ -68,9 +75,12 @@ Deno.serve(async (req) => {
   let text = event.data.text ?? (event.data.html ? stripHtml(event.data.html) : "");
   const apiKey = Deno.env.get("RESEND_API_KEY");
   if (!text && apiKey && event.data.email_id) {
-    const res = await fetch(`https://api.resend.com/emails/receiving/${event.data.email_id}`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    });
+    const res = await fetchWithTimeout(
+      `https://api.resend.com/emails/receiving/${encodeURIComponent(event.data.email_id)}`,
+      {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      },
+    );
     if (res.ok) {
       const full = (await res.json()) as { text?: string; html?: string };
       text = full.text ?? (full.html ? stripHtml(full.html) : "");
@@ -85,6 +95,9 @@ Deno.serve(async (req) => {
     p_body: text,
     p_message_id: event.data.email_id ?? req.headers.get("svix-id") ?? crypto.randomUUID(),
   });
-  if (error) return json({ error: error.message }, 500);
+  if (error) {
+    await reportEdgeError("resend-inbound", error.message, { company: company.id });
+    return json({ error: error.message }, 500);
+  }
   return json({ received: true, thread });
 });

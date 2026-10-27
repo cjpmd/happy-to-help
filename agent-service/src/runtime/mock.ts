@@ -8,6 +8,7 @@ import type { AgentRuntime, RunOutcome, RunRequest } from "./types.js";
 import { analyseVoice } from "../../../src/lib/voice.js";
 import { extractItems } from "../../../src/lib/capture.js";
 import { briefText, type BriefFacts } from "../../../src/lib/brief.js";
+import { evidencePlanFor, investorUpdate, type Deadline } from "../../../src/lib/skills.js";
 
 interface Post {
   channel: string;
@@ -243,6 +244,58 @@ export const mockRuntime: AgentRuntime = {
           .single();
         await step("save_brief", { content: briefText(facts, company?.name ?? "your company") });
         return done("Morning brief sent.");
+      }
+
+      case "compliance_review": {
+        const c = JSON.parse((await step("get_compliance")).text) as {
+          usual_uk_deadlines: Deadline[];
+        };
+        const r = await step("add_compliance_items", { items: c.usual_uk_deadlines });
+        return done(`I checked your compliance calendar. ${r.text}`);
+      }
+
+      case "investor_update": {
+        const f = JSON.parse((await step("get_investor_facts")).text) as {
+          company: string;
+          stage: string;
+          visitors: number;
+          signups: number;
+          mrr: number;
+          previous_mrr: number;
+          wins: string[];
+        };
+        await step("save_investor_update", {
+          content: investorUpdate({
+            company: f.company,
+            month: new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" }),
+            visitors: f.visitors,
+            signups: f.signups,
+            mrr: f.mrr,
+            previousMrr: f.previous_mrr,
+            wins: f.wins,
+            stage: f.stage,
+            asks: [],
+          }),
+        });
+        return done(
+          "I've drafted this month's investor update in Documents for you to check and send.",
+        );
+      }
+
+      case "evidence_plan": {
+        const company = JSON.parse((await step("get_company")).text) as {
+          target_customer?: string | null;
+        };
+        const idea = req.input.target ?? req.input.title ?? "the idea";
+        const plan = evidencePlanFor(idea, company.target_customer ?? "");
+        await step("add_assumptions", {
+          idea,
+          smoke_test: plan.smokeTest,
+          assumptions: plan.assumptions,
+        });
+        return done(
+          `I've added ${plan.assumptions.length} assumptions to test, and a smoke test: ${plan.smokeTest}`,
+        );
       }
 
       case "task":

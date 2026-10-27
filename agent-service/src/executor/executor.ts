@@ -16,6 +16,7 @@ import {
 } from "./rules.js";
 import type { Providers } from "./providers.js";
 import { unsubscribeUrl } from "../../../supabase/functions/_shared/unsubscribe.js";
+import { reportError } from "../errors.js";
 
 export type Approval = Tables<"approvals">;
 
@@ -554,6 +555,12 @@ export async function executeApproval(deps: ExecutorDeps, a: Approval): Promise<
       .from("approvals")
       .update({ execution_status: "failed", execution_error: reason })
       .eq("id", a.id);
+    await reportError(db, "executor", reason, {
+      companyId: a.company_id,
+      approval_id: a.id,
+      action: a.action_type,
+      provider: providers.name,
+    });
     await event(
       db,
       a.company_id,

@@ -12,6 +12,7 @@ import { runtimeFor } from "./runtime/index.js";
 import { transcriptionFromEnv } from "./capture/transcription.js";
 import { purgeExpiredAudio } from "./capture/prepare.js";
 import { runScheduler } from "./scheduler.js";
+import { reportError } from "./errors.js";
 import {
   platformKeys,
   providersFor,
@@ -123,7 +124,7 @@ async function main() {
       if (job) await processJob({ db, config, runtime, transcription, log: console.log }, job);
       else await sleep(config.pollIntervalMs);
     } catch (e) {
-      console.error("Worker error:", e instanceof Error ? e.message : e);
+      await reportError(db, "worker", e);
       await sleep(config.pollIntervalMs);
     }
   }

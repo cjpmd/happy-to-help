@@ -4,6 +4,7 @@ import { useStore } from "@/lib/store";
 import { PageHeader, Panel, Pill, humanise } from "@/components/mission/primitives";
 import { complianceTone } from "@/lib/compliance";
 import { DocumentsPage } from "@/components/mission/WorkspacePages";
+import { CheckDeadlinesButton } from "@/components/mission/SkillButtons";
 import { pageHead } from "@/lib/seo";
 import { fmtDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,7 @@ function Legal() {
       <PageHeader
         title="Stay legal"
         description={`${done} of ${items.length} complete. Sol tracks every UK deadline for you.`}
+        actions={<CheckDeadlinesButton />}
       />
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
         <Panel title="Checklist" bodyClassName="p-0">

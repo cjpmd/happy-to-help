@@ -2,14 +2,15 @@
 // the event into actions (_shared/billing.ts) and applies them once (apply_billing_event is
 // idempotent on the event id; grants also carry their own idempotency key). Public: deployed
 // with verify_jwt = false, so the signature is the only way in.
-import { json, serviceClient } from "../_shared/http.ts";
+import { json, readBody, reportEdgeError, serviceClient } from "../_shared/http.ts";
 import { billingActions, verifyStripeSignature, type Product } from "../_shared/billing.ts";
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Use POST" }, 405);
   const secret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
   if (!secret) return json({ error: "Webhooks aren't set up" }, 503);
-  const payload = await req.text();
+  const payload = await readBody(req);
+  if (payload === null) return json({ error: "Too large" }, 413);
   const ok = await verifyStripeSignature(
     payload,
     req.headers.get("stripe-signature"),

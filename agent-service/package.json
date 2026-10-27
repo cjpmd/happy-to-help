@@ -8,7 +8,8 @@
     "start": "tsx src/worker.ts",
     "run-once": "tsx scripts/dev-run.ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "reconcile": "tsx src/reconcile.ts"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.310",
