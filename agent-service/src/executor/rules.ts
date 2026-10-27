@@ -29,7 +29,8 @@ export interface ApprovalForRules {
     | "file_document"
     | "publish_site"
     | "update_voice"
-    | "update_memory";
+    | "update_memory"
+    | "approve_campaign";
   payload: Record<string, unknown>;
   /** The decider's role in the company. */
   deciderRole: "founder" | "mentor" | "teammate" | "viewer" | null;
@@ -60,6 +61,13 @@ export function checkRules(
     };
 
   // Memory comes from the founder's own conversations, which mentors never see (SPEC P).
+  // A campaign commits the company's credits (and maybe its money): a founder decides.
+  if (a.action_type === "approve_campaign" && !byFounder)
+    return {
+      ok: false,
+      reason: "Only a founder can approve a campaign plan.",
+      needsFounder: true,
+    };
   if (a.action_type === "update_memory" && !byFounder)
     return {
       ok: false,

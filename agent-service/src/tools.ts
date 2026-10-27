@@ -12,6 +12,7 @@ import { localTime } from "../../src/lib/schedule.js";
 import type { BriefFacts } from "../../src/lib/brief.js";
 import { missingDeadlines, ukDeadlines } from "../../src/lib/skills.js";
 import { decideMode, type Triage } from "../../src/lib/inbox.js";
+import { capFlags } from "../../src/lib/campaigns.js";
 import type { ResponseMode } from "../../src/lib/voicePolicy.js";
 
 export interface ToolContext {
@@ -37,6 +38,7 @@ export interface ToolDef<S extends z.ZodRawShape = z.ZodRawShape> {
 
 /** Credits the executor charges to carry out an approved action (Phase 5). */
 export const ACTION_CREDITS = {
+  approve_campaign: 0,
   publish_post: 5,
   send_email: 5,
   ad_spend: 10,
@@ -1166,6 +1168,299 @@ TOOLS.push(
           ? "Queued to send automatically (the executor checks the hard rules first)."
           : "Waiting for the founder's GO.",
       };
+    },
+  }),
+);
+
+// Campaigns (Phase 15).
+async function campaign(ctx: ToolContext, id: string) {
+  const { data } = await ctx.db
+    .from("campaigns")
+    .select(
+      "id, name, goal, metric, target, audience, channels, budget_credits, budget_gbp, starts_on, ends_on, status, plan",
+    )
+    .eq("id", id)
+    .eq("company_id", ctx.companyId)
+    .maybeSingle();
+  return data;
+}
+
+TOOLS.push(
+  def({
+    name: "propose_campaign",
+    description:
+      "Proposes a campaign plan for the founder's approval: goal, success metric and target, audience, channels, credit budget (and any paid media budget in pounds), dates, and the outline. Nothing is drafted until they approve.",
+    shape: {
+      name: z.string().min(1).max(120),
+      goal: z.string().min(1).max(300),
+      metric: z.enum(["clicks", "leads", "customers"]),
+      target: z.number().int().positive(),
+      audience: z.string().max(300),
+      channels: z.array(z.string().min(1).max(30)).min(1).max(8),
+      budget_credits: z.number().int().min(0).max(5000),
+      budget_gbp: z.number().min(0).max(10000).optional(),
+      starts_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      ends_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      rationale: z.string().min(1).max(1500),
+      posts: z.number().int().min(0).max(20),
+      emails: z.number().int().min(0).max(4),
+      ads: z.number().int().min(0).max(4),
+    },
+    readOnly: false,
+    handler: async (ctx, c) => {
+      const { data: row, error } = await ctx.db
+        .from("campaigns")
+        .insert({
+          company_id: ctx.companyId,
+          name: c.name,
+          goal: c.goal,
+          metric: c.metric,
+          target: c.target,
+          audience: c.audience,
+          channels: c.channels.map((x) => x.toLowerCase()),
+          budget_credits: c.budget_credits,
+          ...(c.budget_gbp !== undefined ? { budget_gbp: c.budget_gbp } : {}),
+          starts_on: c.starts_on,
+          ends_on: c.ends_on,
+          plan: { rationale: c.rationale, posts: c.posts, emails: c.emails, ads: c.ads },
+          run_id: ctx.runId,
+        })
+        .select("id")
+        .single();
+      if (error || !row)
+        return { isError: true, text: `Not proposed: ${error?.message ?? "no row"}` };
+      const r = await propose(
+        ctx,
+        "approve_campaign",
+        {
+          campaign_id: row.id,
+          name: c.name,
+          goal: c.goal,
+          target: `${c.target} ${c.metric}`,
+          channels: c.channels.join(", "),
+          dates: `${c.starts_on} to ${c.ends_on}`,
+          budget: `${c.budget_credits} credits${c.budget_gbp ? ` + £${c.budget_gbp} paid media (you launch it)` : ""}`,
+          reason: c.rationale,
+        },
+        null,
+      );
+      if (r.approvalId)
+        await ctx.db.from("campaigns").update({ approval_id: r.approvalId }).eq("id", row.id);
+      return r;
+    },
+  }),
+  def({
+    name: "get_campaign",
+    description:
+      "An approved campaign: its plan, channels, dates and any assets and tracked links so far.",
+    shape: { campaign_id: z.string().uuid() },
+    readOnly: true,
+    handler: async (ctx, { campaign_id }) => {
+      const c = await campaign(ctx, campaign_id);
+      if (!c) return { isError: true, text: "Campaign not found." };
+      const [assets, links, consented] = await Promise.all([
+        ctx.db
+          .from("campaign_assets")
+          .select("kind, channel, title, status")
+          .eq("campaign_id", campaign_id),
+        ctx.db
+          .from("tracked_links")
+          .select("id, code, channel, label")
+          .eq("campaign_id", campaign_id),
+        ctx.db
+          .from("current_consents")
+          .select("contact_id", { count: "exact", head: true })
+          .eq("company_id", ctx.companyId)
+          .eq("purpose", "marketing")
+          .eq("status", "granted"),
+      ]);
+      return {
+        text: json({
+          ...c,
+          assets: assets.data ?? [],
+          links: links.data ?? [],
+          contacts_who_opted_in: consented.count ?? 0,
+        }),
+      };
+    },
+  }),
+  def({
+    name: "create_campaign_link",
+    description:
+      "Creates the campaign's tracked link for one channel (UTM-tagged, counted in its results).",
+    shape: {
+      campaign_id: z.string().uuid(),
+      channel: z.string().min(1).max(30),
+      destination: z.string().url().optional(),
+    },
+    readOnly: false,
+    handler: async (ctx, { campaign_id, channel, destination }) => {
+      const c = await campaign(ctx, campaign_id);
+      if (!c) return { isError: true, text: "Campaign not found." };
+      const [{ data: hub }, { data: co }] = await Promise.all([
+        ctx.db.from("hub_pages").select("slug, enabled").eq("company_id", ctx.companyId).single(),
+        ctx.db.from("companies").select("website_live_url").eq("id", ctx.companyId).single(),
+      ]);
+      const appUrl = process.env["APP_URL"] ?? "http://127.0.0.1:8080";
+      const dest =
+        destination ??
+        (hub?.enabled
+          ? `${appUrl}/h/${hub.slug}`
+          : /^https?:\/\//.test(co?.website_live_url ?? "")
+            ? co!.website_live_url!
+            : `${appUrl}/h/${hub?.slug ?? ""}`);
+      const code = Array.from(
+        crypto.getRandomValues(new Uint8Array(8)),
+        (b) => "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"[b % 57],
+      ).join("");
+      const { data, error } = await ctx.db
+        .from("tracked_links")
+        .insert({
+          company_id: ctx.companyId,
+          code,
+          destination: dest,
+          label: `${c.name}: ${channel}`,
+          channel: channel.toLowerCase(),
+          medium: channel === "email" ? "email" : channel === "print" ? "qr" : "social",
+          campaign: c.name
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .slice(0, 60),
+          campaign_id,
+          created_by_sol: true,
+        })
+        .select("id, code")
+        .single();
+      if (error || !data) return { isError: true, text: `Link not created: ${error?.message}` };
+      return { text: json({ link_id: data.id, code: data.code }) };
+    },
+  }),
+  def({
+    name: "propose_campaign_asset",
+    description:
+      "Drafts one campaign asset. Posts and emails are checked (claims and CAP Code) and go to the founder for GO, scheduled for the given time; emails go only to contacts who opted in to marketing. Ads are exported with their tracked link for the founder to launch.",
+    shape: {
+      campaign_id: z.string().uuid(),
+      kind: z.enum(["social_post", "email", "ad"]),
+      channel: z.string().min(1).max(30),
+      title: z.string().max(200),
+      body: z.string().min(1).max(5000),
+      link_id: z.string().uuid().optional(),
+      scheduled_for: z.string().datetime({ offset: true }).optional(),
+    },
+    readOnly: false,
+    handler: async (ctx, a) => {
+      const c = await campaign(ctx, a.campaign_id);
+      if (!c) return { isError: true, text: "Campaign not found." };
+      const text = `${a.title}\n${a.body}`;
+      const flags = [...(await claims(ctx, text)), ...capFlags(text)];
+      if (flags.length)
+        return {
+          isError: true,
+          text: `Not drafted: ${flags.map((f) => `"${f.phrase}" (${f.reason})`).join(", ")}. Rewrite it.`,
+        };
+      const { data: link } = a.link_id
+        ? await ctx.db
+            .from("tracked_links")
+            .select("id, code")
+            .eq("id", a.link_id)
+            .eq("company_id", ctx.companyId)
+            .maybeSingle()
+        : { data: null };
+      const base =
+        process.env["SHORT_LINK_BASE"] ??
+        `${process.env["SUPABASE_URL"] ?? "http://127.0.0.1:54321"}/functions/v1/link`;
+      const body = link ? `${a.body}\n\n${base}/${link.code}` : a.body;
+      const { data: asset, error } = await ctx.db
+        .from("campaign_assets")
+        .insert({
+          campaign_id: a.campaign_id,
+          company_id: ctx.companyId,
+          kind: a.kind,
+          channel: a.channel.toLowerCase(),
+          title: a.title,
+          body,
+          ...(a.scheduled_for ? { scheduled_for: a.scheduled_for } : {}),
+          ...(link ? { link_id: link.id } : {}),
+          status: a.kind === "ad" ? "exported" : "draft",
+        })
+        .select("id")
+        .single();
+      if (error || !asset) return { isError: true, text: `Not drafted: ${error?.message}` };
+      if (a.kind === "ad")
+        return {
+          text: "Ad copy and tracked link ready for the founder to launch in the ad platform.",
+        };
+      let r: ToolResult;
+      if (a.kind === "email") {
+        // PECR: marketing email only to people with recorded permission.
+        const { data: ok } = await ctx.db
+          .from("current_consents")
+          .select("contact_id, contacts(email)")
+          .eq("company_id", ctx.companyId)
+          .eq("purpose", "marketing")
+          .eq("status", "granted")
+          .limit(50);
+        const to = (ok ?? [])
+          .map((x) => (x.contacts as { email: string } | null)?.email)
+          .filter(Boolean);
+        if (!to.length) {
+          await ctx.db.from("campaign_assets").delete().eq("id", asset.id);
+          return {
+            isError: true,
+            text: "No contacts have opted in to marketing email, so no campaign email can be sent.",
+          };
+        }
+        r = await propose(
+          ctx,
+          "send_email",
+          {
+            to: to.join(", "),
+            subject: a.title,
+            body,
+            outreach: true,
+            campaign_asset_id: asset.id,
+            campaign_id: a.campaign_id,
+            reason: `Campaign: ${c.name}`,
+          },
+          null,
+        );
+      } else {
+        const channel = (
+          {
+            instagram: "Instagram",
+            tiktok: "TikTok",
+            linkedin: "LinkedIn",
+            x: "X",
+            twitter: "X",
+          } as Record<string, string>
+        )[a.channel.toLowerCase()];
+        if (!channel)
+          return {
+            isError: true,
+            text: `Can't publish to ${a.channel}; use Instagram, TikTok, LinkedIn or X.`,
+          };
+        r = await propose(
+          ctx,
+          "publish_post",
+          {
+            channel,
+            text: body,
+            angle: c.name,
+            campaign_asset_id: asset.id,
+            campaign_id: a.campaign_id,
+            reason: `Campaign: ${c.name}`,
+            ...(a.scheduled_for ? { scheduled_for: a.scheduled_for } : {}),
+          },
+          null,
+        );
+      }
+      if (r.approvalId)
+        await ctx.db
+          .from("campaign_assets")
+          .update({ status: "awaiting_approval", approval_id: r.approvalId })
+          .eq("id", asset.id);
+      return r;
     },
   }),
 );

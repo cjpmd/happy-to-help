@@ -209,6 +209,10 @@ begin
     insert into public.briefs (company_id, brief_date, content) values (c, '2026-10-27', 'Good morning.');
     insert into public.auto_sessions (company_id, ends_at, cap_credits, status) values (c, now() + interval '1 hour', 100, 'finished');
     insert into public.error_events (source, message, company_id) values ('worker', 'Fixture error', c);
+    insert into public.campaigns (company_id, name, goal, target, channels, starts_on, ends_on)
+      values (c, 'Autumn push', 'More signups', 20, '{instagram}', '2026-11-01', '2026-11-14');
+    insert into public.campaign_assets (campaign_id, company_id, kind, channel, body)
+      select id, c, 'social_post', 'instagram', 'Hello' from public.campaigns where company_id = c;
   end loop;
 end;
 $$;

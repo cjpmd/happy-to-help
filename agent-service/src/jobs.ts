@@ -276,6 +276,37 @@ JOBS["inbox_draft"] = {
     `Use the inbox-reply skill on inbox item ${target ?? "(missing)"}: draft the reply in the company's voice and propose it.`,
 };
 
+JOBS["campaign_plan"] = {
+  label: "Plan a campaign",
+  pillar: "grow",
+  tier: "strategy",
+  skills: ["campaign-plan"],
+  estimate: 80,
+  cap: 250,
+  maxTurns: 8,
+  tools: ["get_company", "get_metrics", "list_posts", "propose_campaign"],
+  prompt: ({ title, target }) =>
+    `Use the campaign-plan skill. The founder's goal: "${target ?? title ?? "grow"}". Propose one campaign plan for their approval.`,
+};
+JOBS["campaign_assets"] = {
+  label: "Draft campaign assets",
+  pillar: "grow",
+  tier: "planning",
+  skills: ["campaign-assets", "claims-check"],
+  estimate: 120,
+  cap: 400,
+  maxTurns: 24,
+  tools: [
+    "get_company",
+    "get_campaign",
+    "create_campaign_link",
+    "propose_campaign_asset",
+    "check_claims",
+  ],
+  prompt: ({ target }) =>
+    `Use the campaign-assets skill on approved campaign ${target ?? "(missing)"}: a tracked link per channel, then each asset for approval.`,
+};
+
 export function jobSpec(jobType: string): JobSpec | undefined {
   return JOBS[jobType];
 }
