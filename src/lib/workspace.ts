@@ -96,6 +96,11 @@ export interface EmailThread {
   address: string;
   mode: "support" | "outreach";
   messages: { direction: "received" | "sent"; text: string; date: string }[];
+  /** Where the conversation came from (Phase 16): email by default, or a comment or review. */
+  channel?: "email" | "form" | "hub" | "social" | "review";
+  platform?: string | null;
+  rating?: number | null;
+  external_url?: string | null;
 }
 export interface AdAccount {
   company_id: string;

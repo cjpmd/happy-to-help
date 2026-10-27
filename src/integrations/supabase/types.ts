@@ -1661,6 +1661,7 @@ export type Database = {
           company_id: string;
           created_at: string;
           direction: Database["public"]["Enums"]["email_direction"];
+          external_id: string | null;
           id: string;
           provider_message_id: string | null;
           thread_id: string;
@@ -1671,6 +1672,7 @@ export type Database = {
           company_id: string;
           created_at?: string;
           direction: Database["public"]["Enums"]["email_direction"];
+          external_id?: string | null;
           id?: string;
           provider_message_id?: string | null;
           thread_id: string;
@@ -1680,6 +1682,7 @@ export type Database = {
           company_id?: string;
           created_at?: string;
           direction?: Database["public"]["Enums"]["email_direction"];
+          external_id?: string | null;
           id?: string;
           provider_message_id?: string | null;
           thread_id?: string;
@@ -1704,30 +1707,45 @@ export type Database = {
       email_threads: {
         Row: {
           address: string;
+          channel: string;
           company_id: string;
           contact_name: string;
           created_at: string;
+          external_id: string | null;
+          external_url: string | null;
           id: string;
           mode: Database["public"]["Enums"]["email_mode"];
+          platform: string | null;
+          rating: number | null;
           subject: string;
         };
         ComputedFields: never;
         Insert: {
           address?: string;
+          channel?: string;
           company_id: string;
           contact_name?: string;
           created_at?: string;
+          external_id?: string | null;
+          external_url?: string | null;
           id?: string;
           mode: Database["public"]["Enums"]["email_mode"];
+          platform?: string | null;
+          rating?: number | null;
           subject: string;
         };
         Update: {
           address?: string;
+          channel?: string;
           company_id?: string;
           contact_name?: string;
           created_at?: string;
+          external_id?: string | null;
+          external_url?: string | null;
           id?: string;
           mode?: Database["public"]["Enums"]["email_mode"];
+          platform?: string | null;
+          rating?: number | null;
           subject?: string;
         };
         Relationships: [
@@ -1971,6 +1989,8 @@ export type Database = {
           contact_id: string | null;
           created_at: string;
           id: string;
+          rating: number | null;
+          request_id: string | null;
           sentiment: string | null;
           source: string;
           theme: string | null;
@@ -1983,6 +2003,8 @@ export type Database = {
           contact_id?: string | null;
           created_at?: string;
           id?: string;
+          rating?: number | null;
+          request_id?: string | null;
           sentiment?: string | null;
           source: string;
           theme?: string | null;
@@ -1994,6 +2016,8 @@ export type Database = {
           contact_id?: string | null;
           created_at?: string;
           id?: string;
+          rating?: number | null;
+          request_id?: string | null;
           sentiment?: string | null;
           source?: string;
           theme?: string | null;
@@ -2018,6 +2042,82 @@ export type Database = {
             columns: ["contact_id"];
             isOneToOne: false;
             referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "feedback_request_id_fkey";
+            columns: ["request_id"];
+            isOneToOne: true;
+            referencedRelation: "feedback_requests";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      feedback_requests: {
+        Row: {
+          approval_id: string | null;
+          company_id: string;
+          contact_id: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          responded_at: string | null;
+          status: string;
+          token: string;
+          trigger: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          approval_id?: string | null;
+          company_id: string;
+          contact_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          responded_at?: string | null;
+          status?: string;
+          token?: string;
+          trigger: string;
+        };
+        Update: {
+          approval_id?: string | null;
+          company_id?: string;
+          contact_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          responded_at?: string | null;
+          status?: string;
+          token?: string;
+          trigger?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "feedback_requests_approval_id_fkey";
+            columns: ["approval_id"];
+            isOneToOne: false;
+            referencedRelation: "approvals";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "feedback_requests_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "feedback_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "feedback_requests_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];
@@ -2661,6 +2761,45 @@ export type Database = {
             columns: ["link_id"];
             isOneToOne: false;
             referencedRelation: "tracked_links";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      listening_settings: {
+        Row: {
+          company_id: string;
+          feedback_delay_days: number;
+          feedback_requests: boolean;
+          last_synced_at: string | null;
+          reviews: boolean;
+          social_comments: boolean;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          company_id: string;
+          feedback_delay_days?: number;
+          feedback_requests?: boolean;
+          last_synced_at?: string | null;
+          reviews?: boolean;
+          social_comments?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          company_id?: string;
+          feedback_delay_days?: number;
+          feedback_requests?: boolean;
+          last_synced_at?: string | null;
+          reviews?: boolean;
+          social_comments?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "listening_settings_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: true;
+            referencedRelation: "companies";
             referencedColumns: ["id"];
           },
         ];
@@ -4237,6 +4376,7 @@ export type Database = {
         Args: { p_code: string; p_country?: string; p_device?: string; p_referrer?: string };
         Returns: string;
       };
+      get_feedback_request: { Args: { p_token: string }; Returns: Json };
       get_form: { Args: { p_form: string }; Returns: Json };
       get_hub: { Args: { p_slug: string }; Returns: Json };
       get_public_progress: { Args: { p_slug: string }; Returns: Json };
@@ -4265,6 +4405,7 @@ export type Database = {
         Args: { p_company: string; p_profile: Json; p_run: string; p_source: string };
         Returns: string;
       };
+      queue_due_feedback: { Args: { p_origin: string }; Returns: number };
       reap_stale_runs: { Args: { p_stale?: string }; Returns: number };
       receive_inbound_email: {
         Args: {
@@ -4274,6 +4415,21 @@ export type Database = {
           p_from_name: string;
           p_message_id: string;
           p_subject: string;
+        };
+        Returns: string;
+      };
+      receive_listening_item: {
+        Args: {
+          p_author: string;
+          p_company: string;
+          p_created_at?: string;
+          p_external_id: string;
+          p_kind: string;
+          p_parent?: string;
+          p_platform: string;
+          p_rating?: number;
+          p_text: string;
+          p_url?: string;
         };
         Returns: string;
       };
@@ -4297,6 +4453,7 @@ export type Database = {
         Args: { p_company: string; p_daily_budget: number; p_hard_cap: number };
         Returns: string;
       };
+      request_feedback: { Args: { p_contact: string; p_origin: string }; Returns: string };
       reserve_credits: {
         Args: { p_amount: number; p_company: string; p_note?: string; p_run: string };
         Returns: number;
@@ -4337,6 +4494,10 @@ export type Database = {
         Returns: string;
       };
       stop_auto_mode: { Args: { p_company: string }; Returns: undefined };
+      submit_feedback: {
+        Args: { p_comment?: string; p_rating: number; p_token: string };
+        Returns: boolean;
+      };
       submit_lead: {
         Args: {
           p_email: string;
@@ -4365,6 +4526,16 @@ export type Database = {
         Args: { p_auto_accept?: boolean; p_company: string; p_keep_audio_days?: number };
         Returns: undefined;
       };
+      update_listening_settings: {
+        Args: {
+          p_company: string;
+          p_feedback_delay_days?: number;
+          p_feedback_requests?: boolean;
+          p_reviews?: boolean;
+          p_social_comments?: boolean;
+        };
+        Returns: undefined;
+      };
       update_response_settings: {
         Args: {
           p_company: string;
@@ -4390,7 +4561,8 @@ export type Database = {
         | "publish_site"
         | "update_voice"
         | "update_memory"
-        | "approve_campaign";
+        | "approve_campaign"
+        | "reply_public";
       approval_status: "pending" | "approved" | "declined";
       assumption_status: "untested" | "testing" | "validated" | "invalidated";
       chat_sender: "founder" | "sol";
@@ -4546,6 +4718,7 @@ export const Constants = {
         "update_voice",
         "update_memory",
         "approve_campaign",
+        "reply_public",
       ],
       approval_status: ["pending", "approved", "declined"],
       assumption_status: ["untested", "testing", "validated", "invalidated"],

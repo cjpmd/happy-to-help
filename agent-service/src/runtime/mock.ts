@@ -10,6 +10,7 @@ import { extractItems } from "../../../src/lib/capture.js";
 import { briefText, type BriefFacts } from "../../../src/lib/brief.js";
 import { evidencePlanFor, investorUpdate, type Deadline } from "../../../src/lib/skills.js";
 import { draftReply, triageMessage } from "../../../src/lib/inbox.js";
+import { draftPublicReply, reviewTriage } from "../../../src/lib/listening.js";
 import { plainAsset, plainPlan } from "../../../src/lib/campaigns.js";
 
 interface Post {
@@ -305,8 +306,9 @@ export const mockRuntime: AgentRuntime = {
         const m = JSON.parse((await step("get_inbox_item", { item_id: id })).text) as {
           subject: string;
           message: string;
+          rating?: number | null;
         };
-        const t = triageMessage(m.subject ?? "", m.message ?? "");
+        const t = reviewTriage(triageMessage(m.subject ?? "", m.message ?? ""), m.rating ?? null);
         const r = await step("save_triage", { item_id: id, ...t });
         return done(r.text);
       }
@@ -319,16 +321,14 @@ export const mockRuntime: AgentRuntime = {
           from: { name: string };
           company: string;
           sign_off: string | null;
+          public?: boolean;
+          rating?: number | null;
         };
-        const t = triageMessage(m.subject ?? "", m.message ?? "");
+        const t = reviewTriage(triageMessage(m.subject ?? "", m.message ?? ""), m.rating ?? null);
+        const reply = { name: m.from.name ?? "", category: t.category, company: m.company };
         const r = await step("propose_reply", {
           item_id: id,
-          body: draftReply({
-            name: m.from.name ?? "",
-            category: t.category,
-            company: m.company,
-            signOff: m.sign_off,
-          }),
+          body: m.public ? draftPublicReply(reply) : draftReply({ ...reply, signOff: m.sign_off }),
         });
         return done(r.text);
       }

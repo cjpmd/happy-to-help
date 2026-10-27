@@ -37,6 +37,7 @@ import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppTeamRouteImport } from './routes/_app/team'
 import { Route as AppTelemetryRouteImport } from './routes/_app/telemetry'
 import { Route as FFormIdRouteImport } from './routes/f.$formId'
+import { Route as FbTokenRouteImport } from './routes/fb.$token'
 import { Route as HSlugRouteImport } from './routes/h.$slug'
 import { Route as LCodeRouteImport } from './routes/l.$code'
 import { Route as ProgressSlugRouteImport } from './routes/progress.$slug'
@@ -182,6 +183,11 @@ const FFormIdRoute = FFormIdRouteImport.update({
   path: '/f/$formId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FbTokenRoute = FbTokenRouteImport.update({
+  id: '/fb/$token',
+  path: '/fb/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HSlugRoute = HSlugRouteImport.update({
   id: '/h/$slug',
   path: '/h/$slug',
@@ -236,6 +242,7 @@ export interface FileRoutesByFullPath {
   '/team': typeof AppTeamRoute
   '/telemetry': typeof AppTelemetryRoute
   '/f/$formId': typeof FFormIdRoute
+  '/fb/$token': typeof FbTokenRoute
   '/h/$slug': typeof HSlugRoute
   '/l/$code': typeof LCodeRoute
   '/progress/$slug': typeof ProgressSlugRoute
@@ -270,6 +277,7 @@ export interface FileRoutesByTo {
   '/team': typeof AppTeamRoute
   '/telemetry': typeof AppTelemetryRoute
   '/f/$formId': typeof FFormIdRoute
+  '/fb/$token': typeof FbTokenRoute
   '/h/$slug': typeof HSlugRoute
   '/l/$code': typeof LCodeRoute
   '/progress/$slug': typeof ProgressSlugRoute
@@ -306,6 +314,7 @@ export interface FileRoutesById {
   '/_app/team': typeof AppTeamRoute
   '/_app/telemetry': typeof AppTelemetryRoute
   '/f/$formId': typeof FFormIdRoute
+  '/fb/$token': typeof FbTokenRoute
   '/h/$slug': typeof HSlugRoute
   '/l/$code': typeof LCodeRoute
   '/progress/$slug': typeof ProgressSlugRoute
@@ -342,6 +351,7 @@ export interface FileRouteTypes {
     | '/team'
     | '/telemetry'
     | '/f/$formId'
+    | '/fb/$token'
     | '/h/$slug'
     | '/l/$code'
     | '/progress/$slug'
@@ -376,6 +386,7 @@ export interface FileRouteTypes {
     | '/team'
     | '/telemetry'
     | '/f/$formId'
+    | '/fb/$token'
     | '/h/$slug'
     | '/l/$code'
     | '/progress/$slug'
@@ -411,6 +422,7 @@ export interface FileRouteTypes {
     | '/_app/team'
     | '/_app/telemetry'
     | '/f/$formId'
+    | '/fb/$token'
     | '/h/$slug'
     | '/l/$code'
     | '/progress/$slug'
@@ -423,6 +435,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   OnboardingRoute: typeof OnboardingRoute
   FFormIdRoute: typeof FFormIdRoute
+  FbTokenRoute: typeof FbTokenRoute
   HSlugRoute: typeof HSlugRoute
   LCodeRoute: typeof LCodeRoute
   ProgressSlugRoute: typeof ProgressSlugRoute
@@ -627,6 +640,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FFormIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/fb/$token': {
+      id: '/fb/$token'
+      path: '/fb/$token'
+      fullPath: '/fb/$token'
+      preLoaderRoute: typeof FbTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/h/$slug': {
       id: '/h/$slug'
       path: '/h/$slug'
@@ -738,6 +758,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   OnboardingRoute: OnboardingRoute,
   FFormIdRoute: FFormIdRoute,
+  FbTokenRoute: FbTokenRoute,
   HSlugRoute: HSlugRoute,
   LCodeRoute: LCodeRoute,
   ProgressSlugRoute: ProgressSlugRoute,

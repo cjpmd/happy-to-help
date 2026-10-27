@@ -213,6 +213,9 @@ begin
       values (c, 'Autumn push', 'More signups', 20, '{instagram}', '2026-11-01', '2026-11-14');
     insert into public.campaign_assets (campaign_id, company_id, kind, channel, body)
       select id, c, 'social_post', 'instagram', 'Hello' from public.campaigns where company_id = c;
+    insert into public.listening_settings (company_id) values (c);
+    insert into public.feedback_requests (company_id, contact_id, trigger)
+      select c, id, 'manual' from public.contacts where company_id = c;
   end loop;
 end;
 $$;

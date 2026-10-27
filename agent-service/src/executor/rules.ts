@@ -30,6 +30,7 @@ export interface ApprovalForRules {
     | "publish_site"
     | "update_voice"
     | "update_memory"
+    | "reply_public"
     | "approve_campaign";
   payload: Record<string, unknown>;
   /** The decider's role in the company. */

@@ -136,6 +136,8 @@ export interface SendEmailPayload extends PayloadBase {
   outreach?: boolean;
   /** Set when the email belongs to a campaign (Phase 15). */
   campaign_asset_id?: string;
+  /** Set when the email asks for feedback (Phase 16). */
+  feedback_request_id?: string;
 }
 export interface AdSpendPayload extends PayloadBase {
   platform: string;
@@ -174,6 +176,14 @@ export interface ApproveCampaignPayload extends PayloadBase {
   dates: string;
   budget: string;
 }
+export interface ReplyPublicPayload extends PayloadBase {
+  platform: string;
+  kind: "comment" | "review";
+  external_id: string;
+  text: string;
+  thread_id?: string;
+  inbox_item_id?: string;
+}
 export interface ApprovalPayloads {
   publish_post: PublishPostPayload;
   send_email: SendEmailPayload;
@@ -183,6 +193,7 @@ export interface ApprovalPayloads {
   update_voice: UpdateVoicePayload;
   update_memory: UpdateMemoryPayload;
   approve_campaign: ApproveCampaignPayload;
+  reply_public: ReplyPublicPayload;
 }
 export type ApprovalAction = keyof ApprovalPayloads;
 interface ApprovalBase {
@@ -214,6 +225,7 @@ export type Approval = { [K in ApprovalAction]: ApprovalOf<K> }[ApprovalAction];
 export function approvalText(a: Approval): string {
   if (a.action_type === "publish_post") return a.payload.text;
   if (a.action_type === "send_email") return a.payload.body;
+  if (a.action_type === "reply_public") return a.payload.text;
   return "";
 }
 export interface ActivityEvent {

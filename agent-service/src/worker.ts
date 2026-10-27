@@ -17,6 +17,7 @@ import {
   platformKeys,
   providersFor,
   reportPlatform,
+  syncListening,
   syncPostHog,
   syncSocialAnalytics,
 } from "./integrations/index.js";
@@ -98,6 +99,8 @@ async function main() {
         lastSocialSync = Date.now();
         const n = await syncSocialAnalytics(db, keys);
         if (n) console.log(`Synced analytics for ${n} post(s)`);
+        const heard = await syncListening(db, keys);
+        if (heard) console.log(`${heard} new comment(s) and review(s) in the inbox`);
       }
       if (Date.now() - lastMetricsSync > 6 * 60 * 60_000) {
         lastMetricsSync = Date.now();

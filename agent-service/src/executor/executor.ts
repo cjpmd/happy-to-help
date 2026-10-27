@@ -78,6 +78,7 @@ const PILLAR: Record<Approval["action_type"], "grow" | "run" | "build" | "legal"
   update_voice: "grow",
   update_memory: "run",
   approve_campaign: "grow",
+  reply_public: "grow",
 };
 
 function label(a: Approval): string {
@@ -99,6 +100,8 @@ function label(a: Approval): string {
       return `memory: ${String(p["fact"]).slice(0, 80)}`;
     case "approve_campaign":
       return `campaign plan: ${String(p["name"])}`;
+    case "reply_public":
+      return `reply to a ${String(p["platform"])} ${p["kind"] === "review" ? "review" : "comment"}`;
   }
 }
 
@@ -324,6 +327,31 @@ async function perform(
           .eq("id", p["inbox_item_id"]);
       return { provider: providers.name, message_ids: r.messageIds, recipients: count };
     }
+    case "reply_public": {
+      const text = await withDisclosure(db, a, "text");
+      const r = await providers.replies.reply({
+        companyId: a.company_id,
+        approvalId: a.id,
+        platform: String(p["platform"]),
+        kind: p["kind"] === "review" ? "review" : "comment",
+        externalId: String(p["external_id"]),
+        text,
+      });
+      if (typeof p["thread_id"] === "string")
+        await db.from("email_messages").insert({
+          thread_id: p["thread_id"],
+          company_id: a.company_id,
+          direction: "sent",
+          body: text,
+          external_id: `${String(p["platform"])}:${r.externalId}`,
+        });
+      if (typeof p["inbox_item_id"] === "string")
+        await db
+          .from("inbox_items")
+          .update({ status: "sent", processed_at: now })
+          .eq("id", p["inbox_item_id"]);
+      return { provider: providers.name, external_id: r.externalId };
+    }
     case "ad_spend": {
       const daily = Number(p["daily_budget"] ?? p["amount_gbp"]);
       const cap = Number(p["hard_cap"] ?? daily);
@@ -449,9 +477,9 @@ async function perform(
  * Replies Sol drafted carry the company's AI disclosure (SPEC G): always when sent
  * automatically, and on approved drafts unless the founder turned that off.
  */
-async function withDisclosure(db: Db, a: Approval): Promise<string> {
+async function withDisclosure(db: Db, a: Approval, field = "body"): Promise<string> {
   const p = a.payload as Record<string, unknown>;
-  const body = String(p["body"] ?? "");
+  const body = String(p[field] ?? "");
   const drafted = a.run_id !== null || p["auto_send"] === true;
   if (!drafted) return body;
   const { data: settings } = await db
@@ -541,14 +569,20 @@ export async function executeApproval(deps: ExecutorDeps, a: Approval): Promise<
         ? String((a.payload as Record<string, unknown>)["text"] ?? "")
         : a.action_type === "send_email"
           ? `${String((a.payload as Record<string, unknown>)["subject"] ?? "")}\n${String((a.payload as Record<string, unknown>)["body"] ?? "")}`
-          : "",
+          : a.action_type === "reply_public"
+            ? String((a.payload as Record<string, unknown>)["text"] ?? "")
+            : "",
   });
   if (claimsError) throw new Error(`claims check: ${claimsError.message}`);
   const flagged = (flags ?? []) as { phrase: string }[];
   if (flagged.length)
     return block(db, a, `the claims check now flags "${flagged[0]!.phrase}".`, false);
   // Automatic replies (no one decided them) follow the response policy and its hard rules.
-  const auto = (a.payload as Record<string, unknown>)["auto_send"] === true && !a.decided_by;
+  // Public replies are never automatic (D75): without a decider they're blocked below.
+  const auto =
+    a.action_type === "send_email" &&
+    (a.payload as Record<string, unknown>)["auto_send"] === true &&
+    !a.decided_by;
   const rule = auto
     ? checkAutoSend(await autoSendContext(db, a))
     : checkRules(
@@ -695,6 +729,7 @@ export async function executeApproval(deps: ExecutorDeps, a: Approval): Promise<
     update_voice: "Adopted",
     update_memory: "Remembered",
     approve_campaign: "Approved",
+    reply_public: "Posted",
   }[a.action_type];
   await event(db, a.company_id, PILLAR[a.action_type], `${verb} ${label(a)}`, run.id);
   log(`approval ${a.id}: done (${charged} credits)`);

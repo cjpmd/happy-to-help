@@ -2,6 +2,7 @@ import * as seed from "./seed";
 import { demoJobTypes, type DB } from "./storeContext";
 import { demoLinkData } from "./demoLinks";
 import { demoInboxItems } from "./demoInbox";
+import { demoFeedback, harbourHeard } from "./demoListening";
 import { defaultPolicies, defaultSettings, defaultVoice } from "./voicePolicy";
 import { businessDefaults, isLayout, workspaceSeed, type LayoutItem } from "./workspace";
 
@@ -51,10 +52,13 @@ export function demoDb(): DB {
     auto_sessions: [],
     company_automation: [],
     briefs: [],
-    inbox_items: demoInboxItems(seed.harbour_emails),
+    inbox_items: demoInboxItems([...seed.harbour_emails, ...harbourHeard(seed.NOW)]),
     campaigns: [],
     campaign_assets: [],
     campaign_results: [],
+    listening_settings: [],
+    feedback: demoFeedback(seed.NOW),
+    feedback_requests: [],
   };
 }
 
@@ -65,5 +69,5 @@ export function isValidLayout(value: unknown): value is LayoutItem[] {
 
 /** Harbour Bakes' seeded inbox replaces the empty one workspaceSeed gives other companies. */
 function withHarbour(w: ReturnType<typeof workspaceSeed>) {
-  return { ...w, emails: [...w.emails, ...seed.harbour_emails] };
+  return { ...w, emails: [...w.emails, ...seed.harbour_emails, ...harbourHeard(seed.NOW)] };
 }

@@ -101,6 +101,8 @@ export function nextRun(cadence: Cadence, runAt: string, now: Date): Date {
 export const NIGHTLY_AT = "02:00";
 /** The weekly voice review runs on Mondays from 06:00. */
 export const VOICE_REVIEW_AT = "06:00";
+/** Feedback requests are drafted mid-morning, so they wait for a GO during the working day. */
+export const FEEDBACK_AT = "10:00";
 
 interface PickableTask {
   id: string;

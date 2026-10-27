@@ -43,6 +43,7 @@
   --color-track: var(--track);
   --color-go: var(--go);
   --color-go-bg: var(--go-bg);
+  --color-sentiment-neutral: var(--sentiment-neutral);
   --color-hold: var(--hold);
   --color-hold-bg: var(--hold-bg);
 
@@ -118,6 +119,8 @@
   --track: #dddad2;
   --go: #1e7a4c;
   --go-bg: #e8f4ec;
+  /* The grey midpoint of the sentiment chart (Phase 16). */
+  --sentiment-neutral: #9a9aa3;
   --hold: #9a4708;
   --hold-bg: #fdf1e4;
   /* Errors and destructive confirmations only. */
@@ -156,6 +159,7 @@
   --track: #3a3a3f;
   --go: #5bd08f;
   --go-bg: #0e2318;
+  --sentiment-neutral: #76767f;
   --hold: #ffb020;
   --hold-bg: #2a1f08;
   --error: #e5786b;
