@@ -760,6 +760,243 @@ export type Database = {
           },
         ];
       };
+      calendar_connections: {
+        Row: {
+          account_email: string;
+          company_id: string;
+          created_at: string;
+          id: string;
+          last_synced_at: string | null;
+          provider: string;
+          status: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          account_email?: string;
+          company_id: string;
+          created_at?: string;
+          id?: string;
+          last_synced_at?: string | null;
+          provider: string;
+          status?: string;
+          user_id: string;
+        };
+        Update: {
+          account_email?: string;
+          company_id?: string;
+          created_at?: string;
+          id?: string;
+          last_synced_at?: string | null;
+          provider?: string;
+          status?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "calendar_connections_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "calendar_connections_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      calendar_events: {
+        Row: {
+          attendees: string[];
+          bot_id: string | null;
+          bot_note: string | null;
+          bot_status: string;
+          capture_id: string | null;
+          company_id: string;
+          connection_id: string;
+          created_at: string;
+          ends_at: string;
+          external_id: string;
+          id: string;
+          meeting_url: string | null;
+          record: boolean;
+          series_id: string | null;
+          starts_at: string;
+          title: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          attendees?: string[];
+          bot_id?: string | null;
+          bot_note?: string | null;
+          bot_status?: string;
+          capture_id?: string | null;
+          company_id: string;
+          connection_id: string;
+          created_at?: string;
+          ends_at: string;
+          external_id: string;
+          id?: string;
+          meeting_url?: string | null;
+          record?: boolean;
+          series_id?: string | null;
+          starts_at: string;
+          title?: string;
+        };
+        Update: {
+          attendees?: string[];
+          bot_id?: string | null;
+          bot_note?: string | null;
+          bot_status?: string;
+          capture_id?: string | null;
+          company_id?: string;
+          connection_id?: string;
+          created_at?: string;
+          ends_at?: string;
+          external_id?: string;
+          id?: string;
+          meeting_url?: string | null;
+          record?: boolean;
+          series_id?: string | null;
+          starts_at?: string;
+          title?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_capture_id_fkey";
+            columns: ["capture_id"];
+            isOneToOne: false;
+            referencedRelation: "captures";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "calendar_events_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "calendar_events_connection_id_fkey";
+            columns: ["connection_id"];
+            isOneToOne: false;
+            referencedRelation: "calendar_connections";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      calendar_tokens: {
+        Row: {
+          connection_id: string;
+          refresh_token: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          connection_id: string;
+          refresh_token: string;
+          updated_at?: string;
+        };
+        Update: {
+          connection_id?: string;
+          refresh_token?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "calendar_tokens_connection_id_fkey";
+            columns: ["connection_id"];
+            isOneToOne: true;
+            referencedRelation: "calendar_connections";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      call_sessions: {
+        Row: {
+          capture_id: string | null;
+          company_id: string;
+          contact_id: string | null;
+          direction: string;
+          duration_seconds: number | null;
+          ended_at: string | null;
+          external_id: string;
+          from_number: string;
+          id: string;
+          phone_number_id: string | null;
+          recorded: boolean;
+          started_at: string;
+          status: string;
+          to_number: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          capture_id?: string | null;
+          company_id: string;
+          contact_id?: string | null;
+          direction?: string;
+          duration_seconds?: number | null;
+          ended_at?: string | null;
+          external_id: string;
+          from_number: string;
+          id?: string;
+          phone_number_id?: string | null;
+          recorded?: boolean;
+          started_at?: string;
+          status?: string;
+          to_number: string;
+        };
+        Update: {
+          capture_id?: string | null;
+          company_id?: string;
+          contact_id?: string | null;
+          direction?: string;
+          duration_seconds?: number | null;
+          ended_at?: string | null;
+          external_id?: string;
+          from_number?: string;
+          id?: string;
+          phone_number_id?: string | null;
+          recorded?: boolean;
+          started_at?: string;
+          status?: string;
+          to_number?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "call_sessions_capture_id_fkey";
+            columns: ["capture_id"];
+            isOneToOne: false;
+            referencedRelation: "captures";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "call_sessions_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "call_sessions_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "call_sessions_phone_number_id_fkey";
+            columns: ["phone_number_id"];
+            isOneToOne: false;
+            referencedRelation: "phone_numbers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       campaign_assets: {
         Row: {
           approval_id: string | null;
@@ -946,6 +1183,7 @@ export type Database = {
         Row: {
           auto_accept_own_notes: boolean;
           company_id: string;
+          daily_minutes_cap: number;
           keep_audio_days: number;
           updated_at: string;
         };
@@ -953,12 +1191,14 @@ export type Database = {
         Insert: {
           auto_accept_own_notes?: boolean;
           company_id: string;
+          daily_minutes_cap?: number;
           keep_audio_days?: number;
           updated_at?: string;
         };
         Update: {
           auto_accept_own_notes?: boolean;
           company_id?: string;
+          daily_minutes_cap?: number;
           keep_audio_days?: number;
           updated_at?: string;
         };
@@ -983,6 +1223,7 @@ export type Database = {
           created_by: string | null;
           duration_seconds: number | null;
           error: string | null;
+          external_audio_url: string | null;
           id: string;
           job_id: string | null;
           participants: string[];
@@ -1001,6 +1242,7 @@ export type Database = {
           created_by?: string | null;
           duration_seconds?: number | null;
           error?: string | null;
+          external_audio_url?: string | null;
           id?: string;
           job_id?: string | null;
           participants?: string[];
@@ -1018,6 +1260,7 @@ export type Database = {
           created_by?: string | null;
           duration_seconds?: number | null;
           error?: string | null;
+          external_audio_url?: string | null;
           id?: string;
           job_id?: string | null;
           participants?: string[];
@@ -1623,6 +1866,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["contact_kind"];
           last_contact_at: string | null;
           name: string;
+          phone: string | null;
           source: string;
           value: string;
         };
@@ -1635,6 +1879,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["contact_kind"];
           last_contact_at?: string | null;
           name: string;
+          phone?: string | null;
           source?: string;
           value?: string;
         };
@@ -1646,6 +1891,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["contact_kind"];
           last_contact_at?: string | null;
           name?: string;
+          phone?: string | null;
           source?: string;
           value?: string;
         };
@@ -1661,10 +1907,12 @@ export type Database = {
       };
       credit_config: {
         Row: {
+          call_usd_per_minute: number;
           credit_value_gbp: number;
           fx_gbp: number;
           id: boolean;
           markup: number;
+          notetaker_usd_per_minute: number;
           plan_expiry: string;
           topup_expiry: string;
           transcription_usd_per_minute: number;
@@ -1672,20 +1920,24 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          call_usd_per_minute?: number;
           credit_value_gbp?: number;
           fx_gbp?: number;
           id?: boolean;
           markup?: number;
+          notetaker_usd_per_minute?: number;
           plan_expiry?: string;
           topup_expiry?: string;
           transcription_usd_per_minute?: number;
           updated_at?: string;
         };
         Update: {
+          call_usd_per_minute?: number;
           credit_value_gbp?: number;
           fx_gbp?: number;
           id?: boolean;
           markup?: number;
+          notetaker_usd_per_minute?: number;
           plan_expiry?: string;
           topup_expiry?: string;
           transcription_usd_per_minute?: number;
@@ -3166,6 +3418,95 @@ export type Database = {
         };
         Relationships: [];
       };
+      notetaker_series: {
+        Row: {
+          company_id: string;
+          connection_id: string;
+          created_at: string;
+          created_by: string | null;
+          series_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          company_id: string;
+          connection_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          series_id: string;
+        };
+        Update: {
+          company_id?: string;
+          connection_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          series_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notetaker_series_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notetaker_series_connection_id_fkey";
+            columns: ["connection_id"];
+            isOneToOne: false;
+            referencedRelation: "calendar_connections";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notetaker_series_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      phone_numbers: {
+        Row: {
+          company_id: string;
+          created_at: string;
+          forward_to: string | null;
+          id: string;
+          number: string;
+          provider: string;
+          recording_notice: string;
+          status: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          company_id: string;
+          created_at?: string;
+          forward_to?: string | null;
+          id?: string;
+          number: string;
+          provider: string;
+          recording_notice?: string;
+          status?: string;
+        };
+        Update: {
+          company_id?: string;
+          created_at?: string;
+          forward_to?: string | null;
+          id?: string;
+          number?: string;
+          provider?: string;
+          recording_notice?: string;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "phone_numbers_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: true;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       platform_integrations: {
         Row: {
           checked_at: string;
@@ -4362,6 +4703,7 @@ export type Database = {
     Functions: {
       accept_all_items: { Args: { p_capture: string }; Returns: number };
       accept_invites: { Args: Record<PropertyKey, never>; Returns: number };
+      add_mock_phone_number: { Args: { p_company: string }; Returns: string };
       adopt_voice_profile: {
         Args: { p_approved_by: string; p_profile: string };
         Returns: undefined;
@@ -4391,6 +4733,7 @@ export type Database = {
         Args: { p_company: string; p_contact: string; p_origin: string };
         Returns: string;
       };
+      call_routing: { Args: { p_to: string }; Returns: Json };
       cancel_campaign: { Args: { p_campaign: string }; Returns: undefined };
       capture_estimate: { Args: { p_duration_seconds?: number }; Returns: number };
       check_claims: { Args: { p_company: string; p_text: string }; Returns: Json };
@@ -4464,6 +4807,7 @@ export type Database = {
         Returns: undefined;
       };
       complete_task: { Args: { p_task: string }; Returns: undefined };
+      connect_mock_calendar: { Args: { p_company: string }; Returns: string };
       cost_reconciliation: {
         Args: { p_from: string; p_to: string };
         Returns: {
@@ -4505,6 +4849,10 @@ export type Database = {
           p_starting_stage?: string;
           p_target_customer?: string;
         };
+        Returns: string;
+      };
+      create_notetaker_capture: {
+        Args: { p_duration_seconds: number; p_event: string; p_segments?: Json; p_text: string };
         Returns: string;
       };
       create_tracked_link: {
@@ -4557,6 +4905,7 @@ export type Database = {
         Returns: Json;
       };
       delete_bot: { Args: { p_bot: string }; Returns: undefined };
+      disconnect_calendar: { Args: { p_connection: string }; Returns: undefined };
       draft_outreach: {
         Args: { p_body: string; p_company: string; p_subject: string; p_to: string };
         Returns: string;
@@ -4604,6 +4953,8 @@ export type Database = {
         Returns: Json;
       };
       join_cohort: { Args: { p_code: string; p_company: string }; Returns: string };
+      minutes_estimate: { Args: { p_duration_seconds: number; p_source: string }; Returns: number };
+      minutes_left_today: { Args: { p_company: string }; Returns: number };
       post_chat_message: { Args: { p_company: string; p_content: string }; Returns: string };
       process_inbox_item: { Args: { p_item: string }; Returns: string };
       propose_voice_profile: {
@@ -4635,6 +4986,18 @@ export type Database = {
           p_rating?: number;
           p_text: string;
           p_url?: string;
+        };
+        Returns: string;
+      };
+      record_call: {
+        Args: {
+          p_duration_seconds?: number;
+          p_external_id: string;
+          p_from: string;
+          p_recorded?: boolean;
+          p_recording_url?: string;
+          p_status: string;
+          p_to: string;
         };
         Returns: string;
       };
@@ -4680,6 +5043,10 @@ export type Database = {
         Returns: undefined;
       };
       set_lead_status: { Args: { p_lead: string; p_status: string }; Returns: undefined };
+      set_meeting_recording: {
+        Args: { p_event: string; p_record: boolean; p_series?: boolean };
+        Returns: undefined;
+      };
       set_response_policy: {
         Args: {
           p_category: string;
@@ -4749,6 +5116,11 @@ export type Database = {
           p_reviews?: boolean;
           p_social_comments?: boolean;
         };
+        Returns: undefined;
+      };
+      update_minutes_cap: { Args: { p_cap: number; p_company: string }; Returns: undefined };
+      update_phone_settings: {
+        Args: { p_company: string; p_forward_to?: string; p_recording_notice?: string };
         Returns: undefined;
       };
       update_response_settings: {

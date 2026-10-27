@@ -28,8 +28,8 @@ Restyle first, then the remaining Phase 1 groups, then the engine, then the v2 d
 | 15 | Campaigns | `phase-15-campaigns` | Done |
 | 16 | Listening | `phase-16-listening` | Done |
 | 17 | Process bots | `phase-17-bots` | Done |
-| 18 | Capture v2: notetaker and calls (flagged) | `phase-18-capture-v2` | Next |
-| 19 | Paid ads management (flagged, off) | `phase-19-paid-ads` | |
+| 18 | Capture v2: notetaker and calls (flagged) | `phase-18-capture-v2` | Done |
+| 19 | Paid ads management (flagged, off) | `phase-19-paid-ads` | Next |
 
 Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, contacts, consents and leads. Stripe (6) is independent of them, but Resend inbound, Ayrshare and PostHog (7), the morning brief (8, which needs commitments from 12) and the new skills (9) all read those tables, so they come after. Phase 14 needs 7 (inbound email) and 11 (policy); 17 needs 8 (scheduler).
 
@@ -204,6 +204,17 @@ Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, con
 - App: Run → Bots (add from templates, switch on and off, "Ask me before every email" or "Send with the wording I approve now", weekly cap, edit steps, recent steps and reasons, remove). The demo sets bots up with the same rules; they run on the live service.
 - Tests: `21_bots.test.sql` and the read matrix, `agent-service/test/bots.test.ts` (enrol once, first email for a GO, stop on reply, no marketing without permission, approved wording sends within the cap, weekly summary once a week), `src/test/bots.test.ts`, `src/test/demoBots.test.ts` (including the templates matching the migration).
 - **Mocked / owner steps:** invoice and payment reminders need the company's own Stripe account (HANDOFF 9); the template shows but can't be switched on (D80).
+
+### Phase 18 (finished 27 Oct 2026)
+
+Everything here is behind switches that are off by default (`VITE_NOTETAKER_ENABLED`, `VITE_CALLS_ENABLED` in the app; `NOTETAKER_ENABLED` on the agent service and the `calendar-connect` function; `CALLS_ENABLED` on the `call-webhook` function) and runs on mocks until the platform sets up the providers (HANDOFF 10 and 11).
+
+- `20261102100000_capture_v2.sql`: captures gain the `notetaker` and `call` sources with their consent records (`bot_announced`, `call_notice`) and a provider recording URL; contacts gain a phone number; provider minutes are priced in USD in `credit_config` (notetaker $0.0083, calls $0.012 a minute) and converted to credits like everything else (D82); a daily recorded-minutes cap in capture settings (default 120). Calendars: `calendar_connections`, `calendar_tokens` (service role only), `calendar_events` (off for every meeting), `notetaker_series`; `set_meeting_recording` (the calendar's owner or a founder; per meeting or per series; video calls only), `connect_mock_calendar`, `disconnect_calendar`. Calls: `phone_numbers` (demo numbers in Ofcom's drama range), `call_sessions`; `update_phone_settings` (the notice must say the call is recorded), `update_minutes_cap`; service-role `call_routing`, `record_call` (finds or adds the caller as a contact; a recording heard after the notice becomes a capture) and `create_notetaker_capture`.
+- Notetaker (`agent-service/src/capture/notetaker.ts`): reads connected calendars every 15 minutes, sends a bot to opted-in meetings starting within the hour (skipped, with a message, if it would go over today's minutes), cancels bots for meetings opted out, and turns each finished recording into a capture for the Phase 12 pipeline. The bot joins as "Sol (notetaker for {company})" and posts that it's recording (D81). Providers: mock calendar and bot by default; Google Calendar and Microsoft 365 (read-only, OAuth through the `calendar-connect` function with a signed state) and Recall.ai's Meeting Bot API (EU region by default).
+- Calls (`call-webhook` function, `_shared/telephony.ts`): Twilio signature checked; the caller hears the notice before anything is recorded, then is put through to the founder's phone or can leave a message; with today's minutes used up the call is connected without recording or notice (D83). Recordings are fetched from Twilio by the agent service, transcribed, then deleted at Twilio unless the company keeps audio (D84). `scripts/dev/replay-call.mjs` replays a signed call locally.
+- App: Meetings → Notetaker (connect Google, Microsoft or a demo calendar; per-meeting switch and "Every time" for a series; bot status; daily minutes); Customers → Calls (the number, where it rings, the notice as callers hear it, recent calls with links to their notes). The demo runs the same rules.
+- Tests: `22_capture_v2.test.sql` and the read matrix, `agent-service/test/notetaker.test.ts` (sync, opt-in, bot sent and collected, minutes cost charged, daily cap skip, series opt-in, Recall.ai transcript), `agent-service/test/calls.test.ts`, `src/test/telephony.test.ts`, `src/test/calendar.test.ts`, `src/test/demoCapture2.test.ts`, and an integration check that both functions stay off by default. The webhook was also run end to end locally with calls switched on.
+- **Mocked / owner steps:** Recall.ai, Google and Microsoft OAuth apps (HANDOFF 10); Twilio account and a UK number (HANDOFF 11). Outbound calls aren't built.
 
 ## Phase 0 audit and Phase 1 history
 

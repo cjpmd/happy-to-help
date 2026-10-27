@@ -577,6 +577,70 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
     async (id) => (await call(() => sb.rpc("delete_bot", { p_bot: id }), ["bots"])) !== false,
     [sb, call],
   );
+  const connectCalendar = useCallback<Ctx["connectCalendar"]>(
+    async (cid, provider) => {
+      if (provider === "mock")
+        return (
+          (await call(() => sb.rpc("connect_mock_calendar", { p_company: cid }), ["capture2"])) !==
+          false
+        );
+      // Google and Microsoft: off to the provider's consent page, back to Meetings.
+      const { data, error } = await sb.functions.invoke<{ url?: string; error?: string }>(
+        "calendar-connect",
+        { body: { company_id: cid, provider } },
+      );
+      if (error || !data?.url) {
+        toast.error(data?.error ?? "Calendar connections aren't set up yet");
+        return false;
+      }
+      window.location.assign(data.url);
+      return true;
+    },
+    [sb, call],
+  );
+  const disconnectCalendar = useCallback<Ctx["disconnectCalendar"]>(
+    async (id) =>
+      (await call(() => sb.rpc("disconnect_calendar", { p_connection: id }), ["capture2"])) !==
+      false,
+    [sb, call],
+  );
+  const setMeetingRecording = useCallback<Ctx["setMeetingRecording"]>(
+    async (id, record, series = false) =>
+      (await call(
+        () => sb.rpc("set_meeting_recording", { p_event: id, p_record: record, p_series: series }),
+        ["capture2"],
+      )) !== false,
+    [sb, call],
+  );
+  const updateMinutesCap = useCallback<Ctx["updateMinutesCap"]>(
+    async (cid, cap) =>
+      (await call(
+        () => sb.rpc("update_minutes_cap", { p_company: cid, p_cap: cap }),
+        ["captures"],
+      )) !== false,
+    [sb, call],
+  );
+  const addDemoPhoneNumber = useCallback<Ctx["addDemoPhoneNumber"]>(
+    async (cid) =>
+      (await call(() => sb.rpc("add_mock_phone_number", { p_company: cid }), ["capture2"])) !==
+      false,
+    [sb, call],
+  );
+  const updatePhoneSettings = useCallback<Ctx["updatePhoneSettings"]>(
+    async (cid, patch) =>
+      (await call(
+        () =>
+          sb.rpc("update_phone_settings", {
+            p_company: cid,
+            ...(patch.forward_to !== undefined ? { p_forward_to: patch.forward_to } : {}),
+            ...(patch.recording_notice !== undefined
+              ? { p_recording_notice: patch.recording_notice }
+              : {}),
+          }),
+        ["capture2"],
+      )) !== false,
+    [sb, call],
+  );
   const addVoiceSource = useCallback<Ctx["addVoiceSource"]>(
     async (cid, kind, content) =>
       (await call(
@@ -1047,6 +1111,12 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       createBot,
       updateBot,
       deleteBot,
+      connectCalendar,
+      disconnectCalendar,
+      setMeetingRecording,
+      updateMinutesCap,
+      addDemoPhoneNumber,
+      updatePhoneSettings,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,
@@ -1124,6 +1194,12 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       createBot,
       updateBot,
       deleteBot,
+      connectCalendar,
+      disconnectCalendar,
+      setMeetingRecording,
+      updateMinutesCap,
+      addDemoPhoneNumber,
+      updatePhoneSettings,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,

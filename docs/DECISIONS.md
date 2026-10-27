@@ -284,3 +284,21 @@ Non-trivial decisions made during the autonomous build run (`docs/AUTONOMOUS-RUN
 
 ## D80. Invoice reminders wait for Stripe Connect
 - **Chosen:** the template is listed with "Needs Stripe" and `update_bot` refuses to switch it on. Reading a company's invoices needs Stripe Connect (or the company's own key), which is an account and onboarding decision for the owner (HANDOFF 9).
+
+## D81. How the notetaker asks and announces
+- **Chosen:** every meeting is off until the calendar's owner or a founder switches it on, for that meeting or its whole series (future meetings in the series are opted in as they sync). Sol joins only meetings with a video link, under the name "Sol (notetaker for {company})", and posts in the meeting chat that it is recording and that anyone can ask the host for it to leave. The consent record on the capture is `bot_announced`.
+- **Why:** SPEC P (no silent recording; default off; per meeting or per series) and UK GDPR transparency. Mentors still never see raw transcripts (Phase 12 rules apply to these captures).
+
+## D82. Provider minutes go through the normal credit conversion
+- **Chosen:** notetaker and call minutes are priced in USD in `credit_config` (from Recall.ai's pay-as-you-go rate and an estimate for Twilio UK) and added to the capture run's cost, so credits = cost × fx × markup ÷ credit value like everything else (rule 5), reserved and settled with the extraction. The job estimate shown includes them. A daily recorded-minutes cap (default 120, notetaker and calls together) stops the bot joining, or a call being recorded, past it.
+- **Why:** one pricing rule, values in config, and refunds work as for any run if the platform fails.
+
+## D83. A call past the daily cap isn't recorded
+- **Chosen:** the caller is still put through (or told nobody can answer), but hears no recording notice and nothing is recorded.
+- **Why:** the business shouldn't miss customers because of a cost cap; recording without the notice is never allowed.
+
+## D84. Call recordings don't stay at Twilio
+- **Chosen:** the agent service fetches the recording with the account's credentials only from Twilio's own host, transcribes it, then deletes it at Twilio unless the company keeps audio for a while. Only `mock:` recordings are accepted otherwise (local and tests).
+
+## D85. Calendars are read-only, tokens server-side
+- **Chosen:** Google `calendar.events.readonly` and Microsoft `Calendars.Read`; refresh tokens in `calendar_tokens`, which only the service role can read; the OAuth state is signed and expires in ten minutes so a callback can't attach a calendar to someone else's company.

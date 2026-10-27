@@ -50,7 +50,8 @@ export interface ExtractedItem extends ItemDraft {
   routed: Record<string, unknown>;
 }
 
-export type CaptureSource = "voice_note" | "debrief" | "transcript" | "recording";
+export type CaptureSource =
+  "voice_note" | "debrief" | "transcript" | "recording" | "notetaker" | "call";
 export type CaptureStatus = "transcribing" | "extracting" | "review" | "done" | "failed";
 
 export interface Capture {

@@ -9,6 +9,8 @@ import { marketingLabel } from "@/lib/links";
 import { PageHeader, Panel, Pill, humanise } from "@/components/mission/primitives";
 import { ContactTimeline } from "@/components/mission/ContactTimeline";
 import { FeedbackPage } from "@/components/mission/Listening";
+import { CallsPage } from "@/components/mission/CaptureV2";
+import { FLAGS } from "@/lib/flags";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { InboxItem } from "@/lib/storeContext";
 import { Button } from "@/components/ui/button";
@@ -18,19 +20,16 @@ import { parseContactsCsv } from "@/lib/voice";
 import { fmtDate } from "@/lib/format";
 import { pageHead } from "@/lib/seo";
 
-type CustomersTab = "inbox" | "leads" | "contacts" | "feedback" | "voice";
-const TABS: CustomersTab[] = ["inbox", "leads", "contacts", "feedback", "voice"];
+type CustomersTab = "inbox" | "leads" | "contacts" | "calls" | "feedback" | "voice";
+const TABS: CustomersTab[] = ["inbox", "leads", "contacts", "calls", "feedback", "voice"];
 
 export const Route = createFileRoute("/_app/customers")({
   head: () =>
     pageHead("Customers", "Your inbox, contacts, customer feedback and brand voice in one place."),
-  // ?tab=leads|contacts|feedback|voice; the inbox has no param.
+  // ?tab=leads|contacts|calls|feedback|voice; the inbox has no param.
   validateSearch: (search: Record<string, unknown>): { tab?: Exclude<CustomersTab, "inbox"> } =>
-    search["tab"] === "leads" ||
-    search["tab"] === "contacts" ||
-    search["tab"] === "feedback" ||
-    search["tab"] === "voice"
-      ? { tab: search["tab"] }
+    TABS.includes(search["tab"] as CustomersTab) && search["tab"] !== "inbox"
+      ? { tab: search["tab"] as Exclude<CustomersTab, "inbox"> }
       : {},
   component: Customers,
 });
@@ -54,6 +53,10 @@ function Customers() {
           { value: "inbox", label: "Inbox", content: <Inbox /> },
           { value: "leads", label: "Leads", content: <LeadsList /> },
           { value: "contacts", label: "Contacts", content: <Contacts /> },
+          // Calls (Phase 18) need the platform's telephony set up; off until then.
+          ...(FLAGS.calls
+            ? [{ value: "calls" as const, label: "Calls", content: <CallsPage /> }]
+            : []),
           { value: "feedback", label: "Feedback", content: <FeedbackPage /> },
           { value: "voice", label: "Voice & policy", content: <VoiceAndPolicy /> },
         ]}

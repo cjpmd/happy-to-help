@@ -76,6 +76,11 @@ export type DB = WorkspaceDB & {
   bot_templates: BotTemplate[];
   bots: Bot[];
   bot_runs: BotRun[];
+  /** Phase 18: calendars, meetings the notetaker may join, the phone number and calls. */
+  calendar_connections: CalendarConnection[];
+  calendar_events: CalendarEvent[];
+  phone_numbers: PhoneNumber[];
+  call_sessions: CallSession[];
   /** Phase 14: every message that came in, and what Sol did with it. */
   inbox_items: InboxItem[];
   /** Phase 8: Auto Mode sessions, what Sol does on its own, and the morning briefs. */
@@ -138,6 +143,8 @@ export interface CaptureSettings {
   company_id: string;
   keep_audio_days: number;
   auto_accept_own_notes: boolean;
+  /** Recorded minutes a day, notetaker and calls together (Phase 18). */
+  daily_minutes_cap?: number;
 }
 
 export interface NewCapture {
@@ -212,6 +219,52 @@ export interface CampaignAsset {
   status:
     "draft" | "awaiting_approval" | "scheduled" | "published" | "sent" | "exported" | "declined";
   approval_id: string | null;
+}
+
+/** Capture v2 (Phase 18). */
+export interface CalendarConnection {
+  id: string;
+  company_id: string;
+  user_id: string;
+  provider: "google" | "microsoft" | "mock";
+  account_email: string;
+  status: "connected" | "revoked";
+  last_synced_at: string | null;
+}
+export interface CalendarEvent {
+  id: string;
+  company_id: string;
+  connection_id: string;
+  series_id: string | null;
+  title: string;
+  starts_at: string;
+  ends_at: string;
+  meeting_url: string | null;
+  attendees: string[];
+  record: boolean;
+  bot_status: "none" | "scheduled" | "recording" | "done" | "failed" | "cancelled" | "skipped";
+  bot_note: string | null;
+  capture_id: string | null;
+}
+export interface PhoneNumber {
+  id: string;
+  company_id: string;
+  number: string;
+  provider: "twilio" | "mock";
+  forward_to: string | null;
+  recording_notice: string;
+}
+export interface CallSession {
+  id: string;
+  company_id: string;
+  direction: "inbound" | "outbound";
+  from_number: string;
+  contact_id: string | null;
+  status: "ringing" | "in_progress" | "completed" | "missed" | "failed";
+  duration_seconds: number | null;
+  recorded: boolean;
+  capture_id: string | null;
+  started_at: string;
 }
 
 /** Process bots (Phase 17). */
@@ -413,6 +466,20 @@ export interface Ctx {
     },
   ) => Promise<boolean>;
   deleteBot: (id: string) => Promise<boolean>;
+  /** The notetaker (Phase 18): calendars, and which meetings Sol joins. */
+  connectCalendar: (
+    companyId: string,
+    provider: CalendarConnection["provider"],
+  ) => Promise<boolean>;
+  disconnectCalendar: (id: string) => Promise<boolean>;
+  setMeetingRecording: (eventId: string, record: boolean, series?: boolean) => Promise<boolean>;
+  updateMinutesCap: (companyId: string, cap: number) => Promise<boolean>;
+  /** Calls (Phase 18). A real number is set up by the platform; the demo one never rings. */
+  addDemoPhoneNumber: (companyId: string) => Promise<boolean>;
+  updatePhoneSettings: (
+    companyId: string,
+    patch: { forward_to?: string; recording_notice?: string },
+  ) => Promise<boolean>;
   /** The inbox pipeline (Phase 14): ask Sol to deal with a message now, or close it. */
   processInboxItem: (id: string) => Promise<boolean>;
   closeInboxItem: (id: string, status?: "closed" | "spam") => Promise<boolean>;

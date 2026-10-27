@@ -34,6 +34,13 @@ import { demoImport, demoProcess } from "./demoInbox";
 import { demoCampaignDecided, demoCancelCampaign, demoPlanCampaign } from "./demoCampaigns";
 import { demoCreateBot, demoDeleteBot, demoUpdateBot } from "./demoBots";
 import {
+  demoAddPhoneNumber,
+  demoConnectCalendar,
+  demoDisconnectCalendar,
+  demoSetRecording,
+  demoUpdatePhone,
+} from "./demoCapture2";
+import {
   demoFeedbackRequest,
   demoListeningDecided,
   demoRequestFeedback,
@@ -906,6 +913,79 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
     },
     [db, isFounder],
   );
+  const connectCalendar = useCallback<Ctx["connectCalendar"]>(
+    async (cid, provider) => {
+      if (provider !== "mock") {
+        toast.error("In the demo, use the demo calendar");
+        return false;
+      }
+      setDb((d) => demoConnectCalendar(d, cid, user.id, uid("cal"), new Date()));
+      return true;
+    },
+    [user],
+  );
+  const disconnectCalendar = useCallback<Ctx["disconnectCalendar"]>(async (id) => {
+    setDb((d) => demoDisconnectCalendar(d, id));
+    return true;
+  }, []);
+  const setMeetingRecording = useCallback<Ctx["setMeetingRecording"]>(
+    async (id, record, series = false) => {
+      const r = demoSetRecording(db, id, record, series);
+      if ("error" in r) {
+        toast.error(r.error);
+        return false;
+      }
+      setDb(r.db);
+      return true;
+    },
+    [db],
+  );
+  const updateMinutesCap = useCallback<Ctx["updateMinutesCap"]>(
+    async (cid, cap) => {
+      if (!isFounder(cid)) return false;
+      if (!Number.isInteger(cap) || cap < 0 || cap > 1440) {
+        toast.error("Between 0 and 1,440 minutes a day");
+        return false;
+      }
+      setDb((d) => {
+        const cur = d.capture_settings.find((s) => s.company_id === cid) ?? {
+          company_id: cid,
+          keep_audio_days: 0,
+          auto_accept_own_notes: false,
+        };
+        return {
+          ...d,
+          capture_settings: [
+            ...d.capture_settings.filter((s) => s.company_id !== cid),
+            { ...cur, daily_minutes_cap: cap },
+          ],
+        };
+      });
+      return true;
+    },
+    [isFounder],
+  );
+  const addDemoPhoneNumber = useCallback<Ctx["addDemoPhoneNumber"]>(
+    async (cid) => {
+      if (!isFounder(cid)) return false;
+      setDb((d) => demoAddPhoneNumber(d, cid, uid, new Date()));
+      return true;
+    },
+    [isFounder],
+  );
+  const updatePhoneSettings = useCallback<Ctx["updatePhoneSettings"]>(
+    async (cid, patch) => {
+      if (!isFounder(cid)) return false;
+      const r = demoUpdatePhone(db, cid, patch);
+      if ("error" in r) {
+        toast.error(r.error);
+        return false;
+      }
+      setDb(r.db);
+      return true;
+    },
+    [db, isFounder],
+  );
   const updateListening = useCallback<Ctx["updateListening"]>(
     async (cid, patch) => {
       if (!isFounder(cid)) return false;
@@ -1403,6 +1483,12 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       createBot,
       updateBot,
       deleteBot,
+      connectCalendar,
+      disconnectCalendar,
+      setMeetingRecording,
+      updateMinutesCap,
+      addDemoPhoneNumber,
+      updatePhoneSettings,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,
@@ -1474,6 +1560,12 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       createBot,
       updateBot,
       deleteBot,
+      connectCalendar,
+      disconnectCalendar,
+      setMeetingRecording,
+      updateMinutesCap,
+      addDemoPhoneNumber,
+      updatePhoneSettings,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,
