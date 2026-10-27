@@ -254,3 +254,18 @@ Non-trivial decisions made during the autonomous build run (`docs/AUTONOMOUS-RUN
 
 ## D72. Only a founder approves a campaign plan
 - **Chosen:** the plan approval (`approve_campaign`) is founder-only in the executor, like budgets, because it commits the credit budget and starts outward-facing work. Each asset is then approved as usual.
+
+## D73. Feedback requests are opt-in on both sides
+- **Chosen:** the founder switches automatic requests on (off by default), and a request goes only to a contact whose current marketing permission is "granted", at most once every 90 days, as a marketing email (unsubscribe link, opt-outs skipped) that waits for a GO. Triggers: a lead marked won, or a booking enquiry answered, a set number of days before (default 2).
+- **Why:** SPEC says "opt-in"; ICO guidance treats customer-satisfaction emails as direct marketing when they promote anything, and the safe reading is to treat them as marketing. A manual request from a contact's timeline follows the same rules.
+
+## D74. Themes are computed, not stored
+- **Chosen:** themes come from a small keyword list (`themesFor` in `src/lib/listening.ts`) applied wherever the text is read (Grow, the brief), rather than a column filled at triage. Sentiment uses triage where it ran, otherwise the stars or the triage rules.
+- **Why:** anonymous feedback can't run TypeScript at insert time, a SQL copy would need parity tests, and recomputing lets the list improve without a backfill. A model-written summary can replace it later.
+
+## D75. Public replies always wait for a GO
+- **Chosen:** replies to comments and reviews are a separate action (`reply_public`) that is never sent automatically, whatever the response policy says. The executor treats an undecided one as blocked.
+- **Why:** a public reply can't be unsent from people's view and carries more reputational risk than a private email; the policy's auto-send was designed and tested for email.
+
+## D76. Listening uses the company's own Ayrshare profile
+- **Chosen:** comments are read only for posts Sol published through Ayrshare (their ids are known), and reviews from the linked Google Business Profile. No broad keyword listening, mentions or DMs (SPEC K, and their APIs need separate access and costs).

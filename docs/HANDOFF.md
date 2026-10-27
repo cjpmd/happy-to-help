@@ -84,3 +84,12 @@ Built: `agent-service/src/reconcile.ts` imports the organisation's daily usage b
 2. Set `ANTHROPIC_ADMIN_KEY` on the agent service. On the 1st of each month the worker imports the previous month.
 3. To check a period now: `cd agent-service && npm run reconcile -- 2026-10-01 2026-10-31`.
 4. Keep `model_prices` in line with Anthropic's price list, or the comparison will drift.
+
+## 8. Turn on listening (comments and Google reviews)
+
+Built: `syncListening` in `agent-service/src/integrations/index.ts` pulls new comments on the company's own recent posts and its Google Business reviews through Ayrshare every hour into the inbox, for companies whose founder switched them on (Grow → Listening). Public replies are `reply_public` approvals posted through Ayrshare after a GO. Without Ayrshare everything stays on the mock and nothing is read or posted. No broad keyword listening (SPEC K).
+
+1. Confirm on our Ayrshare plan which endpoints are available: Get Comments (`GET /api/comments/{id}`), Reply to Comment (`POST /api/comments/reply/{commentId}`), Get Reviews (`GET /api/reviews?platform=gmb`) and Reply to Review (`POST /api/reviews`). At the time of writing, comments and reviews need the Premium or Business plan, and reviews need the Google Business Profile linked to the company's Ayrshare profile. If the field names in the responses differ from `parseComments` / `parseReviews` in `agent-service/src/integrations/ayrshare.ts`, adjust those parsers (their tests are in `agent-service/test/listening.test.ts`). Mentions and DMs aren't read; Ayrshare's messaging API is a separate add-on.
+2. Complete section 6 (Social) for the company, then have the founder link Google Business Profile in Ayrshare's linking page.
+3. The founder switches on "Comments on your posts" and/or "Google reviews" in Grow → Listening.
+4. Feedback requests (Customers → Feedback) need no provider beyond email (section 6). Set `APP_URL` on the agent service to the app's public address so the scheduled requests link to `/fb/<token>` on it.

@@ -4,7 +4,13 @@ import type { Session } from "@supabase/supabase-js";
 import { getSupabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import type * as T from "../types";
-import { StoreCtx, type Ctx, type DB, type ImportResult } from "../storeContext";
+import {
+  StoreCtx,
+  type Ctx,
+  type DB,
+  type ImportResult,
+  type PublicFeedbackRequest,
+} from "../storeContext";
 import { useThemeState } from "../useThemeState";
 import { defaultPreferences, defaultSharing, type Preferences, type Sharing } from "../workspace";
 import type { ThemePref } from "../theme";
@@ -486,6 +492,62 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       )) !== false,
     [sb, call],
   );
+  const updateListening = useCallback<Ctx["updateListening"]>(
+    async (cid, patch) =>
+      (await call(
+        () =>
+          sb.rpc("update_listening_settings", {
+            p_company: cid,
+            ...(patch.social_comments !== undefined
+              ? { p_social_comments: patch.social_comments }
+              : {}),
+            ...(patch.reviews !== undefined ? { p_reviews: patch.reviews } : {}),
+            ...(patch.feedback_requests !== undefined
+              ? { p_feedback_requests: patch.feedback_requests }
+              : {}),
+            ...(patch.feedback_delay_days !== undefined
+              ? { p_feedback_delay_days: patch.feedback_delay_days }
+              : {}),
+          }),
+        ["listening"],
+      )) !== false,
+    [sb, call],
+  );
+  const requestFeedback = useCallback<Ctx["requestFeedback"]>(
+    async (contactId) => {
+      const r = await call(
+        () =>
+          sb.rpc("request_feedback", { p_contact: contactId, p_origin: window.location.origin }),
+        ["listening", "approvals"],
+      );
+      if (r === false) return false;
+      toast.success("Feedback request drafted. It's waiting for your GO.");
+      return true;
+    },
+    [sb, call],
+  );
+  const fetchFeedbackRequest = useCallback<Ctx["fetchFeedbackRequest"]>(
+    async (token) => {
+      const { data } = await sb.rpc("get_feedback_request", { p_token: token });
+      return (data as unknown as PublicFeedbackRequest | null) ?? null;
+    },
+    [sb],
+  );
+  const submitFeedback = useCallback<Ctx["submitFeedback"]>(
+    async (token, rating, comment) => {
+      const { data, error } = await sb.rpc("submit_feedback", {
+        p_token: token,
+        p_rating: rating,
+        p_comment: comment,
+      });
+      if (error) {
+        toast.error(error.message);
+        return false;
+      }
+      return data === true;
+    },
+    [sb],
+  );
   const addVoiceSource = useCallback<Ctx["addVoiceSource"]>(
     async (cid, kind, content) =>
       (await call(
@@ -949,6 +1011,10 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       closeInboxItem,
       planCampaign,
       cancelCampaign,
+      updateListening,
+      requestFeedback,
+      fetchFeedbackRequest,
+      submitFeedback,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,
@@ -1019,6 +1085,10 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       closeInboxItem,
       planCampaign,
       cancelCampaign,
+      updateListening,
+      requestFeedback,
+      fetchFeedbackRequest,
+      submitFeedback,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,

@@ -26,8 +26,8 @@ Restyle first, then the remaining Phase 1 groups, then the engine, then the v2 d
 | 9 | More skills and hardening | `phase-9-hardening` | Done |
 | 14 | Customers: inbox and contacts | `phase-14-inbox` | Done |
 | 15 | Campaigns | `phase-15-campaigns` | Done |
-| 16 | Listening | `phase-16-listening` | Next |
-| 17 | Process bots | `phase-17-bots` | |
+| 16 | Listening | `phase-16-listening` | Done |
+| 17 | Process bots | `phase-17-bots` | Next |
 | 18 | Capture v2: notetaker and calls (flagged) | `phase-18-capture-v2` | |
 | 19 | Paid ads management (flagged, off) | `phase-19-paid-ads` | |
 
@@ -188,6 +188,14 @@ Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, con
 - App: Grow → Campaigns (plan from a goal, progress against the target, assets with status, copy ad copy, cancel); the HQ Campaigns card shows the active campaign's progress. The demo runs the same flow (`src/lib/demoCampaigns.ts`).
 - Tests: `19_campaigns.test.sql` and the read matrix, `agent-service/test/campaigns.test.ts` (plan → GO → assets with tracked links → GO per asset → scheduled, with results; founder-only plan approval), `src/test/campaigns.test.ts`, `src/test/demoCampaigns.test.ts`.
 - **Mocked / owner steps:** publishing and sending go through the Phase 7 providers (mocked until keys are set, HANDOFF 6). Direct ad control is Phase 19 (off).
+
+### Phase 16 (finished 27 Oct 2026)
+
+- `20261031100000_listening_enums.sql` (the `reply_public` action) and `20261031100100_listening.sql`: conversations gain a channel (email, form, hub, social, review), platform, external id and rating, so comments and reviews flow through the Phase 14 inbox pipeline; `receive_listening_item` (service role, idempotent on the provider's id; comments and reviews only, no mentions); `listening_settings` (everything off by default, founder-only `update_listening_settings`); public replies in the claims check and editable like any draft; `feedback_requests` (unguessable token, never readable by the app) with `request_feedback`, the scheduler's `queue_due_feedback`, and the public `get_feedback_request` / `submit_feedback`; the Phase 12 `feedback` table now takes ratings.
+- Agent: an Ayrshare listening client (comments on our own posts, Google reviews) and replies, mocked without keys (HANDOFF 8); `syncListening` hourly in the worker; `get_inbox_item` says when a reply is public and gives the stars; `propose_reply` proposes a `reply_public` that always waits for a GO (D75); the executor posts it and records it in the conversation. The scheduler drafts feedback requests at 10:00 for customers won or bookings answered a few days ago (D73). The morning brief gains "what customers said this week" with its top themes.
+- App: Grow → Listening (sentiment by week, top themes, comments and reviews, what Sol listens to); Customers → Feedback (answers with stars, feedback-request settings and history); "Ask for feedback" on a contact's timeline; the public `/fb/<token>` page. Themes and the trend are computed in `src/lib/listening.ts` (D74). The demo has Harbour Bakes' reviews, comments and feedback, and runs the same rules.
+- Tests: `20_listening.test.sql` (service-only intake and dedupe, settings, reply edits, consent and frequency rules for requests, one answer per link, the daily pass), the read matrix and anonymous-function list, `agent-service/test/listening.test.ts` (parsers; sync → inbox once → triage by stars → public reply blocked without a GO → posted), `src/test/listening.test.ts`, `src/test/demoListening.test.ts`.
+- **Mocked / owner steps:** Ayrshare comments and reviews (plan and endpoints to confirm, HANDOFF 8). Facebook and Instagram DMs and mentions aren't read.
 
 ## Phase 0 audit and Phase 1 history
 

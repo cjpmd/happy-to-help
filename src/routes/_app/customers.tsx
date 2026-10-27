@@ -8,6 +8,7 @@ import { LeadsList } from "@/components/mission/LinkLayer";
 import { marketingLabel } from "@/lib/links";
 import { PageHeader, Panel, Pill, humanise } from "@/components/mission/primitives";
 import { ContactTimeline } from "@/components/mission/ContactTimeline";
+import { FeedbackPage } from "@/components/mission/Listening";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { InboxItem } from "@/lib/storeContext";
 import { Button } from "@/components/ui/button";
@@ -53,7 +54,7 @@ function Customers() {
           { value: "inbox", label: "Inbox", content: <Inbox /> },
           { value: "leads", label: "Leads", content: <LeadsList /> },
           { value: "contacts", label: "Contacts", content: <Contacts /> },
-          { value: "feedback", label: "Feedback", content: <Feedback /> },
+          { value: "feedback", label: "Feedback", content: <FeedbackPage /> },
           { value: "voice", label: "Voice & policy", content: <VoiceAndPolicy /> },
         ]}
       />
@@ -321,17 +322,6 @@ function Contacts() {
         </table>
       </div>
       <ContactTimeline contactId={open} onClose={() => setOpen(null)} />
-    </Panel>
-  );
-}
-
-function Feedback() {
-  return (
-    <Panel title="Feedback">
-      <p className="text-sm text-muted-foreground">
-        When customers reply to a feedback request or leave a review, Sol sums up the themes and how
-        people feel here, and in your morning brief.
-      </p>
     </Panel>
   );
 }

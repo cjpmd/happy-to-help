@@ -277,6 +277,11 @@ export function mapEmails(
     name: t.contact_name,
     address: t.address,
     mode: t.mode,
+    // Checked by the table's constraint.
+    channel: t.channel as EmailThread["channel"] & string,
+    platform: t.platform,
+    rating: t.rating,
+    external_url: t.external_url,
     messages: messages
       .filter((m) => m.thread_id === t.id)
       .sort((a, b) => a.created_at.localeCompare(b.created_at))

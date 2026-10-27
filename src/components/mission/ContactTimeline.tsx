@@ -1,5 +1,6 @@
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
-import { useStore } from "@/lib/store";
+import { Button } from "@/components/ui/button";
+import { useCompanyRole, useStore } from "@/lib/store";
 import { contactTimeline, type TimelineEvent } from "@/lib/inbox";
 import { marketingLabel } from "@/lib/links";
 import { fmtDateTime } from "@/lib/format";
@@ -23,7 +24,8 @@ export function ContactTimeline({
   contactId: string | null;
   onClose: () => void;
 }) {
-  const { db } = useStore();
+  const { db, requestFeedback } = useStore();
+  const role = useCompanyRole(db.contacts.find((x) => x.id === contactId)?.company_id);
   const c = db.contacts.find((x) => x.id === contactId);
   const events = c
     ? contactTimeline({
@@ -31,7 +33,12 @@ export function ContactTimeline({
         threads: db.emails.filter((t) => t.company_id === c.company_id),
         leads: db.leads.filter((l) => l.contact_id === c.id),
         consents: [],
-        feedback: [],
+        feedback: db.feedback
+          .filter((f) => f.contact_id === c.id)
+          .map((f) => ({
+            body: f.rating ? `${f.rating} out of 5${f.body ? `: ${f.body}` : ""}` : f.body,
+            created_at: f.created_at,
+          })),
         promises: db.commitments
           .filter((p) => p.contact_id === c.id)
           .map((p) => ({ what: p.what, due_date: p.due_date, created_at: p.created_at })),
@@ -53,6 +60,16 @@ export function ContactTimeline({
           {c?.email} · {c?.kind === "customer" ? "Customer" : "Lead"} · Marketing:{" "}
           {marketingLabel(marketing)}
         </SheetDescription>
+        {c && (role === "founder" || role === "teammate") && marketing?.status === "granted" ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3"
+            onClick={() => void requestFeedback(c.id)}
+          >
+            Ask for feedback
+          </Button>
+        ) : null}
         <ol className="mt-4 space-y-3">
           {events.map((e, i) => (
             <li key={i} className="border-l-2 pl-3">

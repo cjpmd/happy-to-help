@@ -315,6 +315,34 @@ export const loaders = {
       campaign_results: must(results, "campaign results") as unknown as DB["campaign_results"],
     };
   },
+  listening: async (sb) => {
+    const [settings, feedback, requests] = await Promise.all([
+      sb.from("listening_settings").select("*"),
+      sb
+        .from("feedback")
+        .select("id, company_id, contact_id, source, body, rating, sentiment, created_at")
+        .order("created_at", { ascending: false })
+        .limit(RECENT),
+      sb
+        .from("feedback_requests")
+        .select("id, company_id, contact_id, trigger, status, created_at, responded_at")
+        .order("created_at", { ascending: false })
+        .limit(RECENT),
+    ]);
+    return {
+      listening_settings: must(settings, "listening settings").map((s) => ({
+        company_id: s.company_id,
+        social_comments: s.social_comments,
+        reviews: s.reviews,
+        feedback_requests: s.feedback_requests,
+        feedback_delay_days: s.feedback_delay_days,
+        last_synced_at: s.last_synced_at,
+      })),
+      // Sources, sentiments, triggers and statuses are checked by the tables' constraints.
+      feedback: must(feedback, "feedback") as unknown as DB["feedback"],
+      feedback_requests: must(requests, "feedback requests") as unknown as DB["feedback_requests"],
+    };
+  },
   settings: async (sb, userId) => {
     const [prefs, layout, sharing, invites] = await Promise.all([
       sb.from("user_preferences").select("*").maybeSingle(),
@@ -366,6 +394,8 @@ export const TABLE_GROUPS: Partial<Record<keyof Database["public"]["Tables"], Gr
   inbox_items: "inbox",
   campaigns: "campaigns",
   campaign_assets: "campaigns",
+  listening_settings: "listening",
+  feedback: "listening",
 };
 
 export async function loadGroups(sb: Client, userId: string, groups: Group[]) {
@@ -425,6 +455,9 @@ export function emptyDb(): DB {
     campaigns: [],
     campaign_assets: [],
     campaign_results: [],
+    listening_settings: [],
+    feedback: [],
+    feedback_requests: [],
     routines: [],
     documents: [],
     media: [],

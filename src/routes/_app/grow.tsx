@@ -3,6 +3,7 @@ import { RouteTabs } from "@/components/mission/RouteTabs";
 import { AdsPage, MediaPage } from "@/components/mission/WorkspacePages";
 import { LinksPage } from "@/components/mission/LinkLayer";
 import { CampaignsPage } from "@/components/mission/Campaigns";
+import { ListeningPage } from "@/components/mission/Listening";
 import { useStore, useEstimate } from "@/lib/store";
 import { PageHeader, Panel, Pill, StatusPill } from "@/components/mission/primitives";
 import { ClaimsCheck, CostButton, Why } from "@/components/mission/WorkControls";
@@ -10,12 +11,12 @@ import { pageHead } from "@/lib/seo";
 import { fmtShortDate, num } from "@/lib/format";
 import type { ApprovalOf, SocialPost } from "@/lib/types";
 
-type GrowTab = "overview" | "campaigns" | "media" | "ads" | "links";
-const GROW_TABS: GrowTab[] = ["overview", "campaigns", "media", "ads", "links"];
+type GrowTab = "overview" | "campaigns" | "listening" | "media" | "ads" | "links";
+const GROW_TABS: GrowTab[] = ["overview", "campaigns", "listening", "media", "ads", "links"];
 
 export const Route = createFileRoute("/_app/grow")({
   head: () => pageHead("Grow", "Content calendar and results for every social channel."),
-  // ?tab=campaigns|media|ads|links; the overview has no param.
+  // ?tab=campaigns|listening|media|ads|links; the overview has no param.
   validateSearch: (search: Record<string, unknown>): { tab?: Exclude<GrowTab, "overview"> } =>
     GROW_TABS.includes(search["tab"] as GrowTab) && search["tab"] !== "overview"
       ? { tab: search["tab"] as Exclude<GrowTab, "overview"> }
@@ -52,6 +53,7 @@ function Grow() {
         tabs={[
           { value: "overview", label: "Posts", content: <GrowOverview /> },
           { value: "campaigns", label: "Campaigns", content: <CampaignsPage /> },
+          { value: "listening", label: "Listening", content: <ListeningPage /> },
           { value: "media", label: "Media", content: <MediaPage embedded /> },
           { value: "ads", label: "Ads", content: <AdsPage embedded /> },
           { value: "links", label: "Links & forms", content: <LinksPage /> },

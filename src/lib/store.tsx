@@ -23,7 +23,7 @@ import {
 import { STAGE_ORDER, defaultGates } from "./mission";
 import { isLiveMode } from "@/integrations/supabase/client";
 import { LiveStoreProvider } from "./live/LiveStoreProvider";
-import { StoreCtx, labelFor, type Ctx, type DB } from "./storeContext";
+import { DEFAULT_LISTENING, StoreCtx, labelFor, type Ctx, type DB } from "./storeContext";
 import { demoDb, isValidLayout } from "./demoDb";
 import { useThemeState } from "./useThemeState";
 import { analyseVoice } from "./voice";
@@ -32,6 +32,12 @@ import { captureEstimate } from "./capture";
 import { demoSubmitLead } from "./demoLinks";
 import { demoImport, demoProcess } from "./demoInbox";
 import { demoCampaignDecided, demoCancelCampaign, demoPlanCampaign } from "./demoCampaigns";
+import {
+  demoFeedbackRequest,
+  demoListeningDecided,
+  demoRequestFeedback,
+  demoSubmitFeedback,
+} from "./demoListening";
 import { taggedUrl, type PublicHub } from "./links";
 import { demoAcceptAll, demoCreateCapture, demoDecideItem, type DemoCtx } from "./demoCapture";
 
@@ -218,7 +224,8 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
             ...d.activity_events,
           ],
         };
-        return demoCampaignDecided(next, a, approved, { now: new Date(), uid });
+        const ctx = { now: new Date(), uid };
+        return demoListeningDecided(demoCampaignDecided(next, a, approved, ctx), a, approved, ctx);
       });
       return true;
     },
@@ -229,7 +236,7 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
     async (id: string, changes: Record<string, string>) => {
       const a = db.approvals.find((x) => x.id === id);
       const allowed =
-        a?.action_type === "publish_post"
+        a?.action_type === "publish_post" || a?.action_type === "reply_public"
           ? ["text"]
           : a?.action_type === "send_email"
             ? ["subject", "body"]
@@ -811,6 +818,32 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
     }));
     return true;
   }, []);
+  const requestFeedback = useCallback<Ctx["requestFeedback"]>(
+    async (contactId) => {
+      const r = demoRequestFeedback(db, contactId, user.id, { now: new Date(), uid });
+      if ("error" in r) {
+        toast.error(r.error);
+        return false;
+      }
+      setDb(r.db);
+      toast.success("Feedback request drafted. It's waiting for your GO.");
+      return true;
+    },
+    [db, user],
+  );
+  const fetchFeedbackRequest = useCallback<Ctx["fetchFeedbackRequest"]>(
+    async (token) => demoFeedbackRequest(db, token),
+    [db],
+  );
+  const submitFeedback = useCallback<Ctx["submitFeedback"]>(
+    async (token, rating, comment) => {
+      const next = demoSubmitFeedback(db, token, rating, comment, { now: new Date(), uid });
+      if (!next) return false;
+      setDb(next);
+      return true;
+    },
+    [db],
+  );
   const planCampaign = useCallback<Ctx["planCampaign"]>(async (cid, goal) => {
     if (!goal.trim()) return false;
     setDb((d) => demoPlanCampaign(d, cid, goal, { now: new Date(), uid }));
@@ -830,10 +863,31 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       const ok = db.company_members.some(
         (m) => m.company_id === cid && m.user_id === userId && m.role === "founder",
       );
+
       if (!ok) toast.error("Only a founder can change this");
       return ok;
     },
     [db.company_members, userId],
+  );
+  const updateListening = useCallback<Ctx["updateListening"]>(
+    async (cid, patch) => {
+      if (!isFounder(cid)) return false;
+      setDb((d) => {
+        const old = d.listening_settings.find((s) => s.company_id === cid) ?? {
+          company_id: cid,
+          ...DEFAULT_LISTENING,
+        };
+        return {
+          ...d,
+          listening_settings: [
+            ...d.listening_settings.filter((s) => s.company_id !== cid),
+            { ...old, ...patch },
+          ],
+        };
+      });
+      return true;
+    },
+    [isFounder],
   );
   // The demo learns from the company's own sent emails, like the mock agent run does.
   const learnVoice = useCallback<Ctx["learnVoice"]>(
@@ -1305,6 +1359,10 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       closeInboxItem,
       planCampaign,
       cancelCampaign,
+      updateListening,
+      requestFeedback,
+      fetchFeedbackRequest,
+      submitFeedback,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,
@@ -1369,6 +1427,10 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       closeInboxItem,
       planCampaign,
       cancelCampaign,
+      updateListening,
+      requestFeedback,
+      fetchFeedbackRequest,
+      submitFeedback,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,

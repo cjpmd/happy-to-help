@@ -172,6 +172,8 @@ function approvalLabel(a: Approval) {
       return "Memory";
     case "approve_campaign":
       return "Campaign";
+    case "reply_public":
+      return `${a.payload.platform} ${a.payload.kind} reply`;
   }
 }
 
@@ -193,6 +195,8 @@ function approvalTitle(a: Approval) {
       return "Remember this";
     case "approve_campaign":
       return a.payload.name;
+    case "reply_public":
+      return `Reply to a ${a.payload.kind}`;
   }
 }
 
@@ -214,6 +218,8 @@ function approvalPreview(a: Approval) {
       return a.payload.fact;
     case "approve_campaign":
       return `${a.payload.target} · ${a.payload.dates}`;
+    case "reply_public":
+      return a.payload.text;
   }
 }
 

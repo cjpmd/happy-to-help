@@ -67,6 +67,10 @@ export type DB = WorkspaceDB & {
   campaigns: Campaign[];
   campaign_assets: CampaignAsset[];
   campaign_results: { campaign_id: string; clicks: number; leads: number; customers: number }[];
+  /** Phase 16: what Sol listens to, what customers said, and the feedback requests sent. */
+  listening_settings: ListeningSettings[];
+  feedback: Feedback[];
+  feedback_requests: FeedbackRequest[];
   /** Phase 14: every message that came in, and what Sol did with it. */
   inbox_items: InboxItem[];
   /** Phase 8: Auto Mode sessions, what Sol does on its own, and the morning briefs. */
@@ -205,6 +209,43 @@ export interface CampaignAsset {
   approval_id: string | null;
 }
 
+/** Listening (Phase 16). Everything is off until a founder switches it on. */
+export interface ListeningSettings {
+  company_id: string;
+  social_comments: boolean;
+  reviews: boolean;
+  feedback_requests: boolean;
+  feedback_delay_days: number;
+  last_synced_at: string | null;
+}
+export interface Feedback {
+  id: string;
+  company_id: string;
+  contact_id: string | null;
+  source: "capture" | "email" | "review" | "social" | "form" | "request";
+  body: string;
+  rating: number | null;
+  sentiment: "positive" | "neutral" | "negative" | null;
+  created_at: string;
+}
+export interface FeedbackRequest {
+  id: string;
+  company_id: string;
+  contact_id: string;
+  trigger: "purchase" | "booking" | "manual";
+  status: "awaiting_approval" | "sent" | "responded" | "declined";
+  created_at: string;
+  responded_at: string | null;
+  /** The demo only: the live token never leaves the server. */
+  token?: string;
+}
+/** What the public feedback page shows. */
+export interface PublicFeedbackRequest {
+  company: string;
+  name: string;
+  done: boolean;
+}
+
 /** What a consent-checked import did (Phase 14). */
 export interface ImportResult {
   added: number;
@@ -307,6 +348,16 @@ export interface Ctx {
   /** Campaigns (Phase 15): Sol plans one towards a goal; a founder can cancel one. */
   planCampaign: (companyId: string, goal: string) => Promise<boolean>;
   cancelCampaign: (id: string) => Promise<boolean>;
+  /** Listening (Phase 16): founders choose what Sol listens to. */
+  updateListening: (
+    companyId: string,
+    patch: Partial<Omit<ListeningSettings, "company_id" | "last_synced_at">>,
+  ) => Promise<boolean>;
+  /** Asks a customer who opted in for feedback; the email waits for a GO. */
+  requestFeedback: (contactId: string) => Promise<boolean>;
+  /** The public feedback page (anyone with the link). */
+  fetchFeedbackRequest: (token: string) => Promise<PublicFeedbackRequest | null>;
+  submitFeedback: (token: string, rating: number, comment: string) => Promise<boolean>;
   /** The inbox pipeline (Phase 14): ask Sol to deal with a message now, or close it. */
   processInboxItem: (id: string) => Promise<boolean>;
   closeInboxItem: (id: string, status?: "closed" | "spam") => Promise<boolean>;
@@ -474,6 +525,8 @@ export function labelFor(a: T.Approval) {
       return `memory: ${a.payload.fact}`;
     case "approve_campaign":
       return `campaign plan: ${a.payload.name}`;
+    case "reply_public":
+      return `reply to a ${a.payload.platform} ${a.payload.kind}`;
   }
 }
 
@@ -549,3 +602,11 @@ export function personName(db: Pick<DB, "profiles">, id: string | null | undefin
   if (!id) return "";
   return db.profiles.find((p) => p.id === id)?.full_name ?? "Someone";
 }
+
+export const DEFAULT_LISTENING: Omit<ListeningSettings, "company_id"> = {
+  social_comments: false,
+  reviews: false,
+  feedback_requests: false,
+  feedback_delay_days: 2,
+  last_synced_at: null,
+};

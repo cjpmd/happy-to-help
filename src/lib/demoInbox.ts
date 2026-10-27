@@ -3,6 +3,7 @@
 import type { DB, ImportResult, InboxItem, ContactRow } from "./storeContext";
 import type { EmailThread } from "./workspace";
 import { decideMode, draftReply, triageMessage } from "./inbox";
+import { draftPublicReply, reviewTriage } from "./listening";
 import { currentVoice, type PolicyCategory } from "./voicePolicy";
 
 /** Threads whose last message is from the customer become inbox items. */
@@ -15,7 +16,7 @@ export function demoInboxItems(emails: EmailThread[]): InboxItem[] {
       id: `inbox-${t.id}`,
       company_id: t.company_id,
       thread_id: t.id,
-      channel: "email",
+      channel: t.channel ?? "email",
       contact_id: null,
       status: "new",
       category: null,
@@ -39,7 +40,7 @@ export function demoProcess(
   const thread = item && db.emails.find((t) => t.id === item.thread_id);
   if (!item || !thread) return db;
   const last = thread.messages.filter((m) => m.direction === "received").pop();
-  const t = triageMessage(thread.subject, last?.text ?? "");
+  const t = reviewTriage(triageMessage(thread.subject, last?.text ?? ""), thread.rating ?? null);
   const policy =
     db.response_policies.find((p) => p.company_id === item.company_id && p.category === t.category)
       ?.mode ?? "draft";
@@ -65,6 +66,44 @@ export function demoProcess(
       ),
     };
   const company = db.companies.find((c) => c.id === item.company_id);
+  if (thread.channel === "social" || thread.channel === "review") {
+    // Public replies always wait for a GO (D75).
+    const approvalId = ctx.uid("a");
+    return {
+      ...db,
+      approvals: [
+        {
+          id: approvalId,
+          company_id: item.company_id,
+          run_id: null,
+          action_type: "reply_public",
+          payload: {
+            platform: thread.platform ?? "",
+            kind: thread.channel === "review" ? "review" : "comment",
+            external_id: thread.id,
+            text: draftPublicReply({
+              name: thread.name,
+              category: t.category as PolicyCategory,
+              company: company?.name ?? "",
+            }),
+            thread_id: thread.id,
+            inbox_item_id: item.id,
+            reason:
+              thread.channel === "review"
+                ? "A public reply to a review, in your voice."
+                : "A public reply to a comment on your post.",
+          },
+          estimated_credits: 5,
+          status: "pending",
+          created_at: ctx.now.toISOString(),
+        },
+        ...db.approvals,
+      ],
+      inbox_items: db.inbox_items.map((i) =>
+        i.id === id ? { ...base, status: "awaiting_approval", approval_id: approvalId } : i,
+      ),
+    };
+  }
   const body = draftReply({
     name: thread.name,
     category: t.category as PolicyCategory,

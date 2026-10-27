@@ -1,5 +1,15 @@
 import { useState } from "react";
-import { Megaphone, Mail, PoundSterling, FileText, Globe, Mic, Brain, Target } from "lucide-react";
+import {
+  Megaphone,
+  Mail,
+  PoundSterling,
+  FileText,
+  Globe,
+  Mic,
+  Brain,
+  Target,
+  MessageCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useStore, labelFor, useClaimsCheck, useCompanyRole, personName } from "@/lib/store";
@@ -20,6 +30,7 @@ const icons = {
   update_voice: Mic,
   update_memory: Brain,
   approve_campaign: Target,
+  reply_public: MessageCircle,
 };
 const titles = {
   publish_post: "Publish a post",
@@ -30,6 +41,7 @@ const titles = {
   update_voice: "Adopt a new brand voice",
   update_memory: "Remember this",
   approve_campaign: "Approve a campaign plan",
+  reply_public: "Reply in public",
 };
 
 function Preview({ a }: { a: Approval }) {
@@ -107,6 +119,15 @@ function Preview({ a }: { a: Approval }) {
           {row("Budget", a.payload.budget)}
         </div>
       );
+    case "reply_public":
+      return (
+        <div className="space-y-2">
+          {row("Where", `${a.payload.platform} ${a.payload.kind}`)}
+          <p className="whitespace-pre-line rounded-tile bg-soft p-3 text-sm leading-relaxed shadow-tile">
+            {a.payload.text}
+          </p>
+        </div>
+      );
   }
 }
 
@@ -128,6 +149,8 @@ function summary(a: Approval) {
       return a.payload.fact;
     case "approve_campaign":
       return a.payload.name;
+    case "reply_public":
+      return a.payload.text;
   }
 }
 
@@ -148,7 +171,9 @@ export function ApprovalCard({
     a.status === "pending" &&
     !readOnly &&
     role !== "viewer" &&
-    (a.action_type === "publish_post" || a.action_type === "send_email");
+    (a.action_type === "publish_post" ||
+      a.action_type === "send_email" ||
+      a.action_type === "reply_public");
   const [editing, setEditing] = useState(false);
   const Icon = icons[a.action_type];
   // The toast only follows a decision that really happened (bug B1).
@@ -259,7 +284,7 @@ function DraftEditor({ a, onDone }: { a: Approval; onDone: () => void }) {
   const [body, setBody] = useState(
     a.action_type === "send_email"
       ? a.payload.body
-      : a.action_type === "publish_post"
+      : a.action_type === "publish_post" || a.action_type === "reply_public"
         ? a.payload.text
         : "",
   );
