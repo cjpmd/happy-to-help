@@ -1,6 +1,7 @@
 import { useStore } from "@/lib/store";
 import { fmtDate, gbp, num } from "@/lib/format";
 import { Panel, Readout, StatusPill } from "./primitives";
+import { PlanEvidence } from "./SkillButtons";
 
 /** The evidence board: what the founder believes, what they've tested, what customers said. */
 export function EvidenceBoard({ companyId }: { companyId: string }) {
@@ -13,6 +14,7 @@ export function EvidenceBoard({ companyId }: { companyId: string }) {
     { count: number; value_gbp: number } | undefined;
   return (
     <div className="flex flex-col gap-3.5">
+      <PlanEvidence />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {(
           [

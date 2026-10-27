@@ -83,6 +83,9 @@ begin
   execute format('select exists (select 1 from public.%I where company_id = $1)', p_table)
     into found using p_company;
   return found;
+exception when insufficient_privilege then
+  -- Tables only the service role can read.
+  return false;
 end;
 $$;
 
@@ -141,6 +144,7 @@ declare
   approval uuid;
   doc uuid;
   thread uuid;
+  cap uuid;
 begin
   foreach c in array array[pg_temp.id('company_a'), pg_temp.id('company_b')]
   loop
@@ -176,6 +180,61 @@ begin
     insert into public.email_messages (thread_id, company_id, direction, body) values (thread, c, 'received', 'Hi there');
     insert into public.ad_accounts (company_id) values (c);
     insert into public.company_sharing (company_id, enabled) values (c, c = pg_temp.id('company_b'));
+    insert into public.voice_sources (company_id, kind, content, added_by) values (c, 'email', 'Thanks for your order!', founder_id);
+    insert into public.voice_examples (company_id, situation, body, added_by) values (c, 'praise', 'Thank you so much!', founder_id);
+    insert into public.voice_edit_events (company_id, approval_id, channel, original, final, edited_by)
+      values (c, approval, 'social_post', 'Hello', 'Hello there', founder_id);
+    insert into public.capture_settings (company_id) values (c);
+    insert into public.captures (company_id, source, consent, status, created_by)
+      values (c, 'debrief', 'own_voice', 'review', founder_id) returning id into cap;
+    insert into public.transcripts (capture_id, company_id, text, provider) values (cap, c, 'We agreed to launch.', 'typed');
+    insert into public.extracted_items (capture_id, company_id, kind, text, confidence) values (cap, c, 'decision', 'Launch', 0.9);
+    insert into public.ideas (company_id, title) values (c, 'A podcast');
+    insert into public.commitments (company_id, to_name, what, due_date) values (c, 'Jo', 'Send the deck', '2026-11-01');
+    insert into public.feedback (company_id, source, body) values (c, 'capture', 'Loved it');
+    insert into public.memory_facts (company_id, fact) values (c, 'We open at 8');
+    insert into public.tracked_links (company_id, code, destination, label, channel)
+      values (c, case when c = pg_temp.id('company_a') then 'AAAAAAAA' else 'BBBBBBBB' end, 'https://example.com', 'Bio', 'instagram');
+    insert into public.link_clicks (link_id, company_id) select id, c from public.tracked_links where company_id = c;
+    insert into public.consents (company_id, contact_id, purpose, status, lawful_basis, source)
+      select c, id, 'service', 'granted', 'legitimate_interests', 'form' from public.contacts where company_id = c;
+    insert into public.leads (company_id, contact_id) select c, id from public.contacts where company_id = c;
+    insert into public.stripe_customers (company_id, customer_id) values (c, 'cus_' || c);
+    insert into public.subscriptions (company_id, subscription_id, customer_id, status) values (c, 'sub_' || c, 'cus_' || c, 'active');
+    insert into public.stripe_events (id, type, company_id) values ('evt_' || c, 'invoice.paid', c);
+    insert into public.integration_settings (company_id, provider) values (c, 'resend');
+    insert into public.integration_secrets (company_id, provider, secret) values (c, 'ayrshare', 'profile-key');
+    insert into public.company_automation (company_id) values (c);
+    insert into public.schedule_runs (kind, company_id, period_key) values ('routine', c, '2026-10-27');
+    insert into public.briefs (company_id, brief_date, content) values (c, '2026-10-27', 'Good morning.');
+    insert into public.auto_sessions (company_id, ends_at, cap_credits, status) values (c, now() + interval '1 hour', 100, 'finished');
+    insert into public.error_events (source, message, company_id) values ('worker', 'Fixture error', c);
+    insert into public.campaigns (company_id, name, goal, target, channels, starts_on, ends_on)
+      values (c, 'Autumn push', 'More signups', 20, '{instagram}', '2026-11-01', '2026-11-14');
+    insert into public.campaign_assets (campaign_id, company_id, kind, channel, body)
+      select id, c, 'social_post', 'instagram', 'Hello' from public.campaigns where company_id = c;
+    insert into public.listening_settings (company_id) values (c);
+    insert into public.feedback_requests (company_id, contact_id, trigger)
+      select c, id, 'manual' from public.contacts where company_id = c;
+    insert into public.bots (company_id, template, name, trigger, steps)
+      select c, key, name, trigger, steps from public.bot_templates where key = 'weekly_summary';
+    insert into public.bot_runs (bot_id, company_id, step, due_at)
+      select id, c, 0, now() from public.bots where company_id = c;
+    insert into public.calendar_connections (company_id, user_id, provider)
+      select c, user_id, 'mock' from public.company_members where company_id = c and role = 'founder' limit 1;
+    insert into public.calendar_events (company_id, connection_id, external_id, series_id, title, starts_at, ends_at, meeting_url)
+      select c, id, 'ev1', 'series1', 'Stand-up', now() + interval '1 day', now() + interval '1 day 30 minutes', 'https://meet.example/x'
+      from public.calendar_connections where company_id = c;
+    insert into public.notetaker_series (connection_id, series_id, company_id)
+      select id, 'series0', c from public.calendar_connections where company_id = c;
+    insert into public.phone_numbers (company_id, number, provider)
+      values (c, case when c = pg_temp.id('company_a') then '+447700900101' else '+447700900102' end, 'mock');
+    insert into public.call_sessions (company_id, external_id, from_number, to_number)
+      values (c, 'CA-' || c::text, '+447700900201', '+447700900101');
+    insert into public.ad_campaigns (company_id, platform, name, creative, daily_budget)
+      values (c, 'meta', 'Fixture ad', 'Hello', 5);
+    insert into public.ad_spend_daily (ad_campaign_id, company_id, day, spend_gbp)
+      select id, c, '2026-10-01', 1 from public.ad_campaigns where company_id = c;
   end loop;
 end;
 $$;

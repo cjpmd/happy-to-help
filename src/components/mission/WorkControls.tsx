@@ -9,9 +9,9 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { useBalance, useCompany, useStore } from "@/lib/store";
+import { useBalance, useClaimsCheck, useStore } from "@/lib/store";
 import { actionQuote } from "@/lib/credits";
-import { checkClaims, defaultPreferences, type Proof, hasProof } from "@/lib/workspace";
+import { defaultPreferences, type Proof, hasProof } from "@/lib/workspace";
 import { Pill } from "./primitives";
 export function Why({
   reason = "This action advances the next company milestone. The current company records and customer feedback inform the draft.",
@@ -33,9 +33,8 @@ export function Why({
     </details>
   );
 }
-export function ClaimsCheck({ text }: { text: string }) {
-  const c = useCompany();
-  const flags = checkClaims(text, c.sector);
+export function ClaimsCheck({ text, companyId }: { text: string; companyId?: string }) {
+  const flags = useClaimsCheck(companyId)(text);
   let cursor = 0;
   const fragments: ReactNode[] = [];
   for (const f of flags) {
@@ -91,7 +90,7 @@ export function CostButton({
   variant?: "default" | "outline";
 }) {
   const balance = useBalance();
-  const { solTyping } = useStore();
+  const { solTyping, mode } = useStore();
   const q = actionQuote(balance, cost);
   const [open, setOpen] = useState(false);
   return (
@@ -121,7 +120,7 @@ export function CostButton({
               {q.affordable
                 ? `${q.after.toLocaleString("en-GB")} CR left after`
                 : `${cost - balance} CR more needed`}
-              . Demo work only.
+              .{mode === "demo" ? " Demo work only." : ""}
             </DialogDescription>
           </DialogHeader>
           {q.affordable ? (

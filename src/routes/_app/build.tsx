@@ -15,18 +15,13 @@ export const Route = createFileRoute("/_app/build")({
 
 function Build() {
   const { db, companyId } = useStore();
-  const runs = db.agent_runs.filter((r) => r.company_id === companyId && r.pillar === "build");
   const pending = db.approvals.filter(
     (a) => a.company_id === companyId && a.status === "pending" && a.action_type === "publish_site",
   );
-  const versions = runs
-    .filter((r) => r.status === "succeeded")
-    .map((r, i) => ({
-      v: `v0.${9 - i}`,
-      what: r.task,
-      when: r.finished_at ?? r.started_at ?? "2026-10-21T00:00:00Z",
-    }));
-  versions.push({ v: "v0.8", what: "Quiz engine and landing page", when: "2026-10-08T03:00:00Z" });
+  const versions = db.site_versions
+    .filter((v) => v.company_id === companyId)
+    .sort((a, b) => b.published_at.localeCompare(a.published_at))
+    .map((v) => ({ v: v.version, what: v.summary, when: v.published_at }));
   return (
     <div>
       <PageHeader
@@ -54,6 +49,11 @@ function Build() {
         </Panel>
         <Panel title="Versions" bodyClassName="p-0">
           <ul>
+            {!versions.length && (
+              <li className="p-4 text-sm text-muted-foreground">
+                No versions yet. Sol's first build appears here once you approve it.
+              </li>
+            )}
             {versions.map((v) => (
               <li key={v.v} className="flex items-center gap-3 border-b px-4 py-3 last:border-0">
                 <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{v.v}</code>
@@ -99,8 +99,8 @@ export function TaskList({ pillar, companyId }: { pillar: string; companyId: str
               <Button
                 size="sm"
                 variant="outline"
-                disabled={!hasProof(t.proof)}
-                onClick={() => markDone(t.id)}
+                disabled={(t.actor ?? "sol") === "sol" && !hasProof(t.proof)}
+                onClick={() => void markDone(t.id)}
               >
                 Mark done
               </Button>

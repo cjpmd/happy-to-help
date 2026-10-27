@@ -20,8 +20,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { useStore, useCompany, useBalance } from "@/lib/store";
-import { ACTION_COSTS, actionQuote } from "@/lib/credits";
+import { useStore, useCompany, useBalance, useEstimate, useCompanyRole } from "@/lib/store";
+import { FLAGS } from "@/lib/flags";
+import { actionQuote } from "@/lib/credits";
 import type { ThemePref } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import {
@@ -31,9 +32,13 @@ import {
   type Routine,
   type Preferences,
 } from "@/lib/workspace";
-import { gbp } from "@/lib/format";
+import { fmtDateTime, gbp } from "@/lib/format";
 import { PageHeader, Pill, StatusPill } from "./primitives";
 import { CostButton, ClaimsCheck, Why } from "./WorkControls";
+import { IntegrationsSection } from "./Integrations";
+import { AutomationPanel } from "./Automation";
+import { PlatformHealthSection } from "./PlatformHealth";
+import { nextRun } from "@/lib/schedule";
 
 const selectClass = "h-9 rounded-md border bg-background px-2 text-sm";
 /** A page's title, or just its description when it's shown inside another page's tab. */
@@ -51,7 +56,7 @@ function Heading({
 }
 
 export function RoutinesPage({ embedded }: { embedded?: boolean }) {
-  const { db, companyId, addRoutine, toggleRoutine } = useStore();
+  const { db, companyId, addRoutine, toggleRoutine, mode, now } = useStore();
   const balance = useBalance();
   const [title, setTitle] = useState("");
   const [cadence, setCadence] = useState<Routine["cadence"]>("weekdays");
@@ -99,18 +104,25 @@ export function RoutinesPage({ embedded }: { embedded?: boolean }) {
                   <p className="mt-1 text-xs text-muted-foreground capitalize">
                     {r.cadence} · ≈ {r.credits} credits / run · ≈ {cost} / month
                   </p>
+                  {r.enabled && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Next:{" "}
+                      {fmtDateTime(nextRun(r.cadence, r.run_at ?? "07:00", now).toISOString())}
+                      {r.last_run_at ? ` · last ran ${fmtDateTime(r.last_run_at)}` : ""}
+                    </p>
+                  )}
                   <Why reason="A recurring small task keeps progress consistent without a large one-off push. The selected cadence and per-run estimate determine the monthly budget." />
                 </div>
                 <div>
                   <Pill tone={r.enabled ? "success" : "neutral"}>
-                    {r.enabled ? "Enabled in demo" : "Paused"}
+                    {r.enabled ? (mode === "live" ? "On" : "Enabled in demo") : "Paused"}
                   </Pill>
                   {r.enabled ? (
                     <Button
                       className="ml-3"
                       size="sm"
                       variant="outline"
-                      onClick={() => toggleRoutine(r.id)}
+                      onClick={() => void toggleRoutine(r.id)}
                     >
                       <Pause className="h-3 w-3" />
                       Pause
@@ -119,11 +131,13 @@ export function RoutinesPage({ embedded }: { embedded?: boolean }) {
                     <CostButton
                       label="Enable routine"
                       cost={cost}
-                      onConfirm={() => {
-                        if (!toggleRoutine(r.id)) toast.error("Not enough credits");
+                      onConfirm={async () => {
+                        if (!(await toggleRoutine(r.id))) toast.error("Not enough credits");
                         else
                           toast.success(
-                            "Enabled in demo — scheduling needs your connected service",
+                            mode === "live"
+                              ? "On. Sol runs it on schedule (UK time)."
+                              : "Enabled in demo — scheduling needs your connected service",
                           );
                       }}
                     />
@@ -137,15 +151,19 @@ export function RoutinesPage({ embedded }: { embedded?: boolean }) {
           })}
       </div>
       <p className="mt-4 text-xs text-muted-foreground">
-        Schedules are demo settings; no background jobs run yet. Forecast uses 30 daily, 22 weekday
-        or 4 weekly runs.
+        {mode === "live"
+          ? "Routines run on schedule in UK time; each run's credits show in the log. "
+          : "Schedules are demo settings; no background jobs run yet. "}
+        Forecast uses 30 daily, 22 weekday or 4 weekly runs.
       </p>
+      <AutomationPanel />
     </>
   );
 }
 
 export function EmailPage({ embedded }: { embedded?: boolean }) {
   const { db, companyId, work, draftOutreach } = useStore();
+  const emailCost = useEstimate("email");
   const c = useCompany();
   const [mode, setMode] = useState<"support" | "outreach">("support");
   const [selected, setSelected] = useState<string | null>(null);
@@ -225,10 +243,10 @@ export function EmailPage({ embedded }: { embedded?: boolean }) {
               <div className="mt-5">
                 <CostButton
                   label="Draft support reply"
-                  cost={ACTION_COSTS.email}
+                  cost={emailCost}
                   disabled={mode !== "support"}
                   onConfirm={() =>
-                    work(companyId, "Draft support reply", ACTION_COSTS.email, "email", thread.id)
+                    work(companyId, "Draft support reply", emailCost, "email", thread.id)
                   }
                 />
                 <Why />
@@ -263,8 +281,8 @@ export function EmailPage({ embedded }: { embedded?: boolean }) {
                 label="Prepare batch for approval"
                 cost={30}
                 disabled={!consent || !body.trim() || !recipients.trim()}
-                onConfirm={() => {
-                  if (draftOutreach(body, recipients)) {
+                onConfirm={async () => {
+                  if (await draftOutreach(body, recipients)) {
                     toast.success("Batch added to approvals — nothing sent");
                     setBody("");
                     setRecipients("");
@@ -285,6 +303,9 @@ export function EmailPage({ embedded }: { embedded?: boolean }) {
 
 export function MediaPage({ embedded }: { embedded?: boolean }) {
   const { db, companyId, work } = useStore();
+  const imageCost = useEstimate("image");
+  const videoCost = useEstimate("video");
+  const postCost = useEstimate("social");
   const [prompt, setPrompt] = useState("Daily revision quiz campaign");
   return (
     <>
@@ -301,18 +322,18 @@ export function MediaPage({ embedded }: { embedded?: boolean }) {
           <CostButton
             label="Generate image"
             icon={<ImagePlus className="h-4 w-4" />}
-            cost={120}
+            cost={imageCost}
             disabled={!prompt.trim()}
-            onConfirm={() => work(companyId, prompt, 120, "image")}
+            onConfirm={() => work(companyId, prompt, imageCost, "image")}
           />
         </div>
         <div>
           <CostButton
             label="Generate video"
             icon={<Film className="h-4 w-4" />}
-            cost={400}
+            cost={videoCost}
             disabled={!prompt.trim()}
-            onConfirm={() => work(companyId, prompt, 400, "video")}
+            onConfirm={() => work(companyId, prompt, videoCost, "video")}
           />
         </div>
       </div>
@@ -360,8 +381,10 @@ export function MediaPage({ embedded }: { embedded?: boolean }) {
                 ) : m.status === "ready" ? (
                   <CostButton
                     label="Use in post"
-                    cost={40}
-                    onConfirm={() => work(companyId, "Draft post with media", 40, "social", m.id)}
+                    cost={postCost}
+                    onConfirm={() =>
+                      work(companyId, "Draft post with media", postCost, "social", m.id)
+                    }
                   />
                 ) : null}
                 <Why />
@@ -449,8 +472,9 @@ export function AdsPage({ embedded }: { embedded?: boolean }) {
           label="Request budget change"
           cost={90}
           disabled={!valid}
-          onConfirm={() => {
-            if (proposeBudget(+budget, +cap)) toast.success("Budget change awaiting approval");
+          onConfirm={async () => {
+            if (await proposeBudget(+budget, +cap))
+              toast.success("Budget change awaiting approval");
           }}
         />
         <Why reason="Every budget change stays under your explicit daily cap and requires approval. Clicks and signups provide the baseline for deciding whether the test is worth extending." />
@@ -458,6 +482,7 @@ export function AdsPage({ embedded }: { embedded?: boolean }) {
           Review budget approvals →
         </Link>
       </section>
+      {FLAGS.ads ? <PaidAds /> : null}
     </>
   );
 }
@@ -471,6 +496,7 @@ export function DocumentsPage({
   only?: string[];
 }) {
   const { db, companyId, work } = useStore();
+  const docCost = useEstimate("document");
   const docs = db.documents.filter(
     (d) => d.company_id === companyId && (!only || only.includes(d.title)),
   );
@@ -545,8 +571,10 @@ export function DocumentsPage({
             <div className="mt-5">
               <CostButton
                 label="Ask Sol to update"
-                cost={120}
-                onConfirm={() => work(companyId, `Update ${doc.title}`, 120, "document", doc.id)}
+                cost={docCost}
+                onConfirm={() =>
+                  work(companyId, `Update ${doc.title}`, docCost, "document", doc.id)
+                }
               />
               <Why reason="Keeping one versioned source prevents conflicting company information. Current company records and the previous document version form the evidence for this update." />
             </div>
@@ -658,13 +686,15 @@ export function SettingsPage() {
             </Button>
           </div>
         ))}
+        <IntegrationsSection />
+        <PlatformHealthSection />
       </section>
     </>
   );
 }
 
 export function TeamPage() {
-  const { db, companyId, invite, user } = useStore();
+  const { db, companyId, invite, user, mode } = useStore();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"founder" | "teammate" | "mentor" | "viewer">("teammate");
   return (
@@ -681,9 +711,15 @@ export function TeamPage() {
             toast.error("Already invited");
             return;
           }
-          invite(email, role);
-          setEmail("");
-          toast.success("Demo invitation added — no email sent");
+          void invite(email, role).then((ok) => {
+            if (!ok) return;
+            setEmail("");
+            toast.success(
+              mode === "demo"
+                ? "Demo invitation added — no email sent"
+                : "Invited. They join when they sign in with that email.",
+            );
+          });
         }}
         className="flex flex-wrap gap-2 border-b pb-6"
       >
@@ -739,7 +775,7 @@ export function TeamPage() {
 }
 
 export function OwnershipPage() {
-  const { db, companyId, user } = useStore();
+  const { db, companyId, user, mode } = useStore();
   const c = useCompany();
   const sharing = db.sharing[companyId] ?? defaultSharing();
   const { updateSharing } = useStore();
@@ -779,7 +815,7 @@ export function OwnershipPage() {
       }
       zip.file(
         "ownership.txt",
-        `${c.name}\nFounder: ${user.full_name}\nGitHub repository: not connected — add the real repository link after connection.\nDomain: ${c.slug}.app (proposed only)\nAll exported records are demo data.`,
+        `${c.name}\nFounder: ${user.full_name}\nGitHub repository: not connected — add the real repository link after connection.\nDomain: ${c.slug}.app (proposed only)\n${mode === "demo" ? "All exported records are demo data." : `Exported ${new Date().toISOString()}.`}`,
       );
       const blob = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(blob);
@@ -863,5 +899,65 @@ export function OwnershipPage() {
         </p>
       </section>
     </>
+  );
+}
+
+/** Phase 19 (behind VITE_ADS_ENABLED): ads launched from campaigns, their spend, and the caps. */
+function PaidAds() {
+  const { db, companyId, pauseAd, updateAdsMonthlyCap } = useStore();
+  const founder = useCompanyRole(companyId) === "founder";
+  const ads = db.ad_campaigns.filter((a) => a.company_id === companyId && a.status !== "declined");
+  const acct = db.ads.find((a) => a.company_id === companyId);
+  return (
+    <section className="mt-4 space-y-3 rounded-card border bg-card p-4 shadow-card">
+      <h2 className="label-caps text-[13px]">Paid ads</h2>
+      <p className="text-xs text-muted-foreground">
+        Launch an ad from a campaign's ad copy (Grow → Campaigns). Each launch waits for your GO,
+        stays within your daily cap, and every ad pauses when the month's spend reaches the monthly
+        cap. Spend shows against the ad's link in Links &amp; forms, as cost per lead.
+      </p>
+      {acct?.paused_reason ? (
+        <p className="text-xs text-destructive">{acct.paused_reason}</p>
+      ) : null}
+      <label className="flex items-center gap-2 text-sm">
+        Monthly cap (£)
+        <Input
+          type="number"
+          min={0}
+          className="w-28"
+          disabled={!founder}
+          defaultValue={acct?.monthly_cap ?? 300}
+          onBlur={(e) => {
+            const n = Number(e.target.value);
+            if (Number.isFinite(n) && n >= 0 && n !== acct?.monthly_cap)
+              void updateAdsMonthlyCap(companyId, n);
+          }}
+        />
+      </label>
+      {ads.length ? (
+        <ul className="divide-y text-sm">
+          {ads.map((a) => (
+            <li key={a.id} className="flex flex-wrap items-center gap-2 py-2">
+              <span className="font-medium">{a.name}</span>
+              <span className="text-xs text-muted-foreground">
+                {a.platform === "meta" ? "Meta" : "Google"} · £{a.daily_budget} a day · £{a.spend}{" "}
+                spent · {a.clicks} clicks
+              </span>
+              <StatusPill status={a.status === "pending" ? "awaiting_approval" : a.status} />
+              {a.paused_reason ? (
+                <span className="text-xs text-muted-foreground">{a.paused_reason}</span>
+              ) : null}
+              {founder && (a.status === "active" || a.status === "pending") ? (
+                <Button size="sm" variant="ghost" onClick={() => void pauseAd(a.id)}>
+                  Pause
+                </Button>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-xs text-muted-foreground">No paid ads yet.</p>
+      )}
+    </section>
   );
 }

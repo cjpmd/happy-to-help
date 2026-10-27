@@ -1,27 +1,32 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { RouteTabs } from "@/components/mission/RouteTabs";
 import { AdsPage, MediaPage } from "@/components/mission/WorkspacePages";
-import { useStore } from "@/lib/store";
-import { social_posts } from "@/lib/seed";
+import { LinksPage } from "@/components/mission/LinkLayer";
+import { CampaignsPage } from "@/components/mission/Campaigns";
+import { ListeningPage } from "@/components/mission/Listening";
+import { useStore, useEstimate } from "@/lib/store";
 import { PageHeader, Panel, Pill, StatusPill } from "@/components/mission/primitives";
 import { ClaimsCheck, CostButton, Why } from "@/components/mission/WorkControls";
 import { pageHead } from "@/lib/seo";
 import { fmtShortDate, num } from "@/lib/format";
 import type { ApprovalOf, SocialPost } from "@/lib/types";
 
-type GrowTab = "overview" | "media" | "ads";
-const GROW_TABS: GrowTab[] = ["overview", "media", "ads"];
+type GrowTab = "overview" | "campaigns" | "listening" | "media" | "ads" | "links";
+const GROW_TABS: GrowTab[] = ["overview", "campaigns", "listening", "media", "ads", "links"];
 
 export const Route = createFileRoute("/_app/grow")({
   head: () => pageHead("Grow", "Content calendar and results for every social channel."),
-  // ?tab=media|ads; the overview has no param.
+  // ?tab=campaigns|listening|media|ads|links; the overview has no param.
   validateSearch: (search: Record<string, unknown>): { tab?: Exclude<GrowTab, "overview"> } =>
-    search["tab"] === "media" || search["tab"] === "ads" ? { tab: search["tab"] } : {},
+    GROW_TABS.includes(search["tab"] as GrowTab) && search["tab"] !== "overview"
+      ? { tab: search["tab"] as Exclude<GrowTab, "overview"> }
+      : {},
   component: Grow,
 });
 
 function Grow() {
   const { companyId, work } = useStore();
+  const postCost = useEstimate("social");
   const { tab = "overview" } = Route.useSearch();
   const navigate = Route.useNavigate();
   return (
@@ -33,8 +38,8 @@ function Grow() {
           <div>
             <CostButton
               label="Write post"
-              cost={40}
-              onConfirm={() => work(companyId, "Write social post", 40, "social")}
+              cost={postCost}
+              onConfirm={() => work(companyId, "Write social post", postCost, "social")}
             />
           </div>
         }
@@ -47,8 +52,11 @@ function Grow() {
         }
         tabs={[
           { value: "overview", label: "Posts", content: <GrowOverview /> },
+          { value: "campaigns", label: "Campaigns", content: <CampaignsPage /> },
+          { value: "listening", label: "Listening", content: <ListeningPage /> },
           { value: "media", label: "Media", content: <MediaPage embedded /> },
           { value: "ads", label: "Ads", content: <AdsPage embedded /> },
+          { value: "links", label: "Links & forms", content: <LinksPage /> },
         ]}
       />
     </div>
@@ -60,13 +68,13 @@ const COLS: SocialPost["status"][] = ["draft", "awaiting_approval", "scheduled",
 function GrowOverview() {
   const { companyId, db } = useStore();
   const posts = [
-    ...social_posts.filter((p) => p.company_id === companyId),
+    ...db.social_posts.filter((p) => p.company_id === companyId),
     ...db.approvals
       .filter(
         (a): a is ApprovalOf<"publish_post"> =>
           a.company_id === companyId &&
           a.action_type === "publish_post" &&
-          !social_posts.some((p) => p.text === a.payload.text),
+          !db.social_posts.some((p) => p.text === a.payload.text),
       )
       .map((a) => ({
         id: a.id,

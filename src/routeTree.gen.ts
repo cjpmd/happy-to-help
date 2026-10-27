@@ -18,6 +18,8 @@ import { Route as AppApprovalsRouteImport } from './routes/_app/approvals'
 import { Route as AppBillingRouteImport } from './routes/_app/billing'
 import { Route as AppBuildRouteImport } from './routes/_app/build'
 import { Route as AppCohortRouteImport } from './routes/_app/cohort'
+import { Route as AppCustomersRouteImport } from './routes/_app/customers'
+import { Route as AppDebriefRouteImport } from './routes/_app/debrief'
 import { Route as AppDocumentsRouteImport } from './routes/_app/documents'
 import { Route as AppEmailRouteImport } from './routes/_app/email'
 import { Route as AppEvidenceRouteImport } from './routes/_app/evidence'
@@ -26,6 +28,7 @@ import { Route as AppGrowRouteImport } from './routes/_app/grow'
 import { Route as AppHqRouteImport } from './routes/_app/hq'
 import { Route as AppLegalRouteImport } from './routes/_app/legal'
 import { Route as AppMediaRouteImport } from './routes/_app/media'
+import { Route as AppMeetingsRouteImport } from './routes/_app/meetings'
 import { Route as AppOwnershipRouteImport } from './routes/_app/ownership'
 import { Route as AppRaiseRouteImport } from './routes/_app/raise'
 import { Route as AppRoutinesRouteImport } from './routes/_app/routines'
@@ -33,6 +36,10 @@ import { Route as AppRunRouteImport } from './routes/_app/run'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppTeamRouteImport } from './routes/_app/team'
 import { Route as AppTelemetryRouteImport } from './routes/_app/telemetry'
+import { Route as FFormIdRouteImport } from './routes/f.$formId'
+import { Route as FbTokenRouteImport } from './routes/fb.$token'
+import { Route as HSlugRouteImport } from './routes/h.$slug'
+import { Route as LCodeRouteImport } from './routes/l.$code'
 import { Route as ProgressSlugRouteImport } from './routes/progress.$slug'
 import { Route as SiteSlugRouteImport } from './routes/site.$slug'
 import { Route as AppCohortCompanyIdRouteImport } from './routes/_app/cohort.$companyId'
@@ -81,6 +88,16 @@ const AppCohortRoute = AppCohortRouteImport.update({
   path: '/cohort',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCustomersRoute = AppCustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDebriefRoute = AppDebriefRouteImport.update({
+  id: '/debrief',
+  path: '/debrief',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDocumentsRoute = AppDocumentsRouteImport.update({
   id: '/documents',
   path: '/documents',
@@ -121,6 +138,11 @@ const AppMediaRoute = AppMediaRouteImport.update({
   path: '/media',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMeetingsRoute = AppMeetingsRouteImport.update({
+  id: '/meetings',
+  path: '/meetings',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppOwnershipRoute = AppOwnershipRouteImport.update({
   id: '/ownership',
   path: '/ownership',
@@ -156,6 +178,26 @@ const AppTelemetryRoute = AppTelemetryRouteImport.update({
   path: '/telemetry',
   getParentRoute: () => AppRoute,
 } as any)
+const FFormIdRoute = FFormIdRouteImport.update({
+  id: '/f/$formId',
+  path: '/f/$formId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FbTokenRoute = FbTokenRouteImport.update({
+  id: '/fb/$token',
+  path: '/fb/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HSlugRoute = HSlugRouteImport.update({
+  id: '/h/$slug',
+  path: '/h/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LCodeRoute = LCodeRouteImport.update({
+  id: '/l/$code',
+  path: '/l/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProgressSlugRoute = ProgressSlugRouteImport.update({
   id: '/progress/$slug',
   path: '/progress/$slug',
@@ -181,6 +223,8 @@ export interface FileRoutesByFullPath {
   '/billing': typeof AppBillingRoute
   '/build': typeof AppBuildRoute
   '/cohort': typeof AppCohortRouteWithChildren
+  '/customers': typeof AppCustomersRoute
+  '/debrief': typeof AppDebriefRoute
   '/documents': typeof AppDocumentsRoute
   '/email': typeof AppEmailRoute
   '/evidence': typeof AppEvidenceRoute
@@ -189,6 +233,7 @@ export interface FileRoutesByFullPath {
   '/hq': typeof AppHqRoute
   '/legal': typeof AppLegalRoute
   '/media': typeof AppMediaRoute
+  '/meetings': typeof AppMeetingsRoute
   '/ownership': typeof AppOwnershipRoute
   '/raise': typeof AppRaiseRoute
   '/routines': typeof AppRoutinesRoute
@@ -196,6 +241,10 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRoute
   '/team': typeof AppTeamRoute
   '/telemetry': typeof AppTelemetryRoute
+  '/f/$formId': typeof FFormIdRoute
+  '/fb/$token': typeof FbTokenRoute
+  '/h/$slug': typeof HSlugRoute
+  '/l/$code': typeof LCodeRoute
   '/progress/$slug': typeof ProgressSlugRoute
   '/site/$slug': typeof SiteSlugRoute
   '/cohort/$companyId': typeof AppCohortCompanyIdRoute
@@ -209,6 +258,8 @@ export interface FileRoutesByTo {
   '/billing': typeof AppBillingRoute
   '/build': typeof AppBuildRoute
   '/cohort': typeof AppCohortRouteWithChildren
+  '/customers': typeof AppCustomersRoute
+  '/debrief': typeof AppDebriefRoute
   '/documents': typeof AppDocumentsRoute
   '/email': typeof AppEmailRoute
   '/evidence': typeof AppEvidenceRoute
@@ -217,6 +268,7 @@ export interface FileRoutesByTo {
   '/hq': typeof AppHqRoute
   '/legal': typeof AppLegalRoute
   '/media': typeof AppMediaRoute
+  '/meetings': typeof AppMeetingsRoute
   '/ownership': typeof AppOwnershipRoute
   '/raise': typeof AppRaiseRoute
   '/routines': typeof AppRoutinesRoute
@@ -224,6 +276,10 @@ export interface FileRoutesByTo {
   '/settings': typeof AppSettingsRoute
   '/team': typeof AppTeamRoute
   '/telemetry': typeof AppTelemetryRoute
+  '/f/$formId': typeof FFormIdRoute
+  '/fb/$token': typeof FbTokenRoute
+  '/h/$slug': typeof HSlugRoute
+  '/l/$code': typeof LCodeRoute
   '/progress/$slug': typeof ProgressSlugRoute
   '/site/$slug': typeof SiteSlugRoute
   '/cohort/$companyId': typeof AppCohortCompanyIdRoute
@@ -239,6 +295,8 @@ export interface FileRoutesById {
   '/_app/billing': typeof AppBillingRoute
   '/_app/build': typeof AppBuildRoute
   '/_app/cohort': typeof AppCohortRouteWithChildren
+  '/_app/customers': typeof AppCustomersRoute
+  '/_app/debrief': typeof AppDebriefRoute
   '/_app/documents': typeof AppDocumentsRoute
   '/_app/email': typeof AppEmailRoute
   '/_app/evidence': typeof AppEvidenceRoute
@@ -247,6 +305,7 @@ export interface FileRoutesById {
   '/_app/hq': typeof AppHqRoute
   '/_app/legal': typeof AppLegalRoute
   '/_app/media': typeof AppMediaRoute
+  '/_app/meetings': typeof AppMeetingsRoute
   '/_app/ownership': typeof AppOwnershipRoute
   '/_app/raise': typeof AppRaiseRoute
   '/_app/routines': typeof AppRoutinesRoute
@@ -254,6 +313,10 @@ export interface FileRoutesById {
   '/_app/settings': typeof AppSettingsRoute
   '/_app/team': typeof AppTeamRoute
   '/_app/telemetry': typeof AppTelemetryRoute
+  '/f/$formId': typeof FFormIdRoute
+  '/fb/$token': typeof FbTokenRoute
+  '/h/$slug': typeof HSlugRoute
+  '/l/$code': typeof LCodeRoute
   '/progress/$slug': typeof ProgressSlugRoute
   '/site/$slug': typeof SiteSlugRoute
   '/_app/cohort/$companyId': typeof AppCohortCompanyIdRoute
@@ -269,6 +332,8 @@ export interface FileRouteTypes {
     | '/billing'
     | '/build'
     | '/cohort'
+    | '/customers'
+    | '/debrief'
     | '/documents'
     | '/email'
     | '/evidence'
@@ -277,6 +342,7 @@ export interface FileRouteTypes {
     | '/hq'
     | '/legal'
     | '/media'
+    | '/meetings'
     | '/ownership'
     | '/raise'
     | '/routines'
@@ -284,6 +350,10 @@ export interface FileRouteTypes {
     | '/settings'
     | '/team'
     | '/telemetry'
+    | '/f/$formId'
+    | '/fb/$token'
+    | '/h/$slug'
+    | '/l/$code'
     | '/progress/$slug'
     | '/site/$slug'
     | '/cohort/$companyId'
@@ -297,6 +367,8 @@ export interface FileRouteTypes {
     | '/billing'
     | '/build'
     | '/cohort'
+    | '/customers'
+    | '/debrief'
     | '/documents'
     | '/email'
     | '/evidence'
@@ -305,6 +377,7 @@ export interface FileRouteTypes {
     | '/hq'
     | '/legal'
     | '/media'
+    | '/meetings'
     | '/ownership'
     | '/raise'
     | '/routines'
@@ -312,6 +385,10 @@ export interface FileRouteTypes {
     | '/settings'
     | '/team'
     | '/telemetry'
+    | '/f/$formId'
+    | '/fb/$token'
+    | '/h/$slug'
+    | '/l/$code'
     | '/progress/$slug'
     | '/site/$slug'
     | '/cohort/$companyId'
@@ -326,6 +403,8 @@ export interface FileRouteTypes {
     | '/_app/billing'
     | '/_app/build'
     | '/_app/cohort'
+    | '/_app/customers'
+    | '/_app/debrief'
     | '/_app/documents'
     | '/_app/email'
     | '/_app/evidence'
@@ -334,6 +413,7 @@ export interface FileRouteTypes {
     | '/_app/hq'
     | '/_app/legal'
     | '/_app/media'
+    | '/_app/meetings'
     | '/_app/ownership'
     | '/_app/raise'
     | '/_app/routines'
@@ -341,6 +421,10 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/_app/team'
     | '/_app/telemetry'
+    | '/f/$formId'
+    | '/fb/$token'
+    | '/h/$slug'
+    | '/l/$code'
     | '/progress/$slug'
     | '/site/$slug'
     | '/_app/cohort/$companyId'
@@ -350,6 +434,10 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   OnboardingRoute: typeof OnboardingRoute
+  FFormIdRoute: typeof FFormIdRoute
+  FbTokenRoute: typeof FbTokenRoute
+  HSlugRoute: typeof HSlugRoute
+  LCodeRoute: typeof LCodeRoute
   ProgressSlugRoute: typeof ProgressSlugRoute
   SiteSlugRoute: typeof SiteSlugRoute
 }
@@ -419,6 +507,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCohortRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/customers': {
+      id: '/_app/customers'
+      path: '/customers'
+      fullPath: '/customers'
+      preLoaderRoute: typeof AppCustomersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/debrief': {
+      id: '/_app/debrief'
+      path: '/debrief'
+      fullPath: '/debrief'
+      preLoaderRoute: typeof AppDebriefRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/documents': {
       id: '/_app/documents'
       path: '/documents'
@@ -475,6 +577,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMediaRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/meetings': {
+      id: '/_app/meetings'
+      path: '/meetings'
+      fullPath: '/meetings'
+      preLoaderRoute: typeof AppMeetingsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/ownership': {
       id: '/_app/ownership'
       path: '/ownership'
@@ -524,6 +633,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTelemetryRouteImport
       parentRoute: typeof AppRoute
     }
+    '/f/$formId': {
+      id: '/f/$formId'
+      path: '/f/$formId'
+      fullPath: '/f/$formId'
+      preLoaderRoute: typeof FFormIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fb/$token': {
+      id: '/fb/$token'
+      path: '/fb/$token'
+      fullPath: '/fb/$token'
+      preLoaderRoute: typeof FbTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/h/$slug': {
+      id: '/h/$slug'
+      path: '/h/$slug'
+      fullPath: '/h/$slug'
+      preLoaderRoute: typeof HSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/l/$code': {
+      id: '/l/$code'
+      path: '/l/$code'
+      fullPath: '/l/$code'
+      preLoaderRoute: typeof LCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/progress/$slug': {
       id: '/progress/$slug'
       path: '/progress/$slug'
@@ -567,6 +704,8 @@ interface AppRouteChildren {
   AppBillingRoute: typeof AppBillingRoute
   AppBuildRoute: typeof AppBuildRoute
   AppCohortRoute: typeof AppCohortRouteWithChildren
+  AppCustomersRoute: typeof AppCustomersRoute
+  AppDebriefRoute: typeof AppDebriefRoute
   AppDocumentsRoute: typeof AppDocumentsRoute
   AppEmailRoute: typeof AppEmailRoute
   AppEvidenceRoute: typeof AppEvidenceRoute
@@ -575,6 +714,7 @@ interface AppRouteChildren {
   AppHqRoute: typeof AppHqRoute
   AppLegalRoute: typeof AppLegalRoute
   AppMediaRoute: typeof AppMediaRoute
+  AppMeetingsRoute: typeof AppMeetingsRoute
   AppOwnershipRoute: typeof AppOwnershipRoute
   AppRaiseRoute: typeof AppRaiseRoute
   AppRoutinesRoute: typeof AppRoutinesRoute
@@ -591,6 +731,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppBillingRoute: AppBillingRoute,
   AppBuildRoute: AppBuildRoute,
   AppCohortRoute: AppCohortRouteWithChildren,
+  AppCustomersRoute: AppCustomersRoute,
+  AppDebriefRoute: AppDebriefRoute,
   AppDocumentsRoute: AppDocumentsRoute,
   AppEmailRoute: AppEmailRoute,
   AppEvidenceRoute: AppEvidenceRoute,
@@ -599,6 +741,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppHqRoute: AppHqRoute,
   AppLegalRoute: AppLegalRoute,
   AppMediaRoute: AppMediaRoute,
+  AppMeetingsRoute: AppMeetingsRoute,
   AppOwnershipRoute: AppOwnershipRoute,
   AppRaiseRoute: AppRaiseRoute,
   AppRoutinesRoute: AppRoutinesRoute,
@@ -614,6 +757,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   OnboardingRoute: OnboardingRoute,
+  FFormIdRoute: FFormIdRoute,
+  FbTokenRoute: FbTokenRoute,
+  HSlugRoute: HSlugRoute,
+  LCodeRoute: LCodeRoute,
   ProgressSlugRoute: ProgressSlugRoute,
   SiteSlugRoute: SiteSlugRoute,
 }

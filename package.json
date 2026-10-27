@@ -12,7 +12,12 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check:fit": "node scripts/check-fit.mjs"
+    "check:fit": "node scripts/check-fit.mjs",
+    "db:types": "supabase gen types typescript --local > src/integrations/supabase/types.ts && prettier --write src/integrations/supabase/types.ts",
+    "db:reset": "supabase db reset",
+    "db:test": "supabase test db",
+    "e2e:live": "node scripts/e2e/live-smoke.mjs",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "overrides": {
     "rolldown": "1.2.1"
@@ -48,6 +53,7 @@
     "@radix-ui/react-toggle": "^1.1.10",
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@supabase/supabase-js": "^2.118.0",
     "@tailwindcss/vite": "^4.2.1",
     "@tanstack/react-query": "^5.101.1",
     "@tanstack/react-router": "1.170.41",
@@ -61,6 +67,7 @@
     "input-otp": "^1.4.2",
     "jszip": "^3.10.2",
     "lucide-react": "^0.575.0",
+    "qrcode": "1.5.4",
     "react": "^19.2.0",
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.0",
@@ -82,6 +89,7 @@
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.0.0",
     "@types/node": "^22.16.5",
+    "@types/qrcode": "1.5.5",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.2.0",
@@ -95,6 +103,7 @@
     "nitro": "3.0.260603-beta",
     "playwright-core": "1.63.0",
     "prettier": "^3.7.3",
+    "supabase": "^2.122.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
     "vite": "8.1.5",

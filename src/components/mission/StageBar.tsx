@@ -27,7 +27,7 @@ export function StageBar({
     <div className="grid grid-cols-5 gap-1.5 rounded-xl border bg-card p-1.5 shadow-card">
       {STAGES.map((s, i) => {
         const g = byStage(s.id);
-        const done = g?.status === "approved";
+        const done = g?.status === "approved" || g?.status === "imported";
         const current = g?.status === "in_progress" || g?.status === "ready";
         return (
           <div
@@ -58,6 +58,9 @@ export function StageBar({
                 {s.label}
               </span>
             </div>
+            {g?.status === "imported" && (
+              <p className="mt-1 text-[11px] text-muted-foreground">Imported: already trading</p>
+            )}
             {g && g.criteria.length > 0 && (
               <div className="mt-2 hidden flex-wrap gap-x-3 gap-y-1 md:flex">
                 {g.criteria.map((c) => {
@@ -77,15 +80,18 @@ export function StageBar({
                 })}
               </div>
             )}
-            {canApprove && g?.status === "ready" && (
-              <Button
-                size="sm"
-                className="mt-2 h-7 w-full text-xs"
-                onClick={() => approveGate(g.id)}
-              >
-                Approve gate
-              </Button>
-            )}
+            {canApprove &&
+              g &&
+              (g.status === "ready" ||
+                (g.status === "in_progress" && g.criteria.every((c) => c.current >= c.target))) && (
+                <Button
+                  size="sm"
+                  className="mt-2 h-7 w-full text-xs"
+                  onClick={() => void approveGate(g.id)}
+                >
+                  Approve gate
+                </Button>
+              )}
           </div>
         );
       })}

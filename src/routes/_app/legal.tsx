@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Check } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { compliance_items } from "@/lib/seed";
 import { PageHeader, Panel, Pill, humanise } from "@/components/mission/primitives";
 import { complianceTone } from "@/lib/compliance";
 import { DocumentsPage } from "@/components/mission/WorkspacePages";
+import { CheckDeadlinesButton } from "@/components/mission/SkillButtons";
 import { pageHead } from "@/lib/seo";
 import { fmtDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -15,8 +15,8 @@ export const Route = createFileRoute("/_app/legal")({
 });
 
 function Legal() {
-  const { companyId } = useStore();
-  const items = compliance_items
+  const { companyId, db } = useStore();
+  const items = db.compliance_items
     .filter((c) => c.company_id === companyId)
     .sort((a, b) => a.due_date.localeCompare(b.due_date));
   const done = items.filter((i) => i.status === "done").length;
@@ -26,6 +26,7 @@ function Legal() {
       <PageHeader
         title="Stay legal"
         description={`${done} of ${items.length} complete. Sol tracks every UK deadline for you.`}
+        actions={<CheckDeadlinesButton />}
       />
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
         <Panel title="Checklist" bodyClassName="p-0">

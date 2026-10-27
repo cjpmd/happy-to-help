@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useStore } from "@/lib/store";
+import { useStore, useEstimate } from "@/lib/store";
 import { autoModeCost } from "@/lib/credits";
 import {
   Dialog,
@@ -22,7 +22,8 @@ export function AutoModeDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { work } = useStore();
+  const { startAutoMode, mode } = useStore();
+  const autoPerHour = useEstimate("autoHour");
   const [hours, setHours] = useState(AUTO_MODE_DEFAULT_HOURS);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -30,8 +31,9 @@ export function AutoModeDialog({
         <DialogHeader>
           <DialogTitle>Auto Mode</DialogTitle>
           <DialogDescription>
-            Choose a work period for Sol. This demo previews one work cycle; it does not run
-            unattended jobs.
+            {mode === "live"
+              ? "Sol works on its own for the time you choose and stops at the credit cap, whichever comes first. You can stop it at any time."
+              : "Choose a work period for Sol. This demo previews one work cycle; it does not run unattended jobs."}
           </DialogDescription>
         </DialogHeader>
         <label className="text-sm font-medium">
@@ -51,13 +53,14 @@ export function AutoModeDialog({
         </div>
         <CostButton
           label={`Start ${hours}-hour session`}
-          cost={autoModeCost(hours)}
+          cost={autoModeCost(hours, autoPerHour)}
           onConfirm={() => {
             onOpenChange(false);
-            return work(companyId, `Auto Mode: ${hours}-hour plan`, autoModeCost(hours), "auto");
+            // The cost shown is the cap: Sol never spends more than this in the session.
+            return startAutoMode(companyId, hours, autoModeCost(hours, autoPerHour));
           }}
         />
-        <Why reason="A time-boxed work period keeps the credit commitment visible and bounded. The hourly demo estimate and your available balance determine the cost before you start." />
+        <Why reason="A time-boxed work period keeps the credit commitment visible and bounded. The cost shown is the cap: the session stops when it's spent or the time is up." />
       </DialogContent>
     </Dialog>
   );

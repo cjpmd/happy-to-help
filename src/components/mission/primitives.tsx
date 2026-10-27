@@ -152,6 +152,13 @@ export const statusTone: Record<string, Tone> = {
   declined: "neutral",
   invalidated: "neutral",
   passed: "neutral",
+  on: "success",
+  off: "neutral",
+  skipped: "neutral",
+  sent: "success",
+  responded: "success",
+  positive: "success",
+  negative: "destructive",
 };
 export const humanise = (s: string) => s.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 export function StatusPill({ status }: { status: string }) {

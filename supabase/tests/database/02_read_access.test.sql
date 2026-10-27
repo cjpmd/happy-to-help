@@ -4,18 +4,41 @@ begin;
 \ir _setup.psql
 select * from no_plan();
 
+-- Tables only the people who run the company can read: raw correspondence and recordings,
+-- which mentors, viewers and admins don't see (SPEC part P: mentors never get raw transcripts).
+create function pg_temp.private_tables()
+returns text[]
+language sql
+immutable
+as $$
+  select array['voice_sources', 'voice_edit_events', 'captures', 'transcripts', 'extracted_items',
+    'ideas', 'commitments', 'feedback', 'consents', 'current_consents', 'leads', 'subscriptions', 'integration_settings', 'briefs', 'inbox_items', 'feedback_requests', 'bot_runs', 'calendar_connections', 'calendar_events', 'notetaker_series', 'call_sessions']
+$$;
+
 -- Expected readers of each company's data.
-create function pg_temp.expected(p_person text, p_company text)
+create function pg_temp.expected(p_person text, p_company text, p_table text default null)
 returns boolean
 language sql
 immutable
 as $$
-  select case p_company
-    when 'company_a' then p_person in ('founder', 'teammate', 'viewer', 'member_mentor', 'cohort_mentor', 'admin')
-    when 'company_b' then p_person in ('founder_b', 'other_mentor', 'admin')
+  select case
+    -- Stripe ids and raw events: the service role only.
+    when p_table in ('stripe_customers', 'stripe_events', 'integration_secrets', 'schedule_runs') then false
+    -- Platform errors: admins only.
+    when p_table = 'error_events' then p_person = 'admin'
+    when p_table = any (pg_temp.private_tables()) then
+      case p_company
+        when 'company_a' then p_person in ('founder', 'teammate')
+        when 'company_b' then p_person = 'founder_b'
+      end
+    else
+      case p_company
+        when 'company_a' then p_person in ('founder', 'teammate', 'viewer', 'member_mentor', 'cohort_mentor', 'admin')
+        when 'company_b' then p_person in ('founder_b', 'other_mentor', 'admin')
+      end
   end
 $$;
-grant execute on function pg_temp.expected(text, text) to authenticated;
+grant execute on function pg_temp.expected(text, text, text), pg_temp.private_tables() to authenticated;
 
 create temp table people as
 select unnest(array[
@@ -39,8 +62,8 @@ begin
     insert into tap_lines (line)
     select is(
       pg_temp.sees(t, pg_temp.id(c)),
-      pg_temp.expected(p, c),
-      format('%s %s read %s rows of %s', p, case when pg_temp.expected(p, c) then 'can' else 'cannot' end, t, c)
+      pg_temp.expected(p, c, t),
+      format('%s %s read %s rows of %s', p, case when pg_temp.expected(p, c, t) then 'can' else 'cannot' end, t, c)
     )
     from pg_temp.company_tables() t, unnest(array['company_a', 'company_b']) c;
     reset role;

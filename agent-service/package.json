@@ -1,0 +1,25 @@
+{
+  "name": "gumption-agent-service",
+  "private": true,
+  "type": "module",
+  "description": "Long-running worker: claims agent_jobs, runs one company agent per job on the Claude Agent SDK, and writes runs, activity, approvals and credits with the service role.",
+  "scripts": {
+    "dev": "tsx watch src/worker.ts",
+    "start": "tsx src/worker.ts",
+    "run-once": "tsx scripts/dev-run.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "reconcile": "tsx src/reconcile.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.310",
+    "@supabase/supabase-js": "^2.118.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.5"
+  }
+}

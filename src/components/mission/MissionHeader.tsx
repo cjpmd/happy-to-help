@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Pause, Settings2 } from "lucide-react";
-import { useCompany, useSolStatus, useStore } from "@/lib/store";
-import { NOW } from "@/lib/seed";
+import { useCompany, useSolStatus, useStore, useEstimate } from "@/lib/store";
 import { autoModeCost } from "@/lib/credits";
 import {
   currentGate,
@@ -43,17 +42,22 @@ export function MissionHeader({
   /** Opens the HQ card settings. */
   onCustomise?: (() => void) | undefined;
 }) {
-  const { db, user, solTyping, stopAuto } = useStore();
+  const { db, user, solTyping, stopAutoMode, now } = useStore();
+  const session = db.auto_sessions.find(
+    (s) => s.company_id === companyId && s.status === "running",
+  );
+  const autoPerHour = useEstimate("autoHour");
   const c = useCompany(companyId);
   const sol = useSolStatus(companyId);
   const [auto, setAuto] = useState(false);
   const gate = currentGate(db.stage_gates.filter((g) => g.company_id === companyId));
   const metric = gateMetric(gate);
-  const day = missionDay(c, NOW);
+  const day = missionDay(c, now);
   const gDay = gate ? gateDay(gate, c) : null;
   const until = gDay === null ? null : gDay - day;
-  const solLine =
-    sol.state === "working"
+  const solLine = session
+    ? `Auto Mode · ${session.spent_credits} of ${session.cap_credits} CR · until ${new Date(session.ends_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`
+    : sol.state === "working"
       ? sol.summary
       : sol.state === "waiting"
         ? `${sol.pending} for GO / NO-GO`
@@ -68,7 +72,7 @@ export function MissionHeader({
         <p className="label-caps truncate text-[12px] tracking-[0.16em] text-muted-foreground">
           {readOnly
             ? `Mission ${c.name} · mentor view`
-            : `${greeting(NOW)}, ${firstName(user.full_name)} · Mission ${c.name}`}
+            : `${greeting(now)}, ${firstName(user.full_name)} · Mission ${c.name}`}
         </p>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <h1
@@ -90,13 +94,13 @@ export function MissionHeader({
             Sol · {solWord[sol.state]}
             {solLine && ` · ${solLine}`}
           </span>
-          {solTyping && !readOnly && (
+          {(solTyping || session) && !readOnly && (
             <Button
               size="sm"
               variant="ghost"
               className="ml-1 min-h-6 px-1.5"
               aria-label="Stop Auto Mode"
-              onClick={stopAuto}
+              onClick={() => void stopAutoMode(companyId)}
             >
               <Pause />
             </Button>
@@ -131,7 +135,8 @@ export function MissionHeader({
               className="min-h-11 border-ink bg-transparent text-[12px]"
               onClick={() => setAuto(true)}
             >
-              Auto Mode · {AUTO_MODE_DEFAULT_HOURS}h ≈ {autoModeCost(AUTO_MODE_DEFAULT_HOURS)} CR
+              Auto Mode · {AUTO_MODE_DEFAULT_HOURS}h ≈{" "}
+              {autoModeCost(AUTO_MODE_DEFAULT_HOURS, autoPerHour)} CR
             </Button>
             <AutoModeDialog companyId={companyId} open={auto} onOpenChange={setAuto} />
           </>

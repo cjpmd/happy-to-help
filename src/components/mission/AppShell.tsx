@@ -1,10 +1,9 @@
 import { useState, type ReactNode } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Check, ChevronsUpDown, LogOut, Menu, Moon, Plus, Sun } from "lucide-react";
 import { useBalance, useCompany, useMyCompanies, useStore } from "@/lib/store";
 import { isLowBalance, PLANS } from "@/lib/credits";
 import { num } from "@/lib/format";
-import { profiles } from "@/lib/seed";
 import { BrandLogo } from "./primitives";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -23,11 +22,13 @@ const mainNav = [
   { to: "/approvals", label: "GO / NO-GO", count: true },
   { to: "/telemetry", label: "Telemetry" },
   { to: "/activity", label: "Log" },
+  { to: "/meetings", label: "Meetings" },
 ] as const;
 
 const departments = [
   { to: "/build", label: "Build" },
   { to: "/grow", label: "Grow" },
+  { to: "/customers", label: "Customers" },
   { to: "/run", label: "Run" },
   { to: "/legal", label: "Stay legal" },
   { to: "/raise", label: "Raise" },
@@ -52,9 +53,9 @@ function useActive() {
 function MainNav({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
   const { db, companyId } = useStore();
   const active = useActive();
-  const pending = db.approvals.filter(
-    (a) => a.company_id === companyId && a.status === "pending",
-  ).length;
+  const pending =
+    db.approvals.filter((a) => a.company_id === companyId && a.status === "pending").length +
+    db.captures.filter((c) => c.company_id === companyId && c.status === "review").length;
   return (
     <div className="label-caps flex flex-col gap-0.5 text-[13px] font-semibold tracking-[0.1em]">
       {mainNav.map((i) => (
@@ -189,7 +190,8 @@ function FuelBox({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
 }
 
 function AccountMenu({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
-  const { user, setUserId, theme, toggleTheme } = useStore();
+  const { db, mode, user, setUserId, theme, toggleTheme, signOut } = useStore();
+  const navigate = useNavigate();
   const initials = user.full_name
     .split(" ")
     .map((p) => p[0])
@@ -218,28 +220,35 @@ function AccountMenu({ onNavigate }: { onNavigate?: (() => void) | undefined }) 
             </Link>
           </DropdownMenuItem>
         ))}
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-          Demo: view as
-        </DropdownMenuLabel>
-        {profiles
-          .filter((p) => p.id !== "u4")
-          .map((p) => (
-            <DropdownMenuItem key={p.id} onClick={() => setUserId(p.id)}>
-              <span className="flex-1">{p.full_name}</span>
-              <span className="text-xs capitalize text-muted-foreground">{p.role}</span>
-            </DropdownMenuItem>
-          ))}
+        {/* Switching people is a demo convenience; live sessions are real sign-ins. */}
+        {mode === "demo" && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+              Demo: view as
+            </DropdownMenuLabel>
+            {db.profiles
+              .filter((p) => p.id !== "u4")
+              .map((p) => (
+                <DropdownMenuItem key={p.id} onClick={() => setUserId(p.id)}>
+                  <span className="flex-1">{p.full_name}</span>
+                  <span className="text-xs capitalize text-muted-foreground">{p.role}</span>
+                </DropdownMenuItem>
+              ))}
+          </>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={toggleTheme}>
           {theme === "light" ? <Moon className="size-4" /> : <Sun className="size-4" />}
           {theme === "light" ? "Dark theme" : "Light theme"}
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/">
-            <LogOut className="size-4" />
-            Sign out
-          </Link>
+        <DropdownMenuItem
+          onClick={() => {
+            void signOut().then(() => navigate({ to: "/" }));
+          }}
+        >
+          <LogOut className="size-4" />
+          Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

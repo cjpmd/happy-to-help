@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Gumption (working name): a platform where early-stage founders run their startup with an AI cofounder ("Sol, powered by Claude"). Agents do marketing, admin, compliance and simple website builds; founders approve; university and incubator mentors oversee cohorts.
+Gumption (working name): a platform where businesses at any stage run their company with an AI cofounder ("Sol, powered by Claude"). Two entry paths share one data model: **Start up** (idea or pre-launch founders, including student cohorts; gates prove demand before building) and **Keep going** (businesses already trading; enter at Grow, gates approve voice, response policy and budgets). Sol builds sites and simple apps, runs campaigns, captures and nurtures leads, listens to customers, replies in the company's own voice, captures actions from conversations and automates routine operations. Founders approve anything that matters; university and incubator mentors oversee cohorts.
 
 Full product spec: `docs/SPEC.md`. Delivery plan: `docs/PHASES.md`. Current state: `docs/STATUS.md` (you maintain this).
 

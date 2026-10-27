@@ -27,6 +27,13 @@ export interface Company {
   goal_90d?: string;
   /** Mission start (day 0 of the flight plan). */
   started_at?: string;
+  /** Onboarding answers kept as given. */
+  starting_stage?: string | null;
+  existing_website_url?: string | null;
+  /** Start up (prove demand from an idea) or Keep going (already trading). */
+  entry_path?: "start_up" | "keep_going";
+  social_handles?: Record<string, string>;
+  google_business_url?: string | null;
 }
 export interface CompanyMember {
   company_id: string;
@@ -38,6 +45,10 @@ export interface Cohort {
   name: string;
   institution: string;
   credit_pool: number;
+}
+export interface CohortMentor {
+  cohort_id: string;
+  user_id: string;
 }
 export interface CohortCompany {
   cohort_id: string;
@@ -54,7 +65,8 @@ export interface StageGate {
   company_id: string;
   stage: Stage;
   criteria: GateCriterion[];
-  status: "locked" | "in_progress" | "ready" | "approved";
+  /** imported: a Keep going company was already past this gate when it joined. */
+  status: "locked" | "in_progress" | "ready" | "approved" | "imported";
   approved_by?: string | null;
   approved_at?: string | null;
   /** When the gate should pass. */
@@ -81,6 +93,8 @@ export interface Task {
   /** The stage a key task belongs to. */
   stage?: Stage;
   completed_at?: string | null;
+  /** Who does the work. Unset in older demo data: worked out from proof and status. */
+  actor?: "sol" | "founder" | "mentor" | "teammate";
 }
 export type RunStatus = "queued" | "running" | "succeeded" | "failed" | "needs_approval";
 export interface RunStep {
@@ -112,12 +126,18 @@ export interface PublishPostPayload extends PayloadBase {
   text: string;
   scheduled_for?: string;
   media_id?: string | undefined;
+  /** Set when the post belongs to a campaign (Phase 15). */
+  campaign_asset_id?: string;
 }
 export interface SendEmailPayload extends PayloadBase {
   to: string;
   subject: string;
   body: string;
   outreach?: boolean;
+  /** Set when the email belongs to a campaign (Phase 15). */
+  campaign_asset_id?: string;
+  /** Set when the email asks for feedback (Phase 16). */
+  feedback_request_id?: string;
 }
 export interface AdSpendPayload extends PayloadBase {
   platform: string;
@@ -136,12 +156,54 @@ export interface PublishSitePayload extends PayloadBase {
   change: string;
   url: string;
 }
+export interface UpdateVoicePayload extends PayloadBase {
+  profile_id: string;
+  version: number;
+  summary: string;
+  changes: string;
+}
+export interface UpdateMemoryPayload extends PayloadBase {
+  fact: string;
+  item_id?: string;
+  capture_id?: string;
+}
+export interface ApproveCampaignPayload extends PayloadBase {
+  campaign_id: string;
+  name: string;
+  goal: string;
+  target: string;
+  channels: string;
+  dates: string;
+  budget: string;
+}
+export interface ReplyPublicPayload extends PayloadBase {
+  platform: string;
+  kind: "comment" | "review";
+  external_id: string;
+  text: string;
+  thread_id?: string;
+  inbox_item_id?: string;
+}
+export interface LaunchAdPayload extends PayloadBase {
+  ad_campaign_id: string;
+  platform: "meta" | "google";
+  name: string;
+  daily_budget: number;
+  hard_cap: number;
+  monthly_cap: number;
+  creative: string;
+}
 export interface ApprovalPayloads {
   publish_post: PublishPostPayload;
   send_email: SendEmailPayload;
   ad_spend: AdSpendPayload;
   file_document: FileDocumentPayload;
   publish_site: PublishSitePayload;
+  update_voice: UpdateVoicePayload;
+  update_memory: UpdateMemoryPayload;
+  approve_campaign: ApproveCampaignPayload;
+  reply_public: ReplyPublicPayload;
+  launch_ad: LaunchAdPayload;
 }
 export type ApprovalAction = keyof ApprovalPayloads;
 interface ApprovalBase {
@@ -150,9 +212,18 @@ interface ApprovalBase {
   run_id: string | null;
   estimated_credits: number;
   status: "pending" | "approved" | "declined";
+  /** The person's id (not their name). */
   decided_by?: string | null;
   decided_at?: string | null;
   created_at: string;
+  /** Set when a founder asked for it themselves. */
+  requested_by?: string | null;
+  /** What the executor did with an approved action (Phase 5). */
+  execution_status?: "not_started" | "queued" | "executing" | "done" | "blocked" | "failed";
+  execution_error?: string | null;
+  executed_at?: string | null;
+  /** Why it got a NO-GO; Sol reads it on its next run. */
+  decision_note?: string | null;
 }
 export type ApprovalOf<K extends ApprovalAction> = ApprovalBase & {
   action_type: K;
@@ -164,6 +235,7 @@ export type Approval = { [K in ApprovalAction]: ApprovalOf<K> }[ApprovalAction];
 export function approvalText(a: Approval): string {
   if (a.action_type === "publish_post") return a.payload.text;
   if (a.action_type === "send_email") return a.payload.body;
+  if (a.action_type === "reply_public") return a.payload.text;
   return "";
 }
 export interface ActivityEvent {
@@ -227,6 +299,24 @@ export interface MetricsDaily {
   signups: number;
   paying_customers: number;
   mrr: number;
+  /** Users who did what the company counts as activation (sample data until defined). */
+  activated?: number;
+}
+export interface Grant {
+  id: string;
+  company_id: string;
+  name: string;
+  amount: string;
+  deadline: string | null;
+  status: string;
+}
+export interface SiteVersion {
+  id: string;
+  company_id: string;
+  version: string;
+  summary: string;
+  preview_url: string | null;
+  published_at: string;
 }
 export interface Contact {
   id: string;
@@ -236,6 +326,10 @@ export interface Contact {
   kind: "customer" | "lead";
   value: string;
   last: string;
+  /** manual, import, form… */
+  source?: string;
+  /** For calls (Phase 18), e.g. +447700900123. */
+  phone?: string | null;
 }
 export interface GateComment {
   id: string;
