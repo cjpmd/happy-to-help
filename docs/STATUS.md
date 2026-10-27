@@ -1,5 +1,64 @@
 # Status
 
+## Final summary (autonomous run, 26–27 Oct 2026)
+
+Every phase in `docs/PHASES.md` (0–19) is built, merged into `develop` with `--no-ff`, and passes the full check suite (`scripts/dev/check-all.sh`: database reset and types, typecheck, lint, unit tests, build, pgTAP, integration, agent-service typecheck and tests, and the live end-to-end test). Nothing is deployed and no real provider is switched on: that's the owner's, step by step, in `docs/HANDOFF.md`. Decisions are in `docs/DECISIONS.md` (D1–D88).
+
+### What was built
+
+- **Foundation (Phases 1–2):** the Mission HQ design on every screen; Supabase schema with RLS on every table (pgTAP read matrix for every person and company); magic-link sign-in; one store API with a demo provider (in memory) and a live provider (Supabase, Realtime); writes through checked RPCs. The credits engine: an insert-only ledger with lots, holds, settle and release, cohort pools, expiry, and conversion constants in config.
+- **Engine (Phases 3–5, 8, 9):** the agent service (Claude Agent SDK runtime, or a mock runtime by default) that claims jobs, builds company memory, reserves → runs with `maxBudgetUsd` → settles, and refunds platform failures. Streaming chat in an Edge Function. The deterministic approvals executor that re-checks rules and charges per action. The scheduler (routines, the 07:00 brief, the nightly loop, Auto Mode, credit expiry). Error monitoring, cost reconciliation against Anthropic's usage report, rate limits, and a security review.
+- **Two entry paths and the v2 model (Phases 10–13):** Start up and Keep going, a stage-aware HQ, brand voice and response policy, capture from conversation (voice notes, debriefs, transcripts and recordings → review cards → routed items), and the link layer (tracked short links, hub pages, lead forms with recorded consent, attribution without cookies).
+- **Billing and integrations (Phases 6–7):** Stripe Checkout, the Customer Portal and signed webhooks (test mode only). Resend email in and out, Ayrshare publishing and analytics, PostHog, unsubscribe links, all per company and mocked until both the platform key and the company's switch are on.
+- **Customers and growth (Phases 14–17):** the unified inbox (triage → policy → draft → claims check → send, queue or escalate, with a daily budget); consent-checked imports. Campaigns (plan → GO → CAP-checked assets per channel → results through their links). Listening (comments and Google reviews into the inbox, public replies always for a GO, opt-in feedback requests, sentiment and themes in Grow and the brief). Process bots (six templates, consent-checked, approval levels, weekly caps, every step audited).
+- **Flagged, off by default (Phases 18–19):** the meeting notetaker (calendar OAuth, per-meeting opt-in, an announced bot) and recorded calls (a spoken notice first), both feeding the capture pipeline with per-minute costs and a daily cap. Paid ads (launch for a GO, daily and monthly caps, spend into attribution), built as a switched-off foundation only (D86).
+
+### Mocks, and what each needs (see `docs/HANDOFF.md`)
+
+| Mocked today | What turns it on | HANDOFF |
+|---|---|---|
+| Agent runs and chat replies (mock runtime, demo replies) | Anthropic API key, `AGENT_RUNTIME=claude`, chat key on the functions | 1 |
+| Everything server-side in production | A production Supabase project: migrations, functions, secrets, hosting | 2 |
+| Transcription of recordings | Speechmatics key (EU region) | 3 |
+| Short links on the functions URL | A branded short domain | 4 |
+| Payments (applied instantly in mock) | Stripe test keys, prices and webhook; live mode is a separate owner decision | 5 |
+| Email, social publishing, site analytics | Resend (with a verified domain), Ayrshare Business with per-company profiles, PostHog | 6 |
+| Cost reconciliation (our side only) | Anthropic Admin API key | 7 |
+| Comments and Google reviews | Ayrshare comments and reviews endpoints on our plan | 8 |
+| Invoice and payment reminder bot (can't be switched on) | Stripe Connect for companies' own accounts | 9 |
+| Meeting notetaker (demo calendar, mock bot) | Recall.ai (EU), Google and Microsoft OAuth apps, the switches | 10 |
+| Calls (demo numbers that never ring) | Twilio account, UK number and regulatory bundle, the switches | 11 |
+| Paid ads (mock provider, switched off) | Meta and Google Ads API approval, adapters, the switches; only once there are real customers | 12 |
+
+### The 10 most consequential decisions
+
+1. **D5:** one store API with a demo provider and a live provider, so the Lovable preview keeps working without a backend and every feature has both.
+2. **D15:** credit lots inside the insert-only ledger, which gives consumption order, expiry and refunds without ever updating a row.
+3. **D22:** a run reserves `max(estimate, min(cap, available))` and `maxBudgetUsd` is that reservation, so no run can spend more than it holds.
+4. **D20:** the agent service defaults to a mock runtime that follows each job's playbook through the real tools, gate, audit and credit flow, so everything but the model is exercised without spending money.
+5. **D29 / D30:** approved actions are carried out by a deterministic executor in the worker, which re-checks claims, caps and the founders' escalation settings at execution time, and charges only when it acts.
+6. **D37 / D75:** reply rules live in the executor, not the prompt. Automatic replies need an approved voice and a reviewed policy, never for escalation categories. Public replies always wait for a GO.
+7. **D54:** a real provider needs both the platform key and the company's own switch, so deploying keys can't turn anything on by itself.
+8. **D55 / D68 / D79:** a single consent model for PECR. Marketing email needs recorded permission with evidence; service messages don't; every marketing email carries its own unsubscribe link; opt-outs are always respected.
+9. **D57:** the scheduler lives in the agent worker, with a unique claim per firing, so restarts and extra workers never double-fire.
+10. **D86:** Phase 19 is built switched off on a mock, satisfying the run's "build to the end" instruction, PHASES' "not until real customers", and the no-spending rule together.
+
+### Known issues
+
+- Nothing has run against a real provider: the Claude runtime, Resend, Ayrshare (especially the comments and reviews field names), PostHog, Speechmatics, Recall.ai, Twilio, and the Google and Microsoft calendar APIs are built from their documentation and tested with fakes. Expect small fixes when each is switched on.
+- Some older screens may still show founder-only buttons to mentors and viewers; the server refuses those actions with a clear message.
+- In the demo, bots and the notetaker can be set up but don't run (their engines are in the agent service).
+- Not built: outbound calls, Facebook and Instagram DMs and mentions, broad keyword listening (out of scope until costed), and the Meta and Google Ads adapters.
+- Lint passes with 22 warnings (React fast-refresh hints on files that export helpers alongside components).
+- `roadmap.md` is Lovable's own checklist and isn't kept up to date; this file is the source of truth.
+
+### Next steps
+
+1. Follow HANDOFF 2 then 1: create the production Supabase project, apply the migrations, deploy the functions, and switch on real agent runs for one test company.
+2. HANDOFF 6 and 5: email, social and analytics, then Stripe in test mode; run the end-to-end flows with a real founder.
+3. HANDOFF 3, 4, 7 and 8 as needed. Then 10 and 11 (notetaker and calls) once the core is in use.
+4. Leave HANDOFF 12 (paid ads) until there are real customers, as PHASES says.
+
 ## Autonomous run (started 26 Oct 2026)
 
 Working from `docs/AUTONOMOUS-RUN.md`. Decisions are in `docs/DECISIONS.md`; anything that needs the owner (accounts, keys, money, production) is in `docs/HANDOFF.md`.
@@ -226,9 +285,9 @@ PHASES says not to start direct ad management until earlier phases are live with
 - Tests: `23_paid_ads.test.sql` and the read matrix, `agent-service/test/ads.test.ts` (blocked while off; launched with a GO; spend into the link; paused at the monthly cap; founder-only within caps), `src/test/demoAds.test.ts`.
 - **Mocked / owner steps:** the Meta Marketing API and Google Ads API adapters, which need platform approval (HANDOFF 12).
 
-## Phase 0 audit and Phase 1 history
+## Phase 0 audit and Phase 1 history (historical)
 
-Phase 0 audit, 22 Oct 2026, at commit `aad3f26`. Updated 23 Oct 2026 during Phase 1 group 1a-design.
+Phase 0 audit, 22 Oct 2026, at commit `aad3f26`. Updated 23 Oct 2026 during Phase 1 group 1a-design. **This is a snapshot from before the build.** Everything it lists as in progress, missing, mocked or broken was done in the phases above (the bugs in Phase 1e and Phase 3; see "Phase 1" above), except what the final summary at the top lists as mocked or known issues.
 
 ## Phase 1 progress
 
