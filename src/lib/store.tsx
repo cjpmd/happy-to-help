@@ -30,6 +30,7 @@ import { analyseVoice } from "./voice";
 import { applyVoiceDecision, applyVoiceEdit, currentVoice, isLocked } from "./voicePolicy";
 import { captureEstimate } from "./capture";
 import { demoSubmitLead } from "./demoLinks";
+import { demoImport, demoProcess } from "./demoInbox";
 import { taggedUrl, type PublicHub } from "./links";
 import { demoAcceptAll, demoCreateCapture, demoDecideItem, type DemoCtx } from "./demoCapture";
 
@@ -789,23 +790,24 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
     },
     [db.tasks],
   );
-  const importContacts = useCallback<Ctx["importContacts"]>(async (cid, rows) => {
-    let added = 0;
-    setDb((d) => {
-      const known = new Set(
-        d.contacts.filter((c) => c.company_id === cid).map((c) => c.email.toLowerCase()),
-      );
-      const fresh: T.Contact[] = [];
-      for (const r of rows) {
-        const email = r.email.toLowerCase();
-        if (known.has(email)) continue;
-        known.add(email);
-        fresh.push({ id: uid("x"), company_id: cid, ...r, email, last: iso(), source: "import" });
-      }
-      added = fresh.length;
-      return { ...d, contacts: [...d.contacts, ...fresh] };
-    });
-    return added;
+  const importContacts = useCallback<Ctx["importContacts"]>(
+    async (cid, rows, softOptIn = false) => {
+      const r = demoImport(db, cid, rows, softOptIn, { now: new Date(), uid });
+      setDb(r.db);
+      return r.result;
+    },
+    [db],
+  );
+  const processInboxItem = useCallback<Ctx["processInboxItem"]>(async (id) => {
+    setDb((d) => demoProcess(d, id, { now: new Date(), uid }));
+    return true;
+  }, []);
+  const closeInboxItem = useCallback<Ctx["closeInboxItem"]>(async (id, status = "closed") => {
+    setDb((d) => ({
+      ...d,
+      inbox_items: d.inbox_items.map((i) => (i.id === id ? { ...i, status } : i)),
+    }));
+    return true;
   }, []);
   const addVoiceSource = useCallback<Ctx["addVoiceSource"]>(async () => true, []);
   const isFounder = useCallback(
@@ -959,6 +961,9 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
                   ? { disclosure_on_approved: patch.disclosure_on_approved }
                   : {}),
                 ...(patch.mark_reviewed ? { policy_reviewed_at: iso() } : {}),
+                ...(patch.inbox_daily_cap !== undefined
+                  ? { inbox_daily_cap: patch.inbox_daily_cap }
+                  : {}),
               }
             : s,
         ),
@@ -1281,6 +1286,8 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       markDone,
       stopAuto,
       importContacts,
+      processInboxItem,
+      closeInboxItem,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,
@@ -1341,6 +1348,8 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       markDone,
       stopAuto,
       importContacts,
+      processInboxItem,
+      closeInboxItem,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,

@@ -424,8 +424,11 @@ function Onboarding() {
     });
     if (id && keepGoing) {
       if (contacts?.rows.length) {
-        const added = await importContacts(id, contacts.rows);
-        if (added !== null) toast.success(`Imported ${added} contacts.`);
+        const r = await importContacts(id, contacts.rows);
+        if (r)
+          toast.success(
+            `Imported ${r.added} contacts${r.service_only ? `; ${r.service_only} have no marketing permission, so they get service messages only` : ""}.`,
+          );
       }
       for (const email of f.emails
         .split(/\n-{3,}\n|\n{3,}/)

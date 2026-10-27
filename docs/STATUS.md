@@ -24,8 +24,8 @@ Restyle first, then the remaining Phase 1 groups, then the engine, then the v2 d
 | 7 | Real integrations (flagged, mocked by default) | `phase-7-integrations` | Done |
 | 8 | Scheduler, routines, Auto Mode | `phase-8-scheduler` | Done |
 | 9 | More skills and hardening | `phase-9-hardening` | Done |
-| 14 | Customers: inbox and contacts | `phase-14-inbox` | Next |
-| 15 | Campaigns | `phase-15-campaigns` | |
+| 14 | Customers: inbox and contacts | `phase-14-inbox` | Done |
+| 15 | Campaigns | `phase-15-campaigns` | Next |
 | 16 | Listening | `phase-16-listening` | |
 | 17 | Process bots | `phase-17-bots` | |
 | 18 | Capture v2: notetaker and calls (flagged) | `phase-18-capture-v2` | |
@@ -172,6 +172,14 @@ Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, con
 - Rate limits in the database (D65).
 - RLS review and Edge Function security pass: `docs/SECURITY-REVIEW.md`; body-size limits, provider timeouts, escaped HTML with a strict CSP, and plain error messages with details sent to monitoring.
 - Tests: `17_hardening.test.sql` (pinned direct-write allowlist, policies for every grant, rate limits, error reports, reconciliation), the read matrix (errors admin-only), `agent-service/test/skills.test.ts`, `src/test/skills.test.ts`.
+
+### Phase 14 (finished 27 Oct 2026)
+
+- `20261030100000_inbox.sql`: `inbox_items` (made by a trigger for every received message: inbound email, lead forms, the hub page), the daily inbox budget on `response_settings` (0, off, by default), job types `inbox_triage` and `inbox_draft`, `process_inbox_item` (do it now), `close_inbox_item`, a NO-GO on Sol's reply closing the item, and `import_contacts_checked`. Inbound email now records the sender before the message so items link to contacts. `20261030100100_claims_signoffs.sql`: sign-offs like "Best wishes" are no longer flagged as claims (both checkers).
+- Pipeline (D66): the scheduler queues triage for new items within the day's budget (oldest first; past it they wait for tomorrow and the founder is told once). Triage runs on the small model (`inbox-triage` skill) and `save_triage` applies the hard rules and the policy (`src/lib/inbox.ts` `decideMode`); escalations go to the founder in chat with the reason and no draft. Drafts run on the mid-tier model (`inbox-reply` skill) in the company's voice; `propose_reply` claims-checks and either queues an automatic send (the executor re-checks `checkAutoSend`) or waits for a GO. An automatic reply the executor won't send becomes an ordinary pending draft with the reason (D67). Sent replies close the item and carry the disclosure.
+- Consent-checked import (D68): a consent column with evidence records an opt-in; "soft" records a soft opt-in only for customers and only if the founder ticks that the conditions apply; everything else is service only and raises a Stay legal task. Onboarding uses the same import.
+- App: Customers → Inbox lists items with status, triage, flags and the policy's reason, with "Let Sol handle it", review, close and spam; contacts open a timeline (messages, leads, promises, meetings) with their marketing permission; the daily inbox budget in Voice & policy. The demo runs the same rules.
+- Tests: `18_inbox.test.sql`, inbox items in the read matrix, `agent-service/test/inbox.test.ts` (auto-sent booking reply with disclosure, refund escalated without a draft, auto-send held when the voice isn't approved, the daily budget and its single notice), `src/test/inbox.test.ts`, `src/test/demoInbox.test.ts`, and the claims parity fixtures for sign-offs.
 
 ## Phase 0 audit and Phase 1 history
 

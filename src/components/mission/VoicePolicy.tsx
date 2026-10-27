@@ -416,6 +416,7 @@ function PolicyPanel() {
             )}
           </div>
         </label>
+        <InboxBudget founder={founder} current={settings.inbox_daily_cap} />
         <label className="flex items-center justify-between gap-3 text-sm">
           <span>Also add it to replies I approve</span>
           <Switch
@@ -441,5 +442,43 @@ function PolicyPanel() {
         )}
       </div>
     </Panel>
+  );
+}
+
+/** The daily inbox budget (Phase 14): 0 means Sol only reads messages when asked. */
+function InboxBudget({ founder, current }: { founder: boolean; current: number }) {
+  const { companyId, updateResponseSettings } = useStore();
+  const [value, setValue] = useState(String(current));
+  return (
+    <label className="block space-y-1">
+      <span className="text-xs text-muted-foreground">
+        Daily inbox budget: credits Sol may spend reading and answering new messages by itself
+        (about 20 each). 0 means only when you ask.
+      </span>
+      <div className="flex gap-2">
+        <Input
+          className="w-28"
+          inputMode="numeric"
+          value={value}
+          disabled={!founder}
+          aria-label="Daily inbox budget"
+          onChange={(e) => setValue(e.target.value.replace(/\D/g, ""))}
+        />
+        {founder && (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={Number(value) === current}
+            onClick={() =>
+              void updateResponseSettings(companyId, { inbox_daily_cap: Number(value) }).then(
+                (ok) => ok && toast.success("Inbox budget saved"),
+              )
+            }
+          >
+            Save
+          </Button>
+        )}
+      </div>
+    </label>
   );
 }
