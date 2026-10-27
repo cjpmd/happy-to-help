@@ -216,6 +216,10 @@ begin
     insert into public.listening_settings (company_id) values (c);
     insert into public.feedback_requests (company_id, contact_id, trigger)
       select c, id, 'manual' from public.contacts where company_id = c;
+    insert into public.bots (company_id, template, name, trigger, steps)
+      select c, key, name, trigger, steps from public.bot_templates where key = 'weekly_summary';
+    insert into public.bot_runs (bot_id, company_id, step, due_at)
+      select id, c, 0, now() from public.bots where company_id = c;
   end loop;
 end;
 $$;

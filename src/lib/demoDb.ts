@@ -3,6 +3,7 @@ import { demoJobTypes, type DB } from "./storeContext";
 import { demoLinkData } from "./demoLinks";
 import { demoInboxItems } from "./demoInbox";
 import { demoFeedback, harbourHeard } from "./demoListening";
+import { DEMO_BOT_TEMPLATES } from "./demoBots";
 import { defaultPolicies, defaultSettings, defaultVoice } from "./voicePolicy";
 import { businessDefaults, isLayout, workspaceSeed, type LayoutItem } from "./workspace";
 
@@ -59,6 +60,9 @@ export function demoDb(): DB {
     listening_settings: [],
     feedback: demoFeedback(seed.NOW),
     feedback_requests: [],
+    bot_templates: DEMO_BOT_TEMPLATES,
+    bots: [],
+    bot_runs: [],
   };
 }
 

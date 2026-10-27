@@ -548,6 +548,35 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
     },
     [sb],
   );
+  const createBot = useCallback<Ctx["createBot"]>(
+    async (cid, template) =>
+      (await call(
+        () => sb.rpc("create_bot", { p_company: cid, p_template: template }),
+        ["bots"],
+      )) !== false,
+    [sb, call],
+  );
+  const updateBot = useCallback<Ctx["updateBot"]>(
+    async (id, patch) =>
+      (await call(
+        () =>
+          sb.rpc("update_bot", {
+            p_bot: id,
+            ...(patch.enabled !== undefined ? { p_enabled: patch.enabled } : {}),
+            ...(patch.approval_level ? { p_approval_level: patch.approval_level } : {}),
+            ...(patch.cap_credits_week !== undefined
+              ? { p_cap_credits_week: patch.cap_credits_week }
+              : {}),
+            ...(patch.steps ? { p_steps: patch.steps as unknown as Json } : {}),
+          }),
+        ["bots"],
+      )) !== false,
+    [sb, call],
+  );
+  const deleteBot = useCallback<Ctx["deleteBot"]>(
+    async (id) => (await call(() => sb.rpc("delete_bot", { p_bot: id }), ["bots"])) !== false,
+    [sb, call],
+  );
   const addVoiceSource = useCallback<Ctx["addVoiceSource"]>(
     async (cid, kind, content) =>
       (await call(
@@ -1015,6 +1044,9 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       requestFeedback,
       fetchFeedbackRequest,
       submitFeedback,
+      createBot,
+      updateBot,
+      deleteBot,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,
@@ -1089,6 +1121,9 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       requestFeedback,
       fetchFeedbackRequest,
       submitFeedback,
+      createBot,
+      updateBot,
+      deleteBot,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,

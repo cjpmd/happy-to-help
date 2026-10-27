@@ -32,6 +32,7 @@ import { captureEstimate } from "./capture";
 import { demoSubmitLead } from "./demoLinks";
 import { demoImport, demoProcess } from "./demoInbox";
 import { demoCampaignDecided, demoCancelCampaign, demoPlanCampaign } from "./demoCampaigns";
+import { demoCreateBot, demoDeleteBot, demoUpdateBot } from "./demoBots";
 import {
   demoFeedbackRequest,
   demoListeningDecided,
@@ -869,6 +870,42 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
     },
     [db.company_members, userId],
   );
+  const createBot = useCallback<Ctx["createBot"]>(
+    async (cid, template) => {
+      if (!isFounder(cid)) return false;
+      const r = demoCreateBot(db, cid, template, uid("bot"));
+      if ("error" in r) {
+        toast.error(r.error);
+        return false;
+      }
+      setDb(r.db);
+      return true;
+    },
+    [db, isFounder],
+  );
+  const updateBot = useCallback<Ctx["updateBot"]>(
+    async (id, patch) => {
+      const b = db.bots.find((x) => x.id === id);
+      if (!b || !isFounder(b.company_id)) return false;
+      const r = demoUpdateBot(db, id, patch, user.id, new Date());
+      if ("error" in r) {
+        toast.error(r.error);
+        return false;
+      }
+      setDb(r.db);
+      return true;
+    },
+    [db, isFounder, user],
+  );
+  const deleteBot = useCallback<Ctx["deleteBot"]>(
+    async (id) => {
+      const b = db.bots.find((x) => x.id === id);
+      if (!b || !isFounder(b.company_id)) return false;
+      setDb((d) => demoDeleteBot(d, id));
+      return true;
+    },
+    [db, isFounder],
+  );
   const updateListening = useCallback<Ctx["updateListening"]>(
     async (cid, patch) => {
       if (!isFounder(cid)) return false;
@@ -1363,6 +1400,9 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       requestFeedback,
       fetchFeedbackRequest,
       submitFeedback,
+      createBot,
+      updateBot,
+      deleteBot,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,
@@ -1431,6 +1471,9 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       requestFeedback,
       fetchFeedbackRequest,
       submitFeedback,
+      createBot,
+      updateBot,
+      deleteBot,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,
