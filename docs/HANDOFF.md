@@ -93,3 +93,12 @@ Built: `syncListening` in `agent-service/src/integrations/index.ts` pulls new co
 2. Complete section 6 (Social) for the company, then have the founder link Google Business Profile in Ayrshare's linking page.
 3. The founder switches on "Comments on your posts" and/or "Google reviews" in Grow → Listening.
 4. Feedback requests (Customers → Feedback) need no provider beyond email (section 6). Set `APP_URL` on the agent service to the app's public address so the scheduled requests link to `/fb/<token>` on it.
+
+## 9. Invoice and payment reminders (Stripe Connect)
+
+Built: the "Invoice and payment reminders" bot template (trigger `invoice_overdue`, a polite service email for a GO). It can't be switched on until companies can connect their own Stripe account; the engine has no invoice source yet.
+
+1. Decide between Stripe Connect (Standard accounts, OAuth: companies connect their own Stripe to the platform) and asking each company for a restricted read-only key. Connect is the usual route and needs the platform's Stripe account enabled for Connect (an application to Stripe).
+2. Add a connect flow in Settings → Integrations that stores the connected account id in `integration_secrets` (provider `stripe_connect`).
+3. In `agent-service/src/bots.ts`, implement the `invoice_overdue` case of `triggered`: list the connected account's open invoices past their due date (`GET /v1/invoices?status=open` with `Stripe-Account`), match the customer's email to a contact, and enrol them with the invoice id as the period.
+4. Remove the `needs = 'stripe'` refusal in `update_bot` for companies with a connection.

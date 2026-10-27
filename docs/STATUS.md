@@ -27,8 +27,8 @@ Restyle first, then the remaining Phase 1 groups, then the engine, then the v2 d
 | 14 | Customers: inbox and contacts | `phase-14-inbox` | Done |
 | 15 | Campaigns | `phase-15-campaigns` | Done |
 | 16 | Listening | `phase-16-listening` | Done |
-| 17 | Process bots | `phase-17-bots` | Next |
-| 18 | Capture v2: notetaker and calls (flagged) | `phase-18-capture-v2` | |
+| 17 | Process bots | `phase-17-bots` | Done |
+| 18 | Capture v2: notetaker and calls (flagged) | `phase-18-capture-v2` | Next |
 | 19 | Paid ads management (flagged, off) | `phase-19-paid-ads` | |
 
 Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, contacts, consents and leads. Stripe (6) is independent of them, but Resend inbound, Ayrshare and PostHog (7), the morning brief (8, which needs commitments from 12) and the new skills (9) all read those tables, so they come after. Phase 14 needs 7 (inbound email) and 11 (policy); 17 needs 8 (scheduler).
@@ -196,6 +196,14 @@ Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, con
 - App: Grow → Listening (sentiment by week, top themes, comments and reviews, what Sol listens to); Customers → Feedback (answers with stars, feedback-request settings and history); "Ask for feedback" on a contact's timeline; the public `/fb/<token>` page. Themes and the trend are computed in `src/lib/listening.ts` (D74). The demo has Harbour Bakes' reviews, comments and feedback, and runs the same rules.
 - Tests: `20_listening.test.sql` (service-only intake and dedupe, settings, reply edits, consent and frequency rules for requests, one answer per link, the daily pass), the read matrix and anonymous-function list, `agent-service/test/listening.test.ts` (parsers; sync → inbox once → triage by stars → public reply blocked without a GO → posted), `src/test/listening.test.ts`, `src/test/demoListening.test.ts`.
 - **Mocked / owner steps:** Ayrshare comments and reviews (plan and endpoints to confirm, HANDOFF 8). Facebook and Instagram DMs and mentions aren't read.
+
+### Phase 17 (finished 27 Oct 2026)
+
+- `20261101100000_bots.sql`: `bot_templates` with the six from SPEC L (lead follow-up, review request, invoice and payment reminders, new-customer onboarding, lapsed-customer win-back, weekly performance summary); `bots` (one per template per company, copied from the template, off by default, with trigger, conditions, steps, approval level and weekly credit cap); `bot_runs` (one row per contact and step, unique, so nothing happens twice and every step is audited); founder-only `create_bot`, `update_bot` (wording and timing only, not what a step does; approving wording runs the claims check; new wording needs approving again; switching off skips what was planned) and `delete_bot`; `bot_feedback_request` for the service role.
+- Engine (`agent-service/src/bots.ts`, every minute on the scheduler, no model calls): enrols contacts when a trigger happens after the bot was switched on (new lead, lead won, new customer, booking answered, lapsed for 90 days, or Mondays at 09:00), then carries out due steps: emails become approvals (D77), tasks go to the founder, review requests follow the Phase 16 rules, the weekly summary is posted in chat. Sequences stop when the person replies or becomes a customer; marketing steps need recorded permission; the weekly cap counts what each bot has spent (D78).
+- App: Run → Bots (add from templates, switch on and off, "Ask me before every email" or "Send with the wording I approve now", weekly cap, edit steps, recent steps and reasons, remove). The demo sets bots up with the same rules; they run on the live service.
+- Tests: `21_bots.test.sql` and the read matrix, `agent-service/test/bots.test.ts` (enrol once, first email for a GO, stop on reply, no marketing without permission, approved wording sends within the cap, weekly summary once a week), `src/test/bots.test.ts`, `src/test/demoBots.test.ts` (including the templates matching the migration).
+- **Mocked / owner steps:** invoice and payment reminders need the company's own Stripe account (HANDOFF 9); the template shows but can't be switched on (D80).
 
 ## Phase 0 audit and Phase 1 history
 

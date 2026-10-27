@@ -518,6 +518,205 @@ export type Database = {
         };
         Relationships: [];
       };
+      bot_runs: {
+        Row: {
+          approval_id: string | null;
+          bot_id: string;
+          company_id: string;
+          contact_id: string | null;
+          created_at: string;
+          credits: number;
+          due_at: string;
+          finished_at: string | null;
+          id: string;
+          period: string;
+          reason: string | null;
+          status: string;
+          step: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          approval_id?: string | null;
+          bot_id: string;
+          company_id: string;
+          contact_id?: string | null;
+          created_at?: string;
+          credits?: number;
+          due_at: string;
+          finished_at?: string | null;
+          id?: string;
+          period?: string;
+          reason?: string | null;
+          status?: string;
+          step: number;
+        };
+        Update: {
+          approval_id?: string | null;
+          bot_id?: string;
+          company_id?: string;
+          contact_id?: string | null;
+          created_at?: string;
+          credits?: number;
+          due_at?: string;
+          finished_at?: string | null;
+          id?: string;
+          period?: string;
+          reason?: string | null;
+          status?: string;
+          step?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "bot_runs_approval_id_fkey";
+            columns: ["approval_id"];
+            isOneToOne: false;
+            referencedRelation: "approvals";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bot_runs_bot_id_fkey";
+            columns: ["bot_id"];
+            isOneToOne: false;
+            referencedRelation: "bots";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bot_runs_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bot_runs_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      bot_templates: {
+        Row: {
+          conditions: NonNullable<Json>;
+          description: string;
+          key: string;
+          name: string;
+          needs: string | null;
+          sort: number;
+          steps: NonNullable<Json>;
+          trigger: NonNullable<Json>;
+        };
+        ComputedFields: never;
+        Insert: {
+          conditions?: NonNullable<Json>;
+          description: string;
+          key: string;
+          name: string;
+          needs?: string | null;
+          sort?: number;
+          steps: NonNullable<Json>;
+          trigger: NonNullable<Json>;
+        };
+        Update: {
+          conditions?: NonNullable<Json>;
+          description?: string;
+          key?: string;
+          name?: string;
+          needs?: string | null;
+          sort?: number;
+          steps?: NonNullable<Json>;
+          trigger?: NonNullable<Json>;
+        };
+        Relationships: [];
+      };
+      bots: {
+        Row: {
+          approval_level: string;
+          approved_at: string | null;
+          approved_by: string | null;
+          cap_credits_week: number;
+          company_id: string;
+          conditions: NonNullable<Json>;
+          created_at: string;
+          created_by: string | null;
+          enabled: boolean;
+          enabled_at: string | null;
+          id: string;
+          name: string;
+          steps: NonNullable<Json>;
+          template: string;
+          trigger: NonNullable<Json>;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          approval_level?: string;
+          approved_at?: string | null;
+          approved_by?: string | null;
+          cap_credits_week?: number;
+          company_id: string;
+          conditions?: NonNullable<Json>;
+          created_at?: string;
+          created_by?: string | null;
+          enabled?: boolean;
+          enabled_at?: string | null;
+          id?: string;
+          name: string;
+          steps: NonNullable<Json>;
+          template: string;
+          trigger: NonNullable<Json>;
+          updated_at?: string;
+        };
+        Update: {
+          approval_level?: string;
+          approved_at?: string | null;
+          approved_by?: string | null;
+          cap_credits_week?: number;
+          company_id?: string;
+          conditions?: NonNullable<Json>;
+          created_at?: string;
+          created_by?: string | null;
+          enabled?: boolean;
+          enabled_at?: string | null;
+          id?: string;
+          name?: string;
+          steps?: NonNullable<Json>;
+          template?: string;
+          trigger?: NonNullable<Json>;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "bots_approved_by_fkey";
+            columns: ["approved_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bots_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bots_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bots_template_fkey";
+            columns: ["template"];
+            isOneToOne: false;
+            referencedRelation: "bot_templates";
+            referencedColumns: ["key"];
+          },
+        ];
+      };
       briefs: {
         Row: {
           brief_date: string;
@@ -4188,6 +4387,10 @@ export type Database = {
         }[];
       };
       begin_chat_turn: { Args: { p_company: string; p_content: string }; Returns: string };
+      bot_feedback_request: {
+        Args: { p_company: string; p_contact: string; p_origin: string };
+        Returns: string;
+      };
       cancel_campaign: { Args: { p_campaign: string }; Returns: undefined };
       capture_estimate: { Args: { p_duration_seconds?: number }; Returns: number };
       check_claims: { Args: { p_company: string; p_text: string }; Returns: Json };
@@ -4273,6 +4476,7 @@ export type Database = {
           runs: number;
         }[];
       };
+      create_bot: { Args: { p_company: string; p_template: string }; Returns: string };
       create_capture: {
         Args: {
           p_audio_path?: string;
@@ -4352,6 +4556,7 @@ export type Database = {
         Args: { p_changes?: Json; p_decision: string; p_file_sensitive?: boolean; p_item: string };
         Returns: Json;
       };
+      delete_bot: { Args: { p_bot: string }; Returns: undefined };
       draft_outreach: {
         Args: { p_body: string; p_company: string; p_subject: string; p_to: string };
         Returns: string;
@@ -4519,6 +4724,16 @@ export type Database = {
           p_nightly_cap?: number;
           p_nightly_enabled?: boolean;
           p_voice_review?: boolean;
+        };
+        Returns: undefined;
+      };
+      update_bot: {
+        Args: {
+          p_approval_level?: string;
+          p_bot: string;
+          p_cap_credits_week?: number;
+          p_enabled?: boolean;
+          p_steps?: Json;
         };
         Returns: undefined;
       };

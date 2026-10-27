@@ -315,6 +315,30 @@ export const loaders = {
       campaign_results: must(results, "campaign results") as unknown as DB["campaign_results"],
     };
   },
+  bots: async (sb) => {
+    const [templates, bots, runs] = await Promise.all([
+      sb.from("bot_templates").select("*").order("sort"),
+      sb
+        .from("bots")
+        .select(
+          "id, company_id, template, name, enabled, trigger, conditions, steps, approval_level, approved_by, cap_credits_week, enabled_at",
+        )
+        .order("created_at"),
+      sb
+        .from("bot_runs")
+        .select(
+          "id, bot_id, company_id, contact_id, step, status, due_at, approval_id, reason, finished_at",
+        )
+        .order("due_at", { ascending: false })
+        .limit(RECENT),
+    ]);
+    return {
+      // Triggers, steps, levels and statuses are written by our RPCs and checked by constraints.
+      bot_templates: must(templates, "bot templates") as unknown as DB["bot_templates"],
+      bots: must(bots, "bots") as unknown as DB["bots"],
+      bot_runs: must(runs, "bot runs") as unknown as DB["bot_runs"],
+    };
+  },
   listening: async (sb) => {
     const [settings, feedback, requests] = await Promise.all([
       sb.from("listening_settings").select("*"),
@@ -396,6 +420,7 @@ export const TABLE_GROUPS: Partial<Record<keyof Database["public"]["Tables"], Gr
   campaign_assets: "campaigns",
   listening_settings: "listening",
   feedback: "listening",
+  bots: "bots",
 };
 
 export async function loadGroups(sb: Client, userId: string, groups: Group[]) {
@@ -458,6 +483,9 @@ export function emptyDb(): DB {
     listening_settings: [],
     feedback: [],
     feedback_requests: [],
+    bot_templates: [],
+    bots: [],
+    bot_runs: [],
     routines: [],
     documents: [],
     media: [],

@@ -269,3 +269,18 @@ Non-trivial decisions made during the autonomous build run (`docs/AUTONOMOUS-RUN
 
 ## D76. Listening uses the company's own Ayrshare profile
 - **Chosen:** comments are read only for posts Sol published through Ayrshare (their ids are known), and reviews from the linked Google Business Profile. No broad keyword listening, mentions or DMs (SPEC K, and their APIs need separate access and costs).
+
+## D77. Bot emails: a GO each time, or wording approved once
+- **Chosen:** two approval levels. "Ask me before every email" (the default) makes each email a pending approval. "Send with the wording I approve now" lets the executor send the bot's emails as already approved by the founder who approved that wording, after it passed the claims check; any change to the wording returns the bot to a GO for every email. Tasks and summaries are internal and need no GO.
+- **Why:** SPEC L asks for an approval level per bot, and rule 4 (agents propose, the executor acts) still holds: the founder approves the exact text, the deterministic executor sends it, and it re-checks claims, consent and its rules each time.
+
+## D78. Bots are deterministic and capped per week
+- **Chosen:** the engine fills templates rather than asking a model to write, so a bot costs only its actions (5 credits an email, through the usual reserve and settle at execution). Each bot has a weekly credit cap (default 50); a step that would go over is skipped with the reason and tried again by the next enrolment.
+- **Why:** predictable cost and behaviour for routine follow-ups. Sol-written personalisation can be added as a step kind later, with its own estimate.
+
+## D79. Which emails need consent
+- **Chosen:** each email step is marked service or marketing in its template, and that can't be edited. Service steps (replying to an enquiry, welcoming a new customer, an invoice reminder) go to the contact; marketing steps (a second follow-up, tips, win-backs) only to contacts with recorded marketing permission. Opt-outs are always respected by the executor.
+- **Why:** PECR; replying to someone's own enquiry and transactional messages aren't direct marketing, follow-ups and promotions are.
+
+## D80. Invoice reminders wait for Stripe Connect
+- **Chosen:** the template is listed with "Needs Stripe" and `update_bot` refuses to switch it on. Reading a company's invoices needs Stripe Connect (or the company's own key), which is an account and onboarding decision for the owner (HANDOFF 9).

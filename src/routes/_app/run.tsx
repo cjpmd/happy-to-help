@@ -1,19 +1,22 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { RouteTabs } from "@/components/mission/RouteTabs";
 import { DocumentsPage, EmailPage } from "@/components/mission/WorkspacePages";
+import { BotsPage } from "@/components/mission/Bots";
 import { useStore } from "@/lib/store";
 import { PageHeader, Panel, Pill, SolAvatar, StatusPill } from "@/components/mission/primitives";
 import { pageHead } from "@/lib/seo";
 import { fmtDate } from "@/lib/format";
 
-type RunTab = "overview" | "email" | "documents";
-const RUN_TABS: RunTab[] = ["overview", "email", "documents"];
+type RunTab = "overview" | "bots" | "email" | "documents";
+const RUN_TABS: RunTab[] = ["overview", "bots", "email", "documents"];
 
 export const Route = createFileRoute("/_app/run")({
   head: () => pageHead("Run", "Inbox summary, customers and leads, and day-to-day tasks."),
-  // ?tab=email|documents; the overview has no param.
+  // ?tab=bots|email|documents; the overview has no param.
   validateSearch: (search: Record<string, unknown>): { tab?: Exclude<RunTab, "overview"> } =>
-    search["tab"] === "email" || search["tab"] === "documents" ? { tab: search["tab"] } : {},
+    RUN_TABS.includes(search["tab"] as RunTab) && search["tab"] !== "overview"
+      ? { tab: search["tab"] as Exclude<RunTab, "overview"> }
+      : {},
   component: Run,
 });
 
@@ -34,6 +37,7 @@ function Run() {
         }
         tabs={[
           { value: "overview", label: "Overview", content: <RunOverview /> },
+          { value: "bots", label: "Bots", content: <BotsPage /> },
           { value: "email", label: "Email", content: <EmailPage embedded /> },
           { value: "documents", label: "Documents", content: <DocumentsPage embedded /> },
         ]}

@@ -9,6 +9,7 @@ import type * as V from "./voicePolicy";
 import type * as K from "./capture";
 import type * as L from "./links";
 import type { Metric } from "./campaigns";
+import type * as B from "./bots";
 
 /**
  * The app's data, shaped like the Supabase tables. Two providers fill it: the demo store
@@ -71,6 +72,10 @@ export type DB = WorkspaceDB & {
   listening_settings: ListeningSettings[];
   feedback: Feedback[];
   feedback_requests: FeedbackRequest[];
+  /** Phase 17: process bots, their templates and what they did. */
+  bot_templates: BotTemplate[];
+  bots: Bot[];
+  bot_runs: BotRun[];
   /** Phase 14: every message that came in, and what Sol did with it. */
   inbox_items: InboxItem[];
   /** Phase 8: Auto Mode sessions, what Sol does on its own, and the morning briefs. */
@@ -207,6 +212,44 @@ export interface CampaignAsset {
   status:
     "draft" | "awaiting_approval" | "scheduled" | "published" | "sent" | "exported" | "declined";
   approval_id: string | null;
+}
+
+/** Process bots (Phase 17). */
+export interface BotTemplate {
+  key: string;
+  name: string;
+  description: string;
+  trigger: B.BotTrigger;
+  conditions: B.BotConditions;
+  steps: B.BotStep[];
+  needs: string | null;
+  sort: number;
+}
+export interface Bot {
+  id: string;
+  company_id: string;
+  template: string;
+  name: string;
+  enabled: boolean;
+  trigger: B.BotTrigger;
+  conditions: B.BotConditions;
+  steps: B.BotStep[];
+  approval_level: "each" | "approved_wording";
+  approved_by: string | null;
+  cap_credits_week: number;
+  enabled_at: string | null;
+}
+export interface BotRun {
+  id: string;
+  bot_id: string;
+  company_id: string;
+  contact_id: string | null;
+  step: number;
+  status: "pending" | "done" | "skipped" | "failed";
+  due_at: string;
+  approval_id: string | null;
+  reason: string | null;
+  finished_at: string | null;
 }
 
 /** Listening (Phase 16). Everything is off until a founder switches it on. */
@@ -358,6 +401,18 @@ export interface Ctx {
   /** The public feedback page (anyone with the link). */
   fetchFeedbackRequest: (token: string) => Promise<PublicFeedbackRequest | null>;
   submitFeedback: (token: string, rating: number, comment: string) => Promise<boolean>;
+  /** Process bots (Phase 17): founders add, change and remove them. */
+  createBot: (companyId: string, template: string) => Promise<boolean>;
+  updateBot: (
+    id: string,
+    patch: {
+      enabled?: boolean;
+      approval_level?: Bot["approval_level"];
+      cap_credits_week?: number;
+      steps?: B.BotStep[];
+    },
+  ) => Promise<boolean>;
+  deleteBot: (id: string) => Promise<boolean>;
   /** The inbox pipeline (Phase 14): ask Sol to deal with a message now, or close it. */
   processInboxItem: (id: string) => Promise<boolean>;
   closeInboxItem: (id: string, status?: "closed" | "spam") => Promise<boolean>;
