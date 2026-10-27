@@ -231,6 +231,10 @@ begin
       values (c, case when c = pg_temp.id('company_a') then '+447700900101' else '+447700900102' end, 'mock');
     insert into public.call_sessions (company_id, external_id, from_number, to_number)
       values (c, 'CA-' || c::text, '+447700900201', '+447700900101');
+    insert into public.ad_campaigns (company_id, platform, name, creative, daily_budget)
+      values (c, 'meta', 'Fixture ad', 'Hello', 5);
+    insert into public.ad_spend_daily (ad_campaign_id, company_id, day, spend_gbp)
+      select id, c, '2026-10-01', 1 from public.ad_campaigns where company_id = c;
   end loop;
 end;
 $$;

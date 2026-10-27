@@ -9,6 +9,7 @@ import {
   Brain,
   Target,
   MessageCircle,
+  Rocket,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ const icons = {
   update_memory: Brain,
   approve_campaign: Target,
   reply_public: MessageCircle,
+  launch_ad: Rocket,
 };
 const titles = {
   publish_post: "Publish a post",
@@ -42,6 +44,7 @@ const titles = {
   update_memory: "Remember this",
   approve_campaign: "Approve a campaign plan",
   reply_public: "Reply in public",
+  launch_ad: "Launch a paid ad",
 };
 
 function Preview({ a }: { a: Approval }) {
@@ -119,6 +122,17 @@ function Preview({ a }: { a: Approval }) {
           {row("Budget", a.payload.budget)}
         </div>
       );
+    case "launch_ad":
+      return (
+        <div className="space-y-2">
+          {row("Where", a.payload.platform === "meta" ? "Meta (Facebook and Instagram)" : "Google")}
+          {row("Budget", `£${a.payload.daily_budget} a day, real money, until you pause it`)}
+          {row("Caps", `£${a.payload.hard_cap} a day, £${a.payload.monthly_cap} a month`)}
+          <p className="whitespace-pre-line rounded-tile bg-soft p-3 text-sm leading-relaxed shadow-tile">
+            {a.payload.creative}
+          </p>
+        </div>
+      );
     case "reply_public":
       return (
         <div className="space-y-2">
@@ -151,6 +165,8 @@ function summary(a: Approval) {
       return a.payload.name;
     case "reply_public":
       return a.payload.text;
+    case "launch_ad":
+      return `${a.payload.name}: £${a.payload.daily_budget} a day`;
   }
 }
 

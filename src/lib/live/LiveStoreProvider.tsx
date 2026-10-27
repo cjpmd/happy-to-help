@@ -620,6 +620,36 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       )) !== false,
     [sb, call],
   );
+  const proposeAdLaunch = useCallback<Ctx["proposeAdLaunch"]>(
+    async (assetId, platform, daily) => {
+      const r = await call(
+        () =>
+          sb.rpc("propose_ad_launch", {
+            p_asset: assetId,
+            p_platform: platform,
+            p_daily_budget: daily,
+          }),
+        ["campaigns", "approvals"],
+      );
+      if (r === false) return false;
+      toast.success("The launch is waiting for your GO.");
+      return true;
+    },
+    [sb, call],
+  );
+  const pauseAd = useCallback<Ctx["pauseAd"]>(
+    async (id) =>
+      (await call(() => sb.rpc("pause_ad", { p_ad: id }), ["campaigns", "approvals"])) !== false,
+    [sb, call],
+  );
+  const updateAdsMonthlyCap = useCallback<Ctx["updateAdsMonthlyCap"]>(
+    async (cid, cap) =>
+      (await call(
+        () => sb.rpc("update_ads_monthly_cap", { p_company: cid, p_cap: cap }),
+        ["ads"],
+      )) !== false,
+    [sb, call],
+  );
   const addDemoPhoneNumber = useCallback<Ctx["addDemoPhoneNumber"]>(
     async (cid) =>
       (await call(() => sb.rpc("add_mock_phone_number", { p_company: cid }), ["capture2"])) !==
@@ -1117,6 +1147,9 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       updateMinutesCap,
       addDemoPhoneNumber,
       updatePhoneSettings,
+      proposeAdLaunch,
+      pauseAd,
+      updateAdsMonthlyCap,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,
@@ -1200,6 +1233,9 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       updateMinutesCap,
       addDemoPhoneNumber,
       updatePhoneSettings,
+      proposeAdLaunch,
+      pauseAd,
+      updateAdsMonthlyCap,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,

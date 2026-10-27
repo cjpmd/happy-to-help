@@ -331,6 +331,8 @@ export function mapAd(a: Row<"ad_accounts">): AdAccount {
     spend: Number(a.spend),
     clicks: a.clicks,
     signups: a.signups,
+    monthly_cap: Number(a.monthly_cap),
+    paused_reason: a.paused_reason,
   };
 }
 

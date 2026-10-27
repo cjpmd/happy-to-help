@@ -7,4 +7,6 @@ export const FLAGS = {
   notetaker: on("VITE_NOTETAKER_ENABLED"),
   /** Phase 18: a company phone number with recorded calls (Twilio). */
   calls: on("VITE_CALLS_ENABLED"),
+  /** Phase 19: launching paid ads on Meta and Google (spends real money). */
+  ads: on("VITE_ADS_ENABLED"),
 } as const;

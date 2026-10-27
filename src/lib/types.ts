@@ -184,6 +184,15 @@ export interface ReplyPublicPayload extends PayloadBase {
   thread_id?: string;
   inbox_item_id?: string;
 }
+export interface LaunchAdPayload extends PayloadBase {
+  ad_campaign_id: string;
+  platform: "meta" | "google";
+  name: string;
+  daily_budget: number;
+  hard_cap: number;
+  monthly_cap: number;
+  creative: string;
+}
 export interface ApprovalPayloads {
   publish_post: PublishPostPayload;
   send_email: SendEmailPayload;
@@ -194,6 +203,7 @@ export interface ApprovalPayloads {
   update_memory: UpdateMemoryPayload;
   approve_campaign: ApproveCampaignPayload;
   reply_public: ReplyPublicPayload;
+  launch_ad: LaunchAdPayload;
 }
 export type ApprovalAction = keyof ApprovalPayloads;
 interface ApprovalBase {

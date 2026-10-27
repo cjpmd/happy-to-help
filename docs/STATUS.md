@@ -29,7 +29,7 @@ Restyle first, then the remaining Phase 1 groups, then the engine, then the v2 d
 | 16 | Listening | `phase-16-listening` | Done |
 | 17 | Process bots | `phase-17-bots` | Done |
 | 18 | Capture v2: notetaker and calls (flagged) | `phase-18-capture-v2` | Done |
-| 19 | Paid ads management (flagged, off) | `phase-19-paid-ads` | Next |
+| 19 | Paid ads management (flagged, off) | `phase-19-paid-ads` | Done (switched off) |
 
 Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, contacts, consents and leads. Stripe (6) is independent of them, but Resend inbound, Ayrshare and PostHog (7), the morning brief (8, which needs commitments from 12) and the new skills (9) all read those tables, so they come after. Phase 14 needs 7 (inbound email) and 11 (policy); 17 needs 8 (scheduler).
 
@@ -215,6 +215,16 @@ Everything here is behind switches that are off by default (`VITE_NOTETAKER_ENAB
 - App: Meetings → Notetaker (connect Google, Microsoft or a demo calendar; per-meeting switch and "Every time" for a series; bot status; daily minutes); Customers → Calls (the number, where it rings, the notice as callers hear it, recent calls with links to their notes). The demo runs the same rules.
 - Tests: `22_capture_v2.test.sql` and the read matrix, `agent-service/test/notetaker.test.ts` (sync, opt-in, bot sent and collected, minutes cost charged, daily cap skip, series opt-in, Recall.ai transcript), `agent-service/test/calls.test.ts`, `src/test/telephony.test.ts`, `src/test/calendar.test.ts`, `src/test/demoCapture2.test.ts`, and an integration check that both functions stay off by default. The webhook was also run end to end locally with calls switched on.
 - **Mocked / owner steps:** Recall.ai, Google and Microsoft OAuth apps (HANDOFF 10); Twilio account and a UK number (HANDOFF 11). Outbound calls aren't built.
+
+### Phase 19 (finished 27 Oct 2026, switched off)
+
+PHASES says not to start direct ad management until earlier phases are live with real customers and the platforms' approval requirements are confirmed. This run built only the switched-off foundation, on a mock provider, so it's ready when that happens (D86). Nothing here can spend money: the app hides it (`VITE_ADS_ENABLED`), and the executor refuses to launch unless the platform sets `ADS_ENABLED=1`.
+
+- `20261103100000_paid_ads_enums.sql` (the `launch_ad` action) and `20261103100100_paid_ads.sql`: a monthly cap on the ad account (default £300); `ad_campaigns` (launched from a campaign's exported ad copy, with its tracked link) and `ad_spend_daily`; founder-only `propose_ad_launch` (within the daily hard cap, one launch per ad, waits for a GO), `pause_ad` (immediate: pausing only reduces spend) and `update_ads_monthly_cap`; a NO-GO declines the ad; the service role's `record_ad_spend` updates the ad's totals and its tracked link's spend (so cost per lead appears in attribution) and pauses every ad, telling the founder, when the month's spend reaches the cap (D87).
+- Agent: the ads provider gains launch, pause and spend (mock: nothing is spent; it reports 80% of the budget a day); the executor's `launch_ad` (founder-only, within the hard cap and the platform's £100 a day limit, and only with `ADS_ENABLED=1`); `syncAds` hourly when switched on, pushing pauses to the platform.
+- App: "Launch for a GO" on a campaign's ad copy and Grow → Ads → Paid ads (spend, clicks, pause, monthly cap), both behind `VITE_ADS_ENABLED`. The demo follows the same rules.
+- Tests: `23_paid_ads.test.sql` and the read matrix, `agent-service/test/ads.test.ts` (blocked while off; launched with a GO; spend into the link; paused at the monthly cap; founder-only within caps), `src/test/demoAds.test.ts`.
+- **Mocked / owner steps:** the Meta Marketing API and Google Ads API adapters, which need platform approval (HANDOFF 12).
 
 ## Phase 0 audit and Phase 1 history
 

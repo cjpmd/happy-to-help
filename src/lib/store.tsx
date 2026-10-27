@@ -33,6 +33,7 @@ import { demoSubmitLead } from "./demoLinks";
 import { demoImport, demoProcess } from "./demoInbox";
 import { demoCampaignDecided, demoCancelCampaign, demoPlanCampaign } from "./demoCampaigns";
 import { demoCreateBot, demoDeleteBot, demoUpdateBot } from "./demoBots";
+import { demoAdDecided, demoPauseAd, demoProposeAdLaunch } from "./demoAds";
 import {
   demoAddPhoneNumber,
   demoConnectCalendar,
@@ -233,7 +234,11 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
           ],
         };
         const ctx = { now: new Date(), uid };
-        return demoListeningDecided(demoCampaignDecided(next, a, approved, ctx), a, approved, ctx);
+        return demoAdDecided(
+          demoListeningDecided(demoCampaignDecided(next, a, approved, ctx), a, approved, ctx),
+          a,
+          approved,
+        );
       });
       return true;
     },
@@ -965,6 +970,44 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
     },
     [isFounder],
   );
+  const proposeAdLaunch = useCallback<Ctx["proposeAdLaunch"]>(
+    async (assetId, platform, daily) => {
+      const a = db.campaign_assets.find((x) => x.id === assetId);
+      if (!a || !isFounder(a.company_id)) return false;
+      const r = demoProposeAdLaunch(db, assetId, platform, daily, user.id, {
+        now: new Date(),
+        uid,
+      });
+      if ("error" in r) {
+        toast.error(r.error);
+        return false;
+      }
+      setDb(r.db);
+      toast.success("The launch is waiting for your GO.");
+      return true;
+    },
+    [db, isFounder, user],
+  );
+  const pauseAd = useCallback<Ctx["pauseAd"]>(
+    async (id) => {
+      const ad = db.ad_campaigns.find((x) => x.id === id);
+      if (!ad || !isFounder(ad.company_id)) return false;
+      setDb((d) => demoPauseAd(d, id));
+      return true;
+    },
+    [db, isFounder],
+  );
+  const updateAdsMonthlyCap = useCallback<Ctx["updateAdsMonthlyCap"]>(
+    async (cid, cap) => {
+      if (!isFounder(cid)) return false;
+      setDb((d) => ({
+        ...d,
+        ads: d.ads.map((x) => (x.company_id === cid ? { ...x, monthly_cap: Math.max(0, cap) } : x)),
+      }));
+      return true;
+    },
+    [isFounder],
+  );
   const addDemoPhoneNumber = useCallback<Ctx["addDemoPhoneNumber"]>(
     async (cid) => {
       if (!isFounder(cid)) return false;
@@ -1489,6 +1532,9 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       updateMinutesCap,
       addDemoPhoneNumber,
       updatePhoneSettings,
+      proposeAdLaunch,
+      pauseAd,
+      updateAdsMonthlyCap,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,
@@ -1566,6 +1612,9 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       updateMinutesCap,
       addDemoPhoneNumber,
       updatePhoneSettings,
+      proposeAdLaunch,
+      pauseAd,
+      updateAdsMonthlyCap,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,

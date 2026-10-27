@@ -110,6 +110,9 @@ export interface AdAccount {
   spend: number;
   clicks: number;
   signups: number;
+  /** Phase 19: ads pause when the month's spend reaches this. */
+  monthly_cap?: number;
+  paused_reason?: string | null;
 }
 export interface Preferences {
   explanation: "brief" | "more";

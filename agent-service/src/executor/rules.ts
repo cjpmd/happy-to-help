@@ -31,6 +31,7 @@ export interface ApprovalForRules {
     | "update_voice"
     | "update_memory"
     | "reply_public"
+    | "launch_ad"
     | "approve_campaign";
   payload: Record<string, unknown>;
   /** The decider's role in the company. */
@@ -69,6 +70,25 @@ export function checkRules(
       reason: "Only a founder can approve a campaign plan.",
       needsFounder: true,
     };
+  // Launching an ad spends real money every day: a founder decides, within the caps.
+  if (a.action_type === "launch_ad") {
+    if (!byFounder)
+      return { ok: false, reason: "Only a founder can launch a paid ad.", needsFounder: true };
+    const daily = Number(p["daily_budget"] ?? 0);
+    const cap = Number(p["hard_cap"] ?? 0);
+    if (!Number.isFinite(daily) || daily <= 0 || daily > cap)
+      return {
+        ok: false,
+        reason: `The daily budget (£${daily}) must be within the hard cap (£${cap}).`,
+        needsFounder: false,
+      };
+    if (daily > limits.adMaxDailyGbp)
+      return {
+        ok: false,
+        reason: `Daily ad budgets are capped at £${limits.adMaxDailyGbp} on Gumption.`,
+        needsFounder: false,
+      };
+  }
   if (a.action_type === "update_memory" && !byFounder)
     return {
       ok: false,

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCompanyRole, useEstimate, useStore } from "@/lib/store";
 import { progress } from "@/lib/campaigns";
+import { FLAGS } from "@/lib/flags";
 import type { Campaign, CampaignAsset } from "@/lib/storeContext";
 import { fmtDate, fmtShortDate } from "@/lib/format";
 import { CostButton } from "./WorkControls";
@@ -181,6 +182,9 @@ function CampaignPanel({ c, canCancel }: { c: Campaign; canCancel: boolean }) {
                     <Copy className="h-3.5 w-3.5" /> Copy ad copy
                   </Button>
                 ) : null}
+                {a.kind === "ad" && FLAGS.ads ? (
+                  <LaunchAd assetId={a.id} companyId={a.company_id} />
+                ) : null}
               </li>
             ))}
           </ul>
@@ -206,5 +210,59 @@ function CampaignProgress({ c }: { c: Campaign }) {
         {r.value}/{c.target} {c.metric} ({r.pct}%)
       </span>
     </p>
+  );
+}
+
+/** Phase 19 (behind VITE_ADS_ENABLED): launch a campaign's ad copy as a paid ad, for a GO. */
+export function LaunchAd({ assetId, companyId }: { assetId: string; companyId: string }) {
+  const { db, proposeAdLaunch } = useStore();
+  const founder = useCompanyRole(companyId) === "founder";
+  const [platform, setPlatform] = useState<"meta" | "google">("meta");
+  const [budget, setBudget] = useState("5");
+  const ad = db.ad_campaigns.find(
+    (a) => a.campaign_asset_id === assetId && a.status !== "declined",
+  );
+  const cap = db.ads.find((a) => a.company_id === companyId)?.hard_cap ?? 50;
+  if (ad)
+    return (
+      <p className="flex flex-wrap items-center gap-2 text-xs">
+        <StatusPill status={ad.status === "pending" ? "awaiting_approval" : ad.status} />
+        {ad.platform === "meta" ? "Meta" : "Google"} · £{ad.daily_budget} a day · £{ad.spend} spent
+      </p>
+    );
+  if (!founder) return null;
+  return (
+    <div className="flex flex-wrap items-end gap-2 text-xs">
+      <label className="space-y-1">
+        <span className="block text-muted-foreground">Launch on</span>
+        <select
+          className="h-9 rounded-md border bg-background px-2"
+          value={platform}
+          onChange={(e) => setPlatform(e.target.value as "meta" | "google")}
+        >
+          <option value="meta">Meta (Facebook, Instagram)</option>
+          <option value="google">Google</option>
+        </select>
+      </label>
+      <label className="space-y-1">
+        <span className="block text-muted-foreground">£ a day (cap £{cap})</span>
+        <Input
+          type="number"
+          min={1}
+          max={cap}
+          className="w-24"
+          value={budget}
+          onChange={(e) => setBudget(e.target.value)}
+        />
+      </label>
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={!(Number(budget) > 0 && Number(budget) <= cap)}
+        onClick={() => void proposeAdLaunch(assetId, platform, Number(budget))}
+      >
+        Launch for a GO
+      </Button>
+    </div>
   );
 }
