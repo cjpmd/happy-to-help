@@ -174,6 +174,8 @@ function approvalLabel(a: Approval) {
       return "Campaign";
     case "reply_public":
       return `${a.payload.platform} ${a.payload.kind} reply`;
+    case "launch_ad":
+      return "Paid ad";
   }
 }
 
@@ -197,6 +199,8 @@ function approvalTitle(a: Approval) {
       return a.payload.name;
     case "reply_public":
       return `Reply to a ${a.payload.kind}`;
+    case "launch_ad":
+      return `${a.payload.name} · ${gbp(a.payload.daily_budget)} a day`;
   }
 }
 
@@ -220,6 +224,8 @@ function approvalPreview(a: Approval) {
       return `${a.payload.target} · ${a.payload.dates}`;
     case "reply_public":
       return a.payload.text;
+    case "launch_ad":
+      return a.payload.creative;
   }
 }
 

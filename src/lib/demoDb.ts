@@ -67,6 +67,7 @@ export function demoDb(): DB {
     calendar_events: [],
     phone_numbers: [],
     call_sessions: [],
+    ad_campaigns: [],
   };
 }
 

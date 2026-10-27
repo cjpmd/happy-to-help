@@ -302,3 +302,14 @@ Non-trivial decisions made during the autonomous build run (`docs/AUTONOMOUS-RUN
 
 ## D85. Calendars are read-only, tokens server-side
 - **Chosen:** Google `calendar.events.readonly` and Microsoft `Calendars.Read`; refresh tokens in `calendar_tokens`, which only the service role can read; the OAuth state is signed and expires in ten minutes so a callback can't attach a calendar to someone else's company.
+
+## D86. Phase 19 is built switched off, on a mock
+- **Chosen:** build the data model, approvals, caps, spend sync and UI for paid ads, behind two switches that default off, with a mock provider; don't build the Meta and Google adapters.
+- **Why:** the run's instructions are to build through the final phase, PHASES says not to start until there are real customers and platform approval is confirmed, and AUTONOMOUS-RUN forbids spending money. A switched-off foundation satisfies all three; the adapters need developer access only the owner can apply for (HANDOFF 12).
+
+## D87. Two caps, and pausing needs no GO
+- **Chosen:** a launch must be within the account's daily hard cap (and the platform's £100 a day limit); every ad pauses automatically when the month's spend reaches the monthly cap, and the founder is told. A founder can pause an ad at once without an approval, because pausing only reduces spend; the agent service tells the platform on its next sync.
+- **Why:** SPEC "every budget change needs founder approval; hard spend caps per company", with the safe direction kept frictionless.
+
+## D88. Ad spend lives on the ad's tracked link
+- **Chosen:** spend synced from the platform is written to the tracked link the ad uses (`tracked_links.spend_gbp`), so the existing attribution (Phase 13) shows cost per lead and per customer for ads without a separate report.

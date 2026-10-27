@@ -81,6 +81,8 @@ export type DB = WorkspaceDB & {
   calendar_events: CalendarEvent[];
   phone_numbers: PhoneNumber[];
   call_sessions: CallSession[];
+  /** Phase 19: paid ads launched from campaigns. */
+  ad_campaigns: AdCampaign[];
   /** Phase 14: every message that came in, and what Sol did with it. */
   inbox_items: InboxItem[];
   /** Phase 8: Auto Mode sessions, what Sol does on its own, and the morning briefs. */
@@ -219,6 +221,23 @@ export interface CampaignAsset {
   status:
     "draft" | "awaiting_approval" | "scheduled" | "published" | "sent" | "exported" | "declined";
   approval_id: string | null;
+}
+
+/** Paid ads (Phase 19). */
+export interface AdCampaign {
+  id: string;
+  company_id: string;
+  platform: "meta" | "google";
+  name: string;
+  creative: string;
+  status: "pending" | "active" | "paused" | "ended" | "declined";
+  daily_budget: number;
+  campaign_asset_id: string | null;
+  link_id: string | null;
+  spend: number;
+  clicks: number;
+  paused_reason: string | null;
+  created_at: string;
 }
 
 /** Capture v2 (Phase 18). */
@@ -476,6 +495,14 @@ export interface Ctx {
   updateMinutesCap: (companyId: string, cap: number) => Promise<boolean>;
   /** Calls (Phase 18). A real number is set up by the platform; the demo one never rings. */
   addDemoPhoneNumber: (companyId: string) => Promise<boolean>;
+  /** Paid ads (Phase 19): a founder proposes a launch (it waits for a GO), pauses, caps. */
+  proposeAdLaunch: (
+    assetId: string,
+    platform: AdCampaign["platform"],
+    dailyBudget: number,
+  ) => Promise<boolean>;
+  pauseAd: (id: string) => Promise<boolean>;
+  updateAdsMonthlyCap: (companyId: string, cap: number) => Promise<boolean>;
   updatePhoneSettings: (
     companyId: string,
     patch: { forward_to?: string; recording_notice?: string },
@@ -649,6 +676,8 @@ export function labelFor(a: T.Approval) {
       return `campaign plan: ${a.payload.name}`;
     case "reply_public":
       return `reply to a ${a.payload.platform} ${a.payload.kind}`;
+    case "launch_ad":
+      return `${a.payload.platform === "meta" ? "Meta" : "Google"} ad at £${a.payload.daily_budget} a day`;
   }
 }
 

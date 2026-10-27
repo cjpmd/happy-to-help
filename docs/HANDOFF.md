@@ -126,3 +126,12 @@ Costs (check the [GB price list](https://www.twilio.com/en-us/voice/pricing/gb))
 3. `npx supabase secrets set CALLS_ENABLED=1 TWILIO_AUTH_TOKEN=<auth token> CALLS_WEBHOOK_URL=https://<project>.supabase.co/functions/v1/call-webhook` and deploy with `--no-verify-jwt`. Set `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN` on the agent service (to fetch and delete recordings) and `VITE_CALLS_ENABLED=true` for the app.
 4. Record the number for the company: `insert into public.phone_numbers (company_id, number, provider) values ('<company id>', '+44...', 'twilio');`
 5. Call it: you should hear the notice, be put through to the founder's phone (set in Customers → Calls), and see the call and its notes appear. Locally, `node scripts/dev/replay-call.mjs <number>` does the same with signed fake requests.
+
+## 12. Paid ads on Meta and Google (only once there are real customers)
+
+Built: ad launches from campaigns with founder approval, daily and monthly caps, spend sync into attribution, and the UI, all switched off and on a mock provider (`agent-service/src/executor/providers.ts`). PHASES says to start this only once earlier phases are live with real customers.
+
+1. **Meta:** create a Meta app (Business type), request the `ads_management` and `ads_read` permissions through App Review, and complete Business Verification. Each company connects its own ad account (OAuth with Facebook Login for Business). Then implement `launch`, `pause` and `spend` for Meta in a new `agent-service/src/integrations/meta-ads.ts` (campaign → ad set with the daily budget → ad with the creative and the tracked link; Insights for spend) and use it in `providersFor` when the company has connected.
+2. **Google:** apply for a Google Ads API developer token (basic access needs an application and a manager account), create an OAuth client with the `adwords` scope, and implement the same three calls in `google-ads.ts` (campaign budget, campaign, responsive search ad; `GoogleAdsService.search` for metrics).
+3. Decide the platform-wide limit (`DEFAULT_LIMITS.adMaxDailyGbp`, £100 a day) and the default monthly cap per company (£300).
+4. Set `ADS_ENABLED=1` on the agent service and `VITE_ADS_ENABLED=true` for the app, first for one test company with a small cap, and watch a full day's spend sync before widening.

@@ -295,7 +295,7 @@ export const loaders = {
     ) as unknown as DB["inbox_items"],
   }),
   campaigns: async (sb) => {
-    const [campaigns, assets, results] = await Promise.all([
+    const [campaigns, assets, results, ads] = await Promise.all([
       sb
         .from("campaigns")
         .select(
@@ -309,12 +309,24 @@ export const loaders = {
         )
         .order("scheduled_for"),
       sb.from("campaign_results").select("campaign_id, clicks, leads, customers"),
+      sb
+        .from("ad_campaigns")
+        .select(
+          "id, company_id, platform, name, creative, status, daily_budget, campaign_asset_id, link_id, spend, clicks, paused_reason, created_at",
+        )
+        .order("created_at", { ascending: false }),
     ]);
     return {
       // Statuses, kinds and metrics are checked by the tables' constraints.
       campaigns: must(campaigns, "campaigns") as unknown as DB["campaigns"],
       campaign_assets: must(assets, "campaign assets") as unknown as DB["campaign_assets"],
       campaign_results: must(results, "campaign results") as unknown as DB["campaign_results"],
+      // Numbers arrive as strings for numeric columns.
+      ad_campaigns: must(ads, "ads").map((a) => ({
+        ...a,
+        daily_budget: Number(a.daily_budget),
+        spend: Number(a.spend),
+      })) as DB["ad_campaigns"],
     };
   },
   capture2: async (sb) => {
@@ -457,6 +469,7 @@ export const TABLE_GROUPS: Partial<Record<keyof Database["public"]["Tables"], Gr
   feedback: "listening",
   bots: "bots",
   calendar_events: "capture2",
+  ad_campaigns: "campaigns",
   call_sessions: "capture2",
 };
 
@@ -527,6 +540,7 @@ export function emptyDb(): DB {
     calendar_events: [],
     phone_numbers: [],
     call_sessions: [],
+    ad_campaigns: [],
     routines: [],
     documents: [],
     media: [],

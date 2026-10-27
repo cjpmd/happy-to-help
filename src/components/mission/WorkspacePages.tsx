@@ -20,7 +20,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { useStore, useCompany, useBalance, useEstimate } from "@/lib/store";
+import { useStore, useCompany, useBalance, useEstimate, useCompanyRole } from "@/lib/store";
+import { FLAGS } from "@/lib/flags";
 import { actionQuote } from "@/lib/credits";
 import type { ThemePref } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -481,6 +482,7 @@ export function AdsPage({ embedded }: { embedded?: boolean }) {
           Review budget approvals →
         </Link>
       </section>
+      {FLAGS.ads ? <PaidAds /> : null}
     </>
   );
 }
@@ -897,5 +899,65 @@ export function OwnershipPage() {
         </p>
       </section>
     </>
+  );
+}
+
+/** Phase 19 (behind VITE_ADS_ENABLED): ads launched from campaigns, their spend, and the caps. */
+function PaidAds() {
+  const { db, companyId, pauseAd, updateAdsMonthlyCap } = useStore();
+  const founder = useCompanyRole(companyId) === "founder";
+  const ads = db.ad_campaigns.filter((a) => a.company_id === companyId && a.status !== "declined");
+  const acct = db.ads.find((a) => a.company_id === companyId);
+  return (
+    <section className="mt-4 space-y-3 rounded-card border bg-card p-4 shadow-card">
+      <h2 className="label-caps text-[13px]">Paid ads</h2>
+      <p className="text-xs text-muted-foreground">
+        Launch an ad from a campaign's ad copy (Grow → Campaigns). Each launch waits for your GO,
+        stays within your daily cap, and every ad pauses when the month's spend reaches the monthly
+        cap. Spend shows against the ad's link in Links &amp; forms, as cost per lead.
+      </p>
+      {acct?.paused_reason ? (
+        <p className="text-xs text-destructive">{acct.paused_reason}</p>
+      ) : null}
+      <label className="flex items-center gap-2 text-sm">
+        Monthly cap (£)
+        <Input
+          type="number"
+          min={0}
+          className="w-28"
+          disabled={!founder}
+          defaultValue={acct?.monthly_cap ?? 300}
+          onBlur={(e) => {
+            const n = Number(e.target.value);
+            if (Number.isFinite(n) && n >= 0 && n !== acct?.monthly_cap)
+              void updateAdsMonthlyCap(companyId, n);
+          }}
+        />
+      </label>
+      {ads.length ? (
+        <ul className="divide-y text-sm">
+          {ads.map((a) => (
+            <li key={a.id} className="flex flex-wrap items-center gap-2 py-2">
+              <span className="font-medium">{a.name}</span>
+              <span className="text-xs text-muted-foreground">
+                {a.platform === "meta" ? "Meta" : "Google"} · £{a.daily_budget} a day · £{a.spend}{" "}
+                spent · {a.clicks} clicks
+              </span>
+              <StatusPill status={a.status === "pending" ? "awaiting_approval" : a.status} />
+              {a.paused_reason ? (
+                <span className="text-xs text-muted-foreground">{a.paused_reason}</span>
+              ) : null}
+              {founder && (a.status === "active" || a.status === "pending") ? (
+                <Button size="sm" variant="ghost" onClick={() => void pauseAd(a.id)}>
+                  Pause
+                </Button>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-xs text-muted-foreground">No paid ads yet.</p>
+      )}
+    </section>
   );
 }

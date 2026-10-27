@@ -82,6 +82,8 @@ export type Database = {
           company_id: string;
           daily_budget: number;
           hard_cap: number;
+          monthly_cap: number;
+          paused_reason: string | null;
           signups: number;
           spend: number;
           status: string;
@@ -92,6 +94,8 @@ export type Database = {
           company_id: string;
           daily_budget?: number;
           hard_cap?: number;
+          monthly_cap?: number;
+          paused_reason?: string | null;
           signups?: number;
           spend?: number;
           status?: string;
@@ -101,6 +105,8 @@ export type Database = {
           company_id?: string;
           daily_budget?: number;
           hard_cap?: number;
+          monthly_cap?: number;
+          paused_reason?: string | null;
           signups?: number;
           spend?: number;
           status?: string;
@@ -110,6 +116,156 @@ export type Database = {
             foreignKeyName: "ad_accounts_company_id_fkey";
             columns: ["company_id"];
             isOneToOne: true;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ad_campaigns: {
+        Row: {
+          approval_id: string | null;
+          campaign_asset_id: string | null;
+          clicks: number;
+          company_id: string;
+          created_at: string;
+          created_by: string | null;
+          creative: string;
+          daily_budget: number;
+          external_id: string | null;
+          id: string;
+          impressions: number;
+          link_id: string | null;
+          name: string;
+          paused_reason: string | null;
+          platform: string;
+          spend: number;
+          status: string;
+          synced_at: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          approval_id?: string | null;
+          campaign_asset_id?: string | null;
+          clicks?: number;
+          company_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          creative: string;
+          daily_budget: number;
+          external_id?: string | null;
+          id?: string;
+          impressions?: number;
+          link_id?: string | null;
+          name: string;
+          paused_reason?: string | null;
+          platform: string;
+          spend?: number;
+          status?: string;
+          synced_at?: string | null;
+        };
+        Update: {
+          approval_id?: string | null;
+          campaign_asset_id?: string | null;
+          clicks?: number;
+          company_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          creative?: string;
+          daily_budget?: number;
+          external_id?: string | null;
+          id?: string;
+          impressions?: number;
+          link_id?: string | null;
+          name?: string;
+          paused_reason?: string | null;
+          platform?: string;
+          spend?: number;
+          status?: string;
+          synced_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ad_campaigns_approval_id_fkey";
+            columns: ["approval_id"];
+            isOneToOne: false;
+            referencedRelation: "approvals";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_campaigns_campaign_asset_id_fkey";
+            columns: ["campaign_asset_id"];
+            isOneToOne: false;
+            referencedRelation: "campaign_assets";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_campaigns_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_campaigns_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_campaigns_link_id_fkey";
+            columns: ["link_id"];
+            isOneToOne: false;
+            referencedRelation: "link_stats";
+            referencedColumns: ["link_id"];
+          },
+          {
+            foreignKeyName: "ad_campaigns_link_id_fkey";
+            columns: ["link_id"];
+            isOneToOne: false;
+            referencedRelation: "tracked_links";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ad_spend_daily: {
+        Row: {
+          ad_campaign_id: string;
+          clicks: number;
+          company_id: string;
+          day: string;
+          impressions: number;
+          spend_gbp: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          ad_campaign_id: string;
+          clicks?: number;
+          company_id: string;
+          day: string;
+          impressions?: number;
+          spend_gbp?: number;
+        };
+        Update: {
+          ad_campaign_id?: string;
+          clicks?: number;
+          company_id?: string;
+          day?: string;
+          impressions?: number;
+          spend_gbp?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ad_spend_daily_ad_campaign_id_fkey";
+            columns: ["ad_campaign_id"];
+            isOneToOne: false;
+            referencedRelation: "ad_campaigns";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_spend_daily_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
             referencedRelation: "companies";
             referencedColumns: ["id"];
           },
@@ -4955,8 +5111,13 @@ export type Database = {
       join_cohort: { Args: { p_code: string; p_company: string }; Returns: string };
       minutes_estimate: { Args: { p_duration_seconds: number; p_source: string }; Returns: number };
       minutes_left_today: { Args: { p_company: string }; Returns: number };
+      pause_ad: { Args: { p_ad: string }; Returns: undefined };
       post_chat_message: { Args: { p_company: string; p_content: string }; Returns: string };
       process_inbox_item: { Args: { p_item: string }; Returns: string };
+      propose_ad_launch: {
+        Args: { p_asset: string; p_daily_budget: number; p_platform: string };
+        Returns: string;
+      };
       propose_voice_profile: {
         Args: { p_company: string; p_profile: Json; p_run: string; p_source: string };
         Returns: string;
@@ -4988,6 +5149,16 @@ export type Database = {
           p_url?: string;
         };
         Returns: string;
+      };
+      record_ad_spend: {
+        Args: {
+          p_ad: string;
+          p_clicks?: number;
+          p_day: string;
+          p_impressions?: number;
+          p_spend: number;
+        };
+        Returns: boolean;
       };
       record_call: {
         Args: {
@@ -5085,6 +5256,7 @@ export type Database = {
         Returns: boolean;
       };
       unsubscribe_contact: { Args: { p_contact: string }; Returns: boolean };
+      update_ads_monthly_cap: { Args: { p_cap: number; p_company: string }; Returns: undefined };
       update_automation: {
         Args: {
           p_company: string;
@@ -5149,7 +5321,8 @@ export type Database = {
         | "update_voice"
         | "update_memory"
         | "approve_campaign"
-        | "reply_public";
+        | "reply_public"
+        | "launch_ad";
       approval_status: "pending" | "approved" | "declined";
       assumption_status: "untested" | "testing" | "validated" | "invalidated";
       chat_sender: "founder" | "sol";
@@ -5306,6 +5479,7 @@ export const Constants = {
         "update_memory",
         "approve_campaign",
         "reply_public",
+        "launch_ad",
       ],
       approval_status: ["pending", "approved", "declined"],
       assumption_status: ["untested", "testing", "validated", "invalidated"],
