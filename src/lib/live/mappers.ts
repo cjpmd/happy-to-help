@@ -246,6 +246,7 @@ export function mapContact(c: Row<"contacts">): T.Contact {
     value: c.value,
     last: c.last_contact_at ?? c.created_at,
     source: c.source,
+    phone: c.phone,
   };
 }
 

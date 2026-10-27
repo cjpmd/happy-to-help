@@ -102,3 +102,27 @@ Built: the "Invoice and payment reminders" bot template (trigger `invoice_overdu
 2. Add a connect flow in Settings → Integrations that stores the connected account id in `integration_secrets` (provider `stripe_connect`).
 3. In `agent-service/src/bots.ts`, implement the `invoice_overdue` case of `triggered`: list the connected account's open invoices past their due date (`GET /v1/invoices?status=open` with `Stripe-Account`), match the customer's email to a contact, and enrol them with the invoice id as the period.
 4. Remove the `needs = 'stripe'` refusal in `update_bot` for companies with a connection.
+
+## 10. Turn on the meeting notetaker (Recall.ai, Google, Microsoft)
+
+Built: calendar connections and the notetaker loop in `agent-service/src/capture/notetaker.ts`, the `calendar-connect` Edge Function, and Meetings → Notetaker. All off until switched on; with the switches on but no keys, it uses the demo calendar and a mock bot that joins nothing.
+
+Costs and residency (check before signing up; prices change): Recall.ai's pay-as-you-go rate was about $0.50 per recording hour in early 2026, plus about $0.15 an hour for its own transcription ([pricing](https://www.recall.ai/pricing), [2026 pricing note](https://recall.ai/blog/new-recall-ai-pricing-for-2026)). We use the meeting platforms' captions by default, so no transcription add-on. Recall.ai runs regional deployments; confirm with them that the EU region (`https://eu-central-1.recall.ai`) is available on our plan and sign their DPA. Update `credit_config.notetaker_usd_per_minute` if the rate differs from $0.0083.
+
+1. **Recall.ai:** create an account in the EU region, create an API key, and set `RECALL_API_KEY` and `RECALL_BASE_URL` on the agent service.
+2. **Google:** in Google Cloud, create an OAuth client (web application) with redirect URI `https://<project>.supabase.co/functions/v1/calendar-connect`, scope `calendar.events.readonly`. The scope is sensitive: Google's app verification is needed before people outside our test users can connect. Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` on the agent service **and** with `npx supabase secrets set`.
+3. **Microsoft:** in Microsoft Entra, register an app (multi-tenant and personal accounts) with the same redirect URI and the delegated `Calendars.Read` and `offline_access` permissions. Set `MICROSOFT_CLIENT_ID` and `MICROSOFT_CLIENT_SECRET` in both places.
+4. Set `npx supabase secrets set NOTETAKER_ENABLED=1 CALENDAR_STATE_SECRET=<long random> APP_URL=https://<app>` and deploy `npx supabase functions deploy calendar-connect --no-verify-jwt`. Set `NOTETAKER_ENABLED=1` on the agent service and `VITE_NOTETAKER_ENABLED=true` for the app.
+5. Add Recall.ai (and the calendar providers) to the privacy notice as sub-processors, and tell customers how the bot announces itself.
+
+## 11. Turn on calls (Twilio)
+
+Built: the `call-webhook` Edge Function, `record_call` and the Calls tab. Off until switched on; demo numbers are in Ofcom's drama range and never ring.
+
+Costs (check the [GB price list](https://www.twilio.com/en-us/voice/pricing/gb)): a UK local number is roughly £1–1.50 a month, and inbound and forwarded minutes and recording storage are charged per minute; the search we ran couldn't confirm current UK inbound rates. Update `credit_config.call_usd_per_minute` (default $0.012) to cover inbound plus forwarding.
+
+1. Create a Twilio account (upgrade from trial), complete the UK regulatory bundle for UK numbers (address and identity), and buy a number for one test company. This spends money: the owner does it.
+2. Set the number's voice webhook to `POST https://<project>.supabase.co/functions/v1/call-webhook?event=voice` and the status callback to `...?event=status`.
+3. `npx supabase secrets set CALLS_ENABLED=1 TWILIO_AUTH_TOKEN=<auth token> CALLS_WEBHOOK_URL=https://<project>.supabase.co/functions/v1/call-webhook` and deploy with `--no-verify-jwt`. Set `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN` on the agent service (to fetch and delete recordings) and `VITE_CALLS_ENABLED=true` for the app.
+4. Record the number for the company: `insert into public.phone_numbers (company_id, number, provider) values ('<company id>', '+44...', 'twilio');`
+5. Call it: you should hear the notice, be put through to the founder's phone (set in Customers → Calls), and see the call and its notes appear. Locally, `node scripts/dev/replay-call.mjs <number>` does the same with signed fake requests.

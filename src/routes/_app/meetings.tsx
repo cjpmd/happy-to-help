@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { RouteTabs } from "@/components/mission/RouteTabs";
 import { PageHeader, Panel, Pill } from "@/components/mission/primitives";
 import { AddMeeting, ReviewCard, ShareToggle } from "@/components/mission/Capture";
+import { NotetakerPanel } from "@/components/mission/CaptureV2";
+import { FLAGS } from "@/lib/flags";
 import { PlanEvidence } from "@/components/mission/SkillButtons";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -36,6 +38,8 @@ const SOURCE: Record<Capture["source"], string> = {
   debrief: "Debrief",
   transcript: "Transcript",
   recording: "Recording",
+  notetaker: "Notetaker",
+  call: "Call",
 };
 const STATUS: Record<
   Capture["status"],
@@ -132,6 +136,7 @@ function MeetingList() {
           </Link>
         </Button>
         <AddMeeting />
+        {FLAGS.notetaker && <NotetakerPanel />}
         {role === "founder" && <CaptureSettingsPanel />}
       </div>
     </div>

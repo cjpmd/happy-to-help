@@ -108,6 +108,7 @@ describe("live mappers", () => {
       value: "",
       last_contact_at: null,
       source: "manual",
+      phone: null,
       ...base,
     });
     expect(c.last).toBe(base.created_at);

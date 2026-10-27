@@ -201,7 +201,9 @@ export const loaders = {
       sb.from("extracted_items").select("*").order("created_at"),
       sb.from("ideas").select("*").order("created_at", { ascending: false }),
       sb.from("commitments").select("*").order("due_date"),
-      sb.from("capture_settings").select("company_id, keep_audio_days, auto_accept_own_notes"),
+      sb
+        .from("capture_settings")
+        .select("company_id, keep_audio_days, auto_accept_own_notes, daily_minutes_cap"),
     ]);
     return {
       captures: must(captures, "meetings").map(M.mapCapture),
@@ -315,6 +317,39 @@ export const loaders = {
       campaign_results: must(results, "campaign results") as unknown as DB["campaign_results"],
     };
   },
+  capture2: async (sb) => {
+    const [conns, events, numbers, calls] = await Promise.all([
+      sb
+        .from("calendar_connections")
+        .select("id, company_id, user_id, provider, account_email, status, last_synced_at"),
+      sb
+        .from("calendar_events")
+        .select(
+          "id, company_id, connection_id, series_id, title, starts_at, ends_at, meeting_url, attendees, record, bot_status, bot_note, capture_id",
+        )
+        .gte("ends_at", new Date(Date.now() - 7 * 86_400_000).toISOString())
+        .order("starts_at")
+        .limit(RECENT),
+      sb
+        .from("phone_numbers")
+        .select("id, company_id, number, provider, forward_to, recording_notice")
+        .eq("status", "active"),
+      sb
+        .from("call_sessions")
+        .select(
+          "id, company_id, direction, from_number, contact_id, status, duration_seconds, recorded, capture_id, started_at",
+        )
+        .order("started_at", { ascending: false })
+        .limit(RECENT),
+    ]);
+    return {
+      // Providers and statuses are checked by the tables' constraints.
+      calendar_connections: must(conns, "calendars") as unknown as DB["calendar_connections"],
+      calendar_events: must(events, "meetings") as unknown as DB["calendar_events"],
+      phone_numbers: must(numbers, "phone numbers") as unknown as DB["phone_numbers"],
+      call_sessions: must(calls, "calls") as unknown as DB["call_sessions"],
+    };
+  },
   bots: async (sb) => {
     const [templates, bots, runs] = await Promise.all([
       sb.from("bot_templates").select("*").order("sort"),
@@ -421,6 +456,8 @@ export const TABLE_GROUPS: Partial<Record<keyof Database["public"]["Tables"], Gr
   listening_settings: "listening",
   feedback: "listening",
   bots: "bots",
+  calendar_events: "capture2",
+  call_sessions: "capture2",
 };
 
 export async function loadGroups(sb: Client, userId: string, groups: Group[]) {
@@ -486,6 +523,10 @@ export function emptyDb(): DB {
     bot_templates: [],
     bots: [],
     bot_runs: [],
+    calendar_connections: [],
+    calendar_events: [],
+    phone_numbers: [],
+    call_sessions: [],
     routines: [],
     documents: [],
     media: [],

@@ -63,6 +63,10 @@ export function demoDb(): DB {
     bot_templates: DEMO_BOT_TEMPLATES,
     bots: [],
     bot_runs: [],
+    calendar_connections: [],
+    calendar_events: [],
+    phone_numbers: [],
+    call_sessions: [],
   };
 }
 

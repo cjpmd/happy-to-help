@@ -79,6 +79,12 @@ afterAll(async () => {
     .eq("company_id", HARBOUR)
     .eq("status", "pending")
     .not("payload->>bot_id", "is", null);
+  // And the contacts this suite made (they'd change who other suites' campaign emails reach).
+  await db
+    .from("contacts")
+    .delete()
+    .eq("company_id", HARBOUR)
+    .like("email", `%.${RUN}@example.com`);
 });
 
 describe("process bots", () => {
@@ -174,6 +180,8 @@ describe("process bots", () => {
     expect(await drainApprovals({ db, providers: mockProviders(), workerId: "test" })).toContain(
       "done",
     );
+    // Its later steps aren't part of this test (the summary test below runs far in the future).
+    await db.from("bots").delete().eq("id", bot);
   });
 
   it("posts the weekly summary on Monday morning, once a week", async () => {

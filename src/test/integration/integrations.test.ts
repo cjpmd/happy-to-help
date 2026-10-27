@@ -88,3 +88,15 @@ describe("unsubscribe", () => {
     expect(bad.status).toBe(400);
   });
 });
+
+describe("capture v2 switches (Phase 18)", () => {
+  it("keeps the call webhook and calendar connections off unless the platform switches them on", async () => {
+    for (const fn of ["call-webhook", "calendar-connect"]) {
+      const res = await fetch(`${localStack().API_URL}/functions/v1/${fn}`, {
+        method: "POST",
+        body: "x",
+      });
+      expect(res.status).toBe(404);
+    }
+  });
+});

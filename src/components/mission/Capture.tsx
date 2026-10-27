@@ -32,6 +32,8 @@ const FROM: Record<CaptureSource, string> = {
   debrief: "From your debrief",
   transcript: "From your meeting",
   recording: "From your meeting",
+  notetaker: "From your meeting",
+  call: "From your call",
 };
 
 /** The team someone can assign an action to, plus Sol. */

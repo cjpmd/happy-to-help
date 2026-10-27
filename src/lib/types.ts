@@ -318,6 +318,8 @@ export interface Contact {
   last: string;
   /** manual, import, form… */
   source?: string;
+  /** For calls (Phase 18), e.g. +447700900123. */
+  phone?: string | null;
 }
 export interface GateComment {
   id: string;
