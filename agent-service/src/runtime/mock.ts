@@ -10,6 +10,7 @@ import { extractItems } from "../../../src/lib/capture.js";
 import { briefText, type BriefFacts } from "../../../src/lib/brief.js";
 import { evidencePlanFor, investorUpdate, type Deadline } from "../../../src/lib/skills.js";
 import { draftReply, triageMessage } from "../../../src/lib/inbox.js";
+import { plainAsset, plainPlan } from "../../../src/lib/campaigns.js";
 
 interface Post {
   channel: string;
@@ -330,6 +331,97 @@ export const mockRuntime: AgentRuntime = {
           }),
         });
         return done(r.text);
+      }
+
+      case "campaign_plan": {
+        const company = JSON.parse((await step("get_company")).text) as {
+          name: string;
+          customer_type: "B2B" | "B2C";
+          channels: string[];
+        };
+        const goal = req.input.target ?? req.input.title ?? "More enquiries this month";
+        const channels = [
+          ...company.channels
+            .map((c) => c.toLowerCase())
+            .filter((c) => ["instagram", "tiktok", "linkedin", "x"].includes(c))
+            .slice(0, 2),
+          "email",
+        ];
+        const p = plainPlan({
+          goal,
+          channels,
+          customerType: company.customer_type,
+          today: new Date().toISOString().slice(0, 10),
+          paid: false,
+        });
+        const r = await step("propose_campaign", {
+          name: p.name,
+          goal,
+          metric: p.metric,
+          target: p.target,
+          audience: p.audience,
+          channels,
+          budget_credits: 200,
+          starts_on: p.starts_on,
+          ends_on: p.ends_on,
+          rationale: p.plan.rationale,
+          posts: p.plan.posts,
+          emails: p.plan.emails,
+          ads: p.plan.ads,
+        });
+        return done(
+          r.isError ? r.text : "I've proposed a campaign plan. It's waiting for your GO.",
+        );
+      }
+
+      case "campaign_assets": {
+        const id = req.input.target ?? "";
+        const c = JSON.parse((await step("get_campaign", { campaign_id: id })).text) as {
+          name: string;
+          goal: string;
+          channels: string[];
+          starts_on: string;
+          plan: { posts?: number; emails?: number; ads?: number };
+          contacts_who_opted_in: number;
+        };
+        const company = JSON.parse((await step("get_company")).text) as { name: string };
+        let drafted = 0;
+        for (const channel of c.channels) {
+          const link = JSON.parse(
+            (await step("create_campaign_link", { campaign_id: id, channel })).text,
+          ) as { link_id: string };
+          if (channel === "email") {
+            if (!c.contacts_who_opted_in) continue;
+            const a = plainAsset("email", company.name, c.goal, 0);
+            const r = await step("propose_campaign_asset", {
+              campaign_id: id,
+              kind: "email",
+              channel,
+              ...a,
+              link_id: link.link_id,
+            });
+            if (!r.isError) drafted++;
+            continue;
+          }
+          for (let n = 0; n < 2; n++) {
+            const a = plainAsset("social_post", company.name, c.goal, n);
+            const when = new Date(
+              Date.parse(`${c.starts_on}T09:00:00Z`) + n * 3 * 86_400_000,
+            ).toISOString();
+            const r = await step("propose_campaign_asset", {
+              campaign_id: id,
+              kind: "social_post",
+              channel,
+              ...a,
+              link_id: link.link_id,
+              scheduled_for: when,
+            });
+            if (!r.isError) drafted++;
+          }
+        }
+        return done(
+          `I've drafted ${drafted} campaign assets, each with its tracked link. They're waiting for your GO.`,
+        );
       }
 
       case "task":

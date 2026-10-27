@@ -25,8 +25,8 @@ Restyle first, then the remaining Phase 1 groups, then the engine, then the v2 d
 | 8 | Scheduler, routines, Auto Mode | `phase-8-scheduler` | Done |
 | 9 | More skills and hardening | `phase-9-hardening` | Done |
 | 14 | Customers: inbox and contacts | `phase-14-inbox` | Done |
-| 15 | Campaigns | `phase-15-campaigns` | Next |
-| 16 | Listening | `phase-16-listening` | |
+| 15 | Campaigns | `phase-15-campaigns` | Done |
+| 16 | Listening | `phase-16-listening` | Next |
 | 17 | Process bots | `phase-17-bots` | |
 | 18 | Capture v2: notetaker and calls (flagged) | `phase-18-capture-v2` | |
 | 19 | Paid ads management (flagged, off) | `phase-19-paid-ads` | |
@@ -180,6 +180,14 @@ Why this order: Phases 10–13 add `entry_path`, voice and policy, captures, con
 - Consent-checked import (D68): a consent column with evidence records an opt-in; "soft" records a soft opt-in only for customers and only if the founder ticks that the conditions apply; everything else is service only and raises a Stay legal task. Onboarding uses the same import.
 - App: Customers → Inbox lists items with status, triage, flags and the policy's reason, with "Let Sol handle it", review, close and spam; contacts open a timeline (messages, leads, promises, meetings) with their marketing permission; the daily inbox budget in Voice & policy. The demo runs the same rules.
 - Tests: `18_inbox.test.sql`, inbox items in the read matrix, `agent-service/test/inbox.test.ts` (auto-sent booking reply with disclosure, refund escalated without a draft, auto-send held when the voice isn't approved, the daily budget and its single notice), `src/test/inbox.test.ts`, `src/test/demoInbox.test.ts`, and the claims parity fixtures for sign-offs.
+
+### Phase 15 (finished 27 Oct 2026)
+
+- `20261030110000_campaign_enums.sql` (the `approve_campaign` action) and `20261030110100_campaigns.sql`: `campaigns` (goal, metric and target, audience, channels, credit budget, optional ad spend the founder makes themselves, dates, Sol's plan), `campaign_assets`, a campaign link on `tracked_links`, job types `campaign_plan` and `campaign_assets`, a NO-GO declining the plan or the asset, `cancel_campaign` (declines anything pending), and the `campaign_results` view (clicks, leads, customers through the campaign's links).
+- Flow: Sol proposes a plan (`campaign-plan` skill, `propose_campaign`) → a founder's GO (D72) → the executor queues the drafting with the campaign's credit budget as its cap → `campaign-assets` drafts each post and email with a tracked link per channel; each passes the claims check plus the CAP Code checks (`src/lib/campaigns.ts`, D69) and waits for its own GO like any post or email. Campaign email goes only to contacts with recorded marketing permission (D70). Ads are drafted and exported for the founder to launch (D71).
+- App: Grow → Campaigns (plan from a goal, progress against the target, assets with status, copy ad copy, cancel); the HQ Campaigns card shows the active campaign's progress. The demo runs the same flow (`src/lib/demoCampaigns.ts`).
+- Tests: `19_campaigns.test.sql` and the read matrix, `agent-service/test/campaigns.test.ts` (plan → GO → assets with tracked links → GO per asset → scheduled, with results; founder-only plan approval), `src/test/campaigns.test.ts`, `src/test/demoCampaigns.test.ts`.
+- **Mocked / owner steps:** publishing and sending go through the Phase 7 providers (mocked until keys are set, HANDOFF 6). Direct ad control is Phase 19 (off).
 
 ## Phase 0 audit and Phase 1 history
 

@@ -37,6 +37,7 @@ const JOB_TYPES: Record<string, string> = {
   compliance: "compliance_review",
   investor: "investor_update",
   evidence: "evidence_plan",
+  campaign: "campaign_plan",
 };
 
 /**
@@ -459,6 +460,29 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       (await call(
         () => sb.rpc("close_inbox_item", { p_item: id, p_status: status }),
         ["inbox"],
+      )) !== false,
+    [sb, call],
+  );
+  const planCampaign = useCallback<Ctx["planCampaign"]>(
+    async (cid, goal) => {
+      if (!goal.trim()) return false;
+      try {
+        await enqueueJob(cid, "campaign_plan", { title: "Plan a campaign", target: goal.trim() });
+      } catch (e) {
+        toast.error(e instanceof AgentError ? e.message : "Couldn't queue the plan");
+        return false;
+      }
+      void reload(["agent_runs"]);
+      toast.success("Sol is planning the campaign. The plan will come to you for a GO.");
+      return true;
+    },
+    [reload],
+  );
+  const cancelCampaign = useCallback<Ctx["cancelCampaign"]>(
+    async (id) =>
+      (await call(
+        () => sb.rpc("cancel_campaign", { p_campaign: id }),
+        ["campaigns", "approvals"],
       )) !== false,
     [sb, call],
   );
@@ -923,6 +947,8 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       importContacts,
       processInboxItem,
       closeInboxItem,
+      planCampaign,
+      cancelCampaign,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,
@@ -991,6 +1017,8 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       importContacts,
       processInboxItem,
       closeInboxItem,
+      planCampaign,
+      cancelCampaign,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,

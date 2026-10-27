@@ -292,6 +292,29 @@ export const loaders = {
       "inbox",
     ) as unknown as DB["inbox_items"],
   }),
+  campaigns: async (sb) => {
+    const [campaigns, assets, results] = await Promise.all([
+      sb
+        .from("campaigns")
+        .select(
+          "id, company_id, name, goal, metric, target, audience, channels, budget_credits, budget_gbp, starts_on, ends_on, status, plan, created_at",
+        )
+        .order("starts_on", { ascending: false }),
+      sb
+        .from("campaign_assets")
+        .select(
+          "id, campaign_id, company_id, kind, channel, title, body, scheduled_for, status, approval_id",
+        )
+        .order("scheduled_for"),
+      sb.from("campaign_results").select("campaign_id, clicks, leads, customers"),
+    ]);
+    return {
+      // Statuses, kinds and metrics are checked by the tables' constraints.
+      campaigns: must(campaigns, "campaigns") as unknown as DB["campaigns"],
+      campaign_assets: must(assets, "campaign assets") as unknown as DB["campaign_assets"],
+      campaign_results: must(results, "campaign results") as unknown as DB["campaign_results"],
+    };
+  },
   settings: async (sb, userId) => {
     const [prefs, layout, sharing, invites] = await Promise.all([
       sb.from("user_preferences").select("*").maybeSingle(),
@@ -341,6 +364,8 @@ export const TABLE_GROUPS: Partial<Record<keyof Database["public"]["Tables"], Gr
   auto_sessions: "automation",
   briefs: "automation",
   inbox_items: "inbox",
+  campaigns: "campaigns",
+  campaign_assets: "campaigns",
 };
 
 export async function loadGroups(sb: Client, userId: string, groups: Group[]) {
@@ -397,6 +422,9 @@ export function emptyDb(): DB {
     company_automation: [],
     briefs: [],
     inbox_items: [],
+    campaigns: [],
+    campaign_assets: [],
+    campaign_results: [],
     routines: [],
     documents: [],
     media: [],

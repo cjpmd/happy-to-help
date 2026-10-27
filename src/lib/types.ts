@@ -126,12 +126,16 @@ export interface PublishPostPayload extends PayloadBase {
   text: string;
   scheduled_for?: string;
   media_id?: string | undefined;
+  /** Set when the post belongs to a campaign (Phase 15). */
+  campaign_asset_id?: string;
 }
 export interface SendEmailPayload extends PayloadBase {
   to: string;
   subject: string;
   body: string;
   outreach?: boolean;
+  /** Set when the email belongs to a campaign (Phase 15). */
+  campaign_asset_id?: string;
 }
 export interface AdSpendPayload extends PayloadBase {
   platform: string;
@@ -161,6 +165,15 @@ export interface UpdateMemoryPayload extends PayloadBase {
   item_id?: string;
   capture_id?: string;
 }
+export interface ApproveCampaignPayload extends PayloadBase {
+  campaign_id: string;
+  name: string;
+  goal: string;
+  target: string;
+  channels: string;
+  dates: string;
+  budget: string;
+}
 export interface ApprovalPayloads {
   publish_post: PublishPostPayload;
   send_email: SendEmailPayload;
@@ -169,6 +182,7 @@ export interface ApprovalPayloads {
   publish_site: PublishSitePayload;
   update_voice: UpdateVoicePayload;
   update_memory: UpdateMemoryPayload;
+  approve_campaign: ApproveCampaignPayload;
 }
 export type ApprovalAction = keyof ApprovalPayloads;
 interface ApprovalBase {

@@ -31,6 +31,7 @@ import { applyVoiceDecision, applyVoiceEdit, currentVoice, isLocked } from "./vo
 import { captureEstimate } from "./capture";
 import { demoSubmitLead } from "./demoLinks";
 import { demoImport, demoProcess } from "./demoInbox";
+import { demoCampaignDecided, demoCancelCampaign, demoPlanCampaign } from "./demoCampaigns";
 import { taggedUrl, type PublicHub } from "./links";
 import { demoAcceptAll, demoCreateCapture, demoDecideItem, type DemoCtx } from "./demoCapture";
 
@@ -141,7 +142,7 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
           a.action_type === "ad_spend" && a.payload.daily_budget !== undefined ? a.payload : null;
         const outreach = a.action_type === "send_email" && a.payload.outreach ? a.payload : null;
         const approved = status === "approved";
-        return {
+        const next: DB = {
           ...d,
           credit_ledger: approved
             ? [
@@ -217,6 +218,7 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
             ...d.activity_events,
           ],
         };
+        return demoCampaignDecided(next, a, approved, { now: new Date(), uid });
       });
       return true;
     },
@@ -809,6 +811,19 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
     }));
     return true;
   }, []);
+  const planCampaign = useCallback<Ctx["planCampaign"]>(async (cid, goal) => {
+    if (!goal.trim()) return false;
+    setDb((d) => demoPlanCampaign(d, cid, goal, { now: new Date(), uid }));
+    toast.success("Sol has proposed a plan. It's waiting for your GO.");
+    return true;
+  }, []);
+  const cancelCampaign = useCallback<Ctx["cancelCampaign"]>(
+    async (id) => {
+      setDb((d) => demoCancelCampaign(d, id, user.id, { now: new Date(), uid }));
+      return true;
+    },
+    [user],
+  );
   const addVoiceSource = useCallback<Ctx["addVoiceSource"]>(async () => true, []);
   const isFounder = useCallback(
     (cid: string) => {
@@ -1288,6 +1303,8 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       importContacts,
       processInboxItem,
       closeInboxItem,
+      planCampaign,
+      cancelCampaign,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,
@@ -1350,6 +1367,8 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       importContacts,
       processInboxItem,
       closeInboxItem,
+      planCampaign,
+      cancelCampaign,
       addVoiceSource,
       learnVoice,
       saveVoiceProfile,

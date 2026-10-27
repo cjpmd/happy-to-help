@@ -29,6 +29,7 @@ import {
 import { fmtDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { HQCard } from "./HQCards";
+import { ActiveCampaignLine } from "./Campaigns";
 import { track } from "@/lib/analytics";
 import { Panel, Pill } from "./primitives";
 
@@ -680,6 +681,7 @@ export function AttributionCard({ companyId }: { companyId: string }) {
         </span>
       }
     >
+      <ActiveCampaignLine companyId={companyId} />
       {rows.length === 0 ? (
         <p className="text-muted-foreground">Tracked links show which campaigns bring leads.</p>
       ) : (

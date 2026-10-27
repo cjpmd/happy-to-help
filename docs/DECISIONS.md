@@ -242,3 +242,15 @@ Non-trivial decisions made during the autonomous build run (`docs/AUTONOMOUS-RUN
 
 ## D68. Imports and PECR
 - **Chosen:** a contact imported with an opt-in needs evidence (a date or source) to count as consent; a soft opt-in counts only for customers and only when the founder confirms the conditions; everyone else is recorded as "not given" (service only), and a Stay legal task explains what to do. Never inferred from a "subscribed" column alone without evidence.
+
+## D69. CAP Code checks on campaign copy
+- **Chosen:** a small rule set on top of the claims check for promotional copy: "free" only with no catch (CAP 3.23), urgency and discounts need a stated end (CAP 8.17), comparisons must be verifiable (CAP 3.33). A flagged asset is refused at proposal, so Sol rewrites it before it reaches the founder. Deliberately conservative: false positives cost a rewrite, false negatives cost a complaint.
+
+## D70. Campaign email is consent-only
+- **Chosen:** a campaign email is addressed only to contacts whose current marketing permission is "granted" (consent or soft opt-in, D68). With none, no email asset is drafted and Sol says why. PECR.
+
+## D71. Ads in campaigns are exported, not launched
+- **Chosen:** Sol drafts ad copy with its tracked link and marks it "exported" for the founder to paste into the ad platform. Direct ad control is Phase 19, flagged and off (AUTONOMOUS-RUN hard limit on spending money).
+
+## D72. Only a founder approves a campaign plan
+- **Chosen:** the plan approval (`approve_campaign`) is founder-only in the executor, like budgets, because it commits the credit budget and starts outward-facing work. Each asset is then approved as usual.

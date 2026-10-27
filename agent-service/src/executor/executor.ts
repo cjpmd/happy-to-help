@@ -77,6 +77,7 @@ const PILLAR: Record<Approval["action_type"], "grow" | "run" | "build" | "legal"
   file_document: "legal",
   update_voice: "grow",
   update_memory: "run",
+  approve_campaign: "grow",
 };
 
 function label(a: Approval): string {
@@ -96,6 +97,8 @@ function label(a: Approval): string {
       return `brand voice v${String(p["version"])}`;
     case "update_memory":
       return `memory: ${String(p["fact"]).slice(0, 80)}`;
+    case "approve_campaign":
+      return `campaign plan: ${String(p["name"])}`;
   }
 }
 
@@ -238,6 +241,11 @@ async function perform(
           provider: via,
           external_id: r.externalId,
         });
+      if (typeof p["campaign_asset_id"] === "string")
+        await db
+          .from("campaign_assets")
+          .update({ status: r.status })
+          .eq("id", p["campaign_asset_id"]);
       return {
         provider: providers.name,
         external_id: r.externalId,
@@ -304,6 +312,11 @@ async function perform(
           direction: "sent",
           body,
         });
+      if (typeof p["campaign_asset_id"] === "string")
+        await db
+          .from("campaign_assets")
+          .update({ status: "sent" })
+          .eq("id", p["campaign_asset_id"]);
       if (typeof p["inbox_item_id"] === "string")
         await db
           .from("inbox_items")
@@ -383,6 +396,34 @@ async function perform(
       } as { p_profile: string; p_approved_by: string });
       if (error) throw new Error(`adopt voice: ${error.message}`);
       return { provider: "internal", profile_id: String(p["profile_id"]) };
+    }
+    case "approve_campaign": {
+      // Internal: the plan is approved, so Sol drafts the assets (each comes back for a GO).
+      const id = String(p["campaign_id"]);
+      const { data: c } = await db
+        .from("campaigns")
+        .update({ status: "drafting" })
+        .eq("id", id)
+        .select("name, budget_credits")
+        .single();
+      const job = must(
+        await db
+          .from("agent_jobs")
+          .insert({
+            company_id: a.company_id,
+            job_type: "campaign_assets",
+            payload: {
+              campaign_id: id,
+              title: `Draft the assets for ${c?.name ?? "the campaign"}`,
+              ...(c?.budget_credits ? { max_credits: c.budget_credits } : {}),
+            },
+            estimated_credits: Math.min(120, c?.budget_credits || 120),
+          })
+          .select("id")
+          .single(),
+        "queue campaign drafting",
+      );
+      return { provider: "internal", campaign_id: id, job_id: job.id };
     }
     case "update_memory": {
       // Internal: the fact joins the company memory Sol reads on every run.
@@ -653,6 +694,7 @@ export async function executeApproval(deps: ExecutorDeps, a: Approval): Promise<
     file_document: "Filed",
     update_voice: "Adopted",
     update_memory: "Remembered",
+    approve_campaign: "Approved",
   }[a.action_type];
   await event(db, a.company_id, PILLAR[a.action_type], `${verb} ${label(a)}`, run.id);
   log(`approval ${a.id}: done (${charged} credits)`);

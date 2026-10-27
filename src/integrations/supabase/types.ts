@@ -561,6 +561,188 @@ export type Database = {
           },
         ];
       };
+      campaign_assets: {
+        Row: {
+          approval_id: string | null;
+          body: string;
+          campaign_id: string;
+          channel: string;
+          company_id: string;
+          created_at: string;
+          id: string;
+          kind: string;
+          link_id: string | null;
+          scheduled_for: string | null;
+          status: string;
+          title: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          approval_id?: string | null;
+          body: string;
+          campaign_id: string;
+          channel: string;
+          company_id: string;
+          created_at?: string;
+          id?: string;
+          kind: string;
+          link_id?: string | null;
+          scheduled_for?: string | null;
+          status?: string;
+          title?: string;
+        };
+        Update: {
+          approval_id?: string | null;
+          body?: string;
+          campaign_id?: string;
+          channel?: string;
+          company_id?: string;
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          link_id?: string | null;
+          scheduled_for?: string | null;
+          status?: string;
+          title?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "campaign_assets_approval_id_fkey";
+            columns: ["approval_id"];
+            isOneToOne: false;
+            referencedRelation: "approvals";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaign_assets_campaign_id_fkey";
+            columns: ["campaign_id"];
+            isOneToOne: false;
+            referencedRelation: "campaign_results";
+            referencedColumns: ["campaign_id"];
+          },
+          {
+            foreignKeyName: "campaign_assets_campaign_id_fkey";
+            columns: ["campaign_id"];
+            isOneToOne: false;
+            referencedRelation: "campaigns";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaign_assets_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaign_assets_link_id_fkey";
+            columns: ["link_id"];
+            isOneToOne: false;
+            referencedRelation: "link_stats";
+            referencedColumns: ["link_id"];
+          },
+          {
+            foreignKeyName: "campaign_assets_link_id_fkey";
+            columns: ["link_id"];
+            isOneToOne: false;
+            referencedRelation: "tracked_links";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      campaigns: {
+        Row: {
+          approval_id: string | null;
+          audience: string;
+          budget_credits: number;
+          budget_gbp: number | null;
+          channels: string[];
+          company_id: string;
+          created_at: string;
+          created_by: string | null;
+          ends_on: string;
+          goal: string;
+          id: string;
+          metric: string;
+          name: string;
+          plan: NonNullable<Json>;
+          run_id: string | null;
+          starts_on: string;
+          status: string;
+          target: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          approval_id?: string | null;
+          audience?: string;
+          budget_credits?: number;
+          budget_gbp?: number | null;
+          channels?: string[];
+          company_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          ends_on: string;
+          goal: string;
+          id?: string;
+          metric?: string;
+          name: string;
+          plan?: NonNullable<Json>;
+          run_id?: string | null;
+          starts_on: string;
+          status?: string;
+          target: number;
+        };
+        Update: {
+          approval_id?: string | null;
+          audience?: string;
+          budget_credits?: number;
+          budget_gbp?: number | null;
+          channels?: string[];
+          company_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          ends_on?: string;
+          goal?: string;
+          id?: string;
+          metric?: string;
+          name?: string;
+          plan?: NonNullable<Json>;
+          run_id?: string | null;
+          starts_on?: string;
+          status?: string;
+          target?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_approval_id_fkey";
+            columns: ["approval_id"];
+            isOneToOne: false;
+            referencedRelation: "approvals";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaigns_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaigns_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaigns_run_id_fkey";
+            columns: ["run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       capture_settings: {
         Row: {
           auto_accept_own_notes: boolean;
@@ -3343,6 +3525,20 @@ export type Database = {
         };
         Relationships: [
           {
+            foreignKeyName: "tracked_links_campaign_id_fkey";
+            columns: ["campaign_id"];
+            isOneToOne: false;
+            referencedRelation: "campaign_results";
+            referencedColumns: ["campaign_id"];
+          },
+          {
+            foreignKeyName: "tracked_links_campaign_id_fkey";
+            columns: ["campaign_id"];
+            isOneToOne: false;
+            referencedRelation: "campaigns";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "tracked_links_company_id_fkey";
             columns: ["company_id"];
             isOneToOne: false;
@@ -3701,6 +3897,45 @@ export type Database = {
       };
     };
     Views: {
+      campaign_results: {
+        Row: {
+          campaign_id: string;
+          clicks: number | null;
+          company_id: string;
+          customers: number | null;
+          leads: number | null;
+          metric: string;
+          target: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          campaign_id?: string | null;
+          clicks?: never;
+          company_id?: string | null;
+          customers?: never;
+          leads?: never;
+          metric?: string | null;
+          target?: number | null;
+        };
+        Update: {
+          campaign_id?: string | null;
+          clicks?: never;
+          company_id?: string | null;
+          customers?: never;
+          leads?: never;
+          metric?: string | null;
+          target?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       company_credit_balance: {
         Row: {
           balance: number | null;
@@ -3814,6 +4049,7 @@ export type Database = {
         }[];
       };
       begin_chat_turn: { Args: { p_company: string; p_content: string }; Returns: string };
+      cancel_campaign: { Args: { p_campaign: string }; Returns: undefined };
       capture_estimate: { Args: { p_duration_seconds?: number }; Returns: number };
       check_claims: { Args: { p_company: string; p_text: string }; Returns: Json };
       claim_agent_job: {
@@ -4153,7 +4389,8 @@ export type Database = {
         | "file_document"
         | "publish_site"
         | "update_voice"
-        | "update_memory";
+        | "update_memory"
+        | "approve_campaign";
       approval_status: "pending" | "approved" | "declined";
       assumption_status: "untested" | "testing" | "validated" | "invalidated";
       chat_sender: "founder" | "sol";
@@ -4308,6 +4545,7 @@ export const Constants = {
         "publish_site",
         "update_voice",
         "update_memory",
+        "approve_campaign",
       ],
       approval_status: ["pending", "approved", "declined"],
       assumption_status: ["untested", "testing", "validated", "invalidated"],
