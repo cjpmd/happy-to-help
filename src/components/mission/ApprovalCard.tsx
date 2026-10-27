@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Megaphone, Mail, PoundSterling, FileText, Globe, Mic, Brain } from "lucide-react";
+import { Megaphone, Mail, PoundSterling, FileText, Globe, Mic, Brain, Target } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useStore, labelFor, useClaimsCheck, useCompanyRole, personName } from "@/lib/store";
@@ -19,6 +19,7 @@ const icons = {
   publish_site: Globe,
   update_voice: Mic,
   update_memory: Brain,
+  approve_campaign: Target,
 };
 const titles = {
   publish_post: "Publish a post",
@@ -28,6 +29,7 @@ const titles = {
   publish_site: "Publish site change",
   update_voice: "Adopt a new brand voice",
   update_memory: "Remember this",
+  approve_campaign: "Approve a campaign plan",
 };
 
 function Preview({ a }: { a: Approval }) {
@@ -95,6 +97,16 @@ function Preview({ a }: { a: Approval }) {
           {a.payload.fact}
         </p>
       );
+    case "approve_campaign":
+      return (
+        <div className="space-y-1.5">
+          {row("Goal", a.payload.goal)}
+          {row("Target", a.payload.target)}
+          {row("Channels", a.payload.channels)}
+          {row("Dates", a.payload.dates)}
+          {row("Budget", a.payload.budget)}
+        </div>
+      );
   }
 }
 
@@ -114,6 +126,8 @@ function summary(a: Approval) {
       return a.payload.summary;
     case "update_memory":
       return a.payload.fact;
+    case "approve_campaign":
+      return a.payload.name;
   }
 }
 

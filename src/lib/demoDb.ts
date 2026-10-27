@@ -52,6 +52,9 @@ export function demoDb(): DB {
     company_automation: [],
     briefs: [],
     inbox_items: demoInboxItems(seed.harbour_emails),
+    campaigns: [],
+    campaign_assets: [],
+    campaign_results: [],
   };
 }
 

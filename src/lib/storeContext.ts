@@ -8,6 +8,7 @@ import type { Theme, ThemePref } from "./theme";
 import type * as V from "./voicePolicy";
 import type * as K from "./capture";
 import type * as L from "./links";
+import type { Metric } from "./campaigns";
 
 /**
  * The app's data, shaped like the Supabase tables. Two providers fill it: the demo store
@@ -62,6 +63,10 @@ export type DB = WorkspaceDB & {
   /** Per-company provider switches, and what the platform has set up (Phase 7). */
   integration_settings: IntegrationSetting[];
   platform_integrations: { provider: string; configured: boolean }[];
+  /** Phase 15: campaigns, their assets, and results through their tracked links. */
+  campaigns: Campaign[];
+  campaign_assets: CampaignAsset[];
+  campaign_results: { campaign_id: string; clicks: number; leads: number; customers: number }[];
   /** Phase 14: every message that came in, and what Sol did with it. */
   inbox_items: InboxItem[];
   /** Phase 8: Auto Mode sessions, what Sol does on its own, and the morning briefs. */
@@ -169,6 +174,37 @@ export interface ContactRow {
   consent_evidence?: string;
 }
 
+export interface Campaign {
+  id: string;
+  company_id: string;
+  name: string;
+  goal: string;
+  metric: Metric;
+  target: number;
+  audience: string;
+  channels: string[];
+  budget_credits: number;
+  budget_gbp: number | null;
+  starts_on: string;
+  ends_on: string;
+  status: "proposed" | "approved" | "drafting" | "ready" | "declined" | "cancelled";
+  plan: { rationale?: string; posts?: number; emails?: number; ads?: number };
+  created_at: string;
+}
+export interface CampaignAsset {
+  id: string;
+  campaign_id: string;
+  company_id: string;
+  kind: "social_post" | "email" | "ad";
+  channel: string;
+  title: string;
+  body: string;
+  scheduled_for: string | null;
+  status:
+    "draft" | "awaiting_approval" | "scheduled" | "published" | "sent" | "exported" | "declined";
+  approval_id: string | null;
+}
+
 /** What a consent-checked import did (Phase 14). */
 export interface ImportResult {
   added: number;
@@ -268,6 +304,9 @@ export interface Ctx {
     rows: ContactRow[],
     softOptIn?: boolean,
   ) => Promise<ImportResult | null>;
+  /** Campaigns (Phase 15): Sol plans one towards a goal; a founder can cancel one. */
+  planCampaign: (companyId: string, goal: string) => Promise<boolean>;
+  cancelCampaign: (id: string) => Promise<boolean>;
   /** The inbox pipeline (Phase 14): ask Sol to deal with a message now, or close it. */
   processInboxItem: (id: string) => Promise<boolean>;
   closeInboxItem: (id: string, status?: "closed" | "spam") => Promise<boolean>;
@@ -433,6 +472,8 @@ export function labelFor(a: T.Approval) {
       return `brand voice v${a.payload.version}`;
     case "update_memory":
       return `memory: ${a.payload.fact}`;
+    case "approve_campaign":
+      return `campaign plan: ${a.payload.name}`;
   }
 }
 
@@ -463,6 +504,7 @@ export const WORK_KINDS = {
   compliance: "compliance_review",
   investor: "investor_update",
   evidence: "evidence_plan",
+  campaign: "campaign_plan",
 } as const;
 export type WorkKind = keyof typeof WORK_KINDS;
 
@@ -482,6 +524,7 @@ export function demoJobTypes(): JobType[] {
     compliance: 20,
     investor: 60,
     evidence: 40,
+    campaign: 80,
   };
   return (Object.keys(WORK_KINDS) as WorkKind[]).map((k) => ({
     job_type: WORK_KINDS[k],

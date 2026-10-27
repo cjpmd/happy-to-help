@@ -170,6 +170,8 @@ function approvalLabel(a: Approval) {
       return "Brand voice";
     case "update_memory":
       return "Memory";
+    case "approve_campaign":
+      return "Campaign";
   }
 }
 
@@ -189,6 +191,8 @@ function approvalTitle(a: Approval) {
       return `Brand voice v${a.payload.version}`;
     case "update_memory":
       return "Remember this";
+    case "approve_campaign":
+      return a.payload.name;
   }
 }
 
@@ -208,6 +212,8 @@ function approvalPreview(a: Approval) {
       return a.payload.changes || a.payload.summary;
     case "update_memory":
       return a.payload.fact;
+    case "approve_campaign":
+      return `${a.payload.target} · ${a.payload.dates}`;
   }
 }
 
