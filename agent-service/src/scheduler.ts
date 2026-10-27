@@ -5,6 +5,7 @@
 import type { Db } from "./db/client.js";
 import type { Json } from "./db/types.js";
 import { importAnthropicUsage } from "./reconcile.js";
+import { runBots } from "./bots.js";
 import {
   FEEDBACK_AT,
   NIGHTLY_AT,
@@ -64,6 +65,7 @@ export interface SchedulerResult {
   autoSteps: number;
   inbox: number;
   feedback: number;
+  bots: number;
 }
 
 export async function runScheduler(db: Db, now = new Date()): Promise<SchedulerResult> {
@@ -75,6 +77,7 @@ export async function runScheduler(db: Db, now = new Date()): Promise<SchedulerR
     autoSteps: 0,
     inbox: 0,
     feedback: 0,
+    bots: 0,
   };
   const t = localTime(now);
 
@@ -191,6 +194,10 @@ export async function runScheduler(db: Db, now = new Date()): Promise<SchedulerR
     if (error) throw new Error(`feedback requests: ${error.message}`);
     out.feedback = data ?? 0;
   }
+
+  // Process bots (Phase 17): enrol on triggers and carry out the steps that are due.
+  const b = await runBots(db, now);
+  out.bots = b.done + b.skipped + b.failed;
 
   out.inbox = await processInbox(db, now);
   out.autoSteps = await advanceAutoMode(db, now);
