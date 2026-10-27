@@ -13,6 +13,8 @@ export interface BriefFacts {
   inboxWaiting: number;
   newLeads: number;
   balance: number;
+  /** What customers said in the last week (Phase 16): comments, reviews and feedback. */
+  heard?: { count: number; negative: number; themes: string[] };
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -31,6 +33,10 @@ export function briefText(f: BriefFacts, company: string): string {
   if (f.approvalsWaiting) lines.push(`${plural(f.approvalsWaiting, "thing")} waiting for your GO.`);
   if (f.inboxWaiting) lines.push(`${plural(f.inboxWaiting, "customer")} waiting for a reply.`);
   if (f.newLeads) lines.push(`${plural(f.newLeads, "new lead")} since yesterday.`);
+  if (f.heard?.count)
+    lines.push(
+      `This week customers left ${plural(f.heard.count, "comment or review", "comments and reviews")}${f.heard.negative ? ` (${f.heard.negative} unhappy)` : ""}${f.heard.themes.length ? `, mostly about ${f.heard.themes.join(", ").toLowerCase()}` : ""}.`,
+    );
   lines.push(`Balance: ${f.balance.toLocaleString("en-GB")} credits.`);
   return lines.join("\n");
 }

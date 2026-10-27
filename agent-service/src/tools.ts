@@ -13,6 +13,7 @@ import type { BriefFacts } from "../../src/lib/brief.js";
 import { missingDeadlines, ukDeadlines } from "../../src/lib/skills.js";
 import { decideMode, type Triage } from "../../src/lib/inbox.js";
 import { capFlags } from "../../src/lib/campaigns.js";
+import { topThemes, type Heard } from "../../src/lib/listening.js";
 import type { ResponseMode } from "../../src/lib/voicePolicy.js";
 
 export interface ToolContext {
@@ -44,6 +45,7 @@ export const ACTION_CREDITS = {
   ad_spend: 10,
   file_document: 5,
   publish_site: 20,
+  reply_public: 5,
 } as const;
 
 const def = <S extends z.ZodRawShape>(d: ToolDef<S>) => d as unknown as ToolDef;
@@ -695,6 +697,7 @@ async function briefFacts(ctx: ToolContext): Promise<BriefFacts> {
         .gte("created_at", since),
       ctx.db.rpc("credit_summary", { p_company: ctx.companyId }),
     ]);
+  const heard = await heardThisWeek(ctx);
   const waiting = (threads.data ?? []).filter((t) => {
     const msgs = ((t.email_messages ?? []) as { direction: string; created_at: string }[]).sort(
       (a, b) => a.created_at.localeCompare(b.created_at),
@@ -718,6 +721,42 @@ async function briefFacts(ctx: ToolContext): Promise<BriefFacts> {
     inboxWaiting: waiting,
     newLeads: leads.count ?? 0,
     balance: (summary.data as { balance: number } | null)?.balance ?? 0,
+    ...(heard.count ? { heard } : {}),
+  };
+}
+
+/** Comments, reviews and feedback from the last seven days, as themes (Phase 16). */
+async function heardThisWeek(ctx: ToolContext) {
+  const week = new Date(Date.now() - 7 * 86_400_000).toISOString();
+  const [items, feedback] = await Promise.all([
+    ctx.db
+      .from("inbox_items")
+      .select("sentiment, created_at, email_messages(body)")
+      .eq("company_id", ctx.companyId)
+      .in("channel", ["social", "review"])
+      .gte("created_at", week),
+    ctx.db
+      .from("feedback")
+      .select("body, sentiment, created_at")
+      .eq("company_id", ctx.companyId)
+      .gte("created_at", week),
+  ]);
+  const all: Heard[] = [
+    ...(items.data ?? []).map((i) => ({
+      at: i.created_at,
+      text: (i.email_messages as { body: string } | null)?.body ?? "",
+      sentiment: i.sentiment as Heard["sentiment"],
+    })),
+    ...(feedback.data ?? []).map((f) => ({
+      at: f.created_at,
+      text: f.body,
+      sentiment: f.sentiment as Heard["sentiment"],
+    })),
+  ];
+  return {
+    count: all.length,
+    negative: all.filter((h) => h.sentiment === "negative").length,
+    themes: topThemes(all, 3).map((t) => t.theme),
   };
 }
 
@@ -725,7 +764,7 @@ TOOLS.push(
   def({
     name: "get_brief_facts",
     description:
-      "Today's facts for the morning brief: approvals waiting, last night's work, yesterday's meetings and actions, promises due today, customers waiting, new leads and the balance.",
+      "Today's facts for the morning brief: approvals waiting, last night's work, yesterday's meetings and actions, promises due today, customers waiting, new leads, what customers said this week (themes) and the balance.",
     shape: {},
     readOnly: true,
     handler: async (ctx) => ({ text: json(await briefFacts(ctx)) }),
@@ -953,7 +992,7 @@ async function inboxItem(ctx: ToolContext, itemId: string) {
   const { data: item } = await ctx.db
     .from("inbox_items")
     .select(
-      "id, thread_id, message_id, contact_id, status, category, mode, email_threads(subject, contact_name, address)",
+      "id, thread_id, message_id, contact_id, status, category, mode, channel, email_threads(subject, contact_name, address, platform, external_id, external_url, rating)",
     )
     .eq("id", itemId)
     .eq("company_id", ctx.companyId)
@@ -1009,6 +1048,15 @@ TOOLS.push(
           company: company.data?.name,
           sign_off: voice.data?.sign_off ?? null,
           mode: item.mode,
+          // Social comments and reviews are answered in public, briefly (Phase 16).
+          channel: item.channel,
+          ...(item.channel === "social" || item.channel === "review"
+            ? {
+                public: true,
+                platform: (item.email_threads as { platform: string | null } | null)?.platform,
+                rating: (item.email_threads as { rating: number | null } | null)?.rating ?? null,
+              }
+            : {}),
         }),
       };
     },
@@ -1118,6 +1166,42 @@ TOOLS.push(
           isError: true,
           text: `Not proposed: the claims check flagged "${flags[0]!.phrase}". Rewrite it.`,
         };
+      if (item.channel === "social" || item.channel === "review") {
+        // A public reply: always waits for the founder's GO, whatever the policy (D75).
+        const t = item.email_threads as {
+          platform: string | null;
+          external_id: string | null;
+        } | null;
+        const { data: msg } = await ctx.db
+          .from("email_messages")
+          .select("external_id")
+          .eq("id", item.message_id)
+          .single();
+        const review = item.channel === "review";
+        const r = await propose(
+          ctx,
+          "reply_public",
+          {
+            platform: t?.platform ?? "",
+            kind: review ? "review" : "comment",
+            // The provider's id, without our platform prefix.
+            external_id: (msg?.external_id ?? t?.external_id ?? "").replace(/^[a-z]+:/, ""),
+            text: body,
+            thread_id: item.thread_id,
+            inbox_item_id: item_id,
+            reason: review
+              ? "A public reply to a review, in your voice."
+              : "A public reply to a comment on your post.",
+          },
+          null,
+        );
+        if (r.approvalId)
+          await ctx.db
+            .from("inbox_items")
+            .update({ status: "awaiting_approval", approval_id: r.approvalId })
+            .eq("id", item_id);
+        return r;
+      }
       const thread = item.email_threads as { subject: string; address: string } | null;
       const { data: full } = await ctx.db
         .from("inbox_items")

@@ -6,6 +6,7 @@ import type { Db } from "./db/client.js";
 import type { Json } from "./db/types.js";
 import { importAnthropicUsage } from "./reconcile.js";
 import {
+  FEEDBACK_AT,
   NIGHTLY_AT,
   VOICE_REVIEW_AT,
   localTime,
@@ -62,6 +63,7 @@ export interface SchedulerResult {
   expired: boolean;
   autoSteps: number;
   inbox: number;
+  feedback: number;
 }
 
 export async function runScheduler(db: Db, now = new Date()): Promise<SchedulerResult> {
@@ -72,6 +74,7 @@ export async function runScheduler(db: Db, now = new Date()): Promise<SchedulerR
     expired: false,
     autoSteps: 0,
     inbox: 0,
+    feedback: 0,
   };
   const t = localTime(now);
 
@@ -174,6 +177,19 @@ export async function runScheduler(db: Db, now = new Date()): Promise<SchedulerR
       .slice(0, 10);
     const to = new Date(d.getTime() - 86_400_000).toISOString().slice(0, 10);
     await importAnthropicUsage(db, adminKey, from, to);
+  }
+
+  // Feedback requests after purchases and bookings, once a day, where switched on (Phase 16).
+  // Each one is an email waiting for a GO.
+  if (
+    routineDue("daily", FEEDBACK_AT, now).due &&
+    (await claim(db, "feedback", null, null, t.date))
+  ) {
+    const { data, error } = await db.rpc("queue_due_feedback", {
+      p_origin: (process.env["APP_URL"] ?? "http://127.0.0.1:8080").replace(/\/$/, ""),
+    });
+    if (error) throw new Error(`feedback requests: ${error.message}`);
+    out.feedback = data ?? 0;
   }
 
   out.inbox = await processInbox(db, now);

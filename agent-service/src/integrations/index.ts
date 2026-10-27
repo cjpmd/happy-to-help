@@ -3,7 +3,13 @@
 // on the mocks. Also reports the platform's setup to the app, and syncs analytics back in.
 import type { Db } from "../db/client.js";
 import { mockProviders, type Providers } from "../executor/providers.js";
-import { ayrshareAnalytics, ayrshareSocial } from "./ayrshare.js";
+import {
+  ayrshareAnalytics,
+  ayrshareListening,
+  ayrshareReplies,
+  ayrshareSocial,
+  type ListeningItem,
+} from "./ayrshare.js";
 import { posthogDaily } from "./posthog.js";
 import { resendEmail } from "./resend.js";
 
@@ -81,7 +87,24 @@ export async function providersFor(
     social = ayrshareSocial(keys.ayrshare.apiKey, profileKey);
     parts.push("ayrshare");
   }
-  return { ...mock, name: parts.length ? `${parts.join("+")}+mock` : "mock", email, social };
+  // Replies go through Ayrshare when the company also switched listening on.
+  let replies = mock.replies;
+  if (social !== mock.social) {
+    const { data: l } = await db
+      .from("listening_settings")
+      .select("social_comments, reviews")
+      .eq("company_id", companyId)
+      .maybeSingle();
+    if (l?.social_comments || l?.reviews)
+      replies = ayrshareReplies(keys.ayrshare!.apiKey, profileKey!);
+  }
+  return {
+    ...mock,
+    name: parts.length ? `${parts.join("+")}+mock` : "mock",
+    email,
+    social,
+    replies,
+  };
 }
 
 /** Tells the app which providers the platform has set up (Settings → Integrations). */
@@ -185,6 +208,78 @@ export async function syncPostHog(db: Db, keys: PlatformKeys, fetcher: typeof fe
     } catch {
       // Retried at the next sync.
     }
+  }
+  return n;
+}
+
+/** What a listening source returns; the Ayrshare client, or a fake in tests. */
+export interface ListeningSource {
+  comments(postId: string): Promise<ListeningItem[]>;
+  reviews(): Promise<ListeningItem[]>;
+}
+
+/**
+ * Pulls new comments on the company's own recent posts and its reviews into the inbox (Phase 16),
+ * for companies that switched listening on and use Ayrshare. Items already here are skipped.
+ * Returns how many new items arrived.
+ */
+export async function syncListening(
+  db: Db,
+  keys: PlatformKeys,
+  sourceFor?: (companyId: string) => Promise<ListeningSource | null>,
+) {
+  const { data: companies } = await db
+    .from("listening_settings")
+    .select("company_id, social_comments, reviews")
+    .or("social_comments.eq.true,reviews.eq.true");
+  let n = 0;
+  for (const c of companies ?? []) {
+    const source = sourceFor
+      ? await sourceFor(c.company_id)
+      : await (async () => {
+          if (!keys.ayrshare) return null;
+          const s = await settings(db, c.company_id);
+          const profileKey = s.secret("ayrshare");
+          return s.on("ayrshare") && profileKey
+            ? ayrshareListening(keys.ayrshare.apiKey, profileKey)
+            : null;
+        })();
+    if (!source) continue;
+    const items: ListeningItem[] = [];
+    try {
+      if (c.social_comments) {
+        const { data: posts } = await db
+          .from("social_posts")
+          .select("external_id")
+          .eq("company_id", c.company_id)
+          .not("external_id", "is", null)
+          .gte("created_at", new Date(Date.now() - 30 * 86_400_000).toISOString())
+          .limit(50);
+        for (const p of posts ?? []) items.push(...(await source.comments(p.external_id!)));
+      }
+      if (c.reviews) items.push(...(await source.reviews()));
+    } catch {
+      // Retried at the next sync; what arrived before the failure is still recorded.
+    }
+    for (const i of items) {
+      const { data } = await db.rpc("receive_listening_item", {
+        p_company: c.company_id,
+        p_platform: i.platform,
+        p_kind: i.kind,
+        p_external_id: i.externalId,
+        p_author: i.author,
+        p_text: i.text,
+        ...(i.rating ? { p_rating: i.rating } : {}),
+        ...(i.url ? { p_url: i.url } : {}),
+        ...(i.parent ? { p_parent: i.parent } : {}),
+        ...(i.createdAt ? { p_created_at: i.createdAt } : {}),
+      });
+      if (data) n++;
+    }
+    await db
+      .from("listening_settings")
+      .update({ last_synced_at: new Date().toISOString() })
+      .eq("company_id", c.company_id);
   }
   return n;
 }

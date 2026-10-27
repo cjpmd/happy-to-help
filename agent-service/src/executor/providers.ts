@@ -38,6 +38,17 @@ export interface FileDocumentInput {
   destination: string;
 }
 
+/** A public reply to a comment on the company's own post, or to a review (Phase 16). */
+export interface PublicReplyInput {
+  companyId: string;
+  approvalId: string;
+  platform: string;
+  kind: "comment" | "review";
+  /** The provider's id for the comment or review being answered. */
+  externalId: string;
+  text: string;
+}
+
 export interface Providers {
   name: string;
   social: {
@@ -49,6 +60,7 @@ export interface Providers {
   ads: { setDailyBudget(i: SetBudgetInput): Promise<{ reference: string }> };
   site: { publish(i: PublishSiteInput): Promise<{ version: string; previewUrl: string }> };
   documents: { file(i: FileDocumentInput): Promise<{ reference: string }> };
+  replies: { reply(i: PublicReplyInput): Promise<{ externalId: string }> };
 }
 
 /**
@@ -92,6 +104,12 @@ export function mockProviders(): Providers {
     documents: {
       async file(i) {
         return { reference: ref("filing", i.approvalId) };
+      },
+    },
+    replies: {
+      async reply(i) {
+        fail(i.text);
+        return { externalId: ref("reply", i.approvalId) };
       },
     },
   };
