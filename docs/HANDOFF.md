@@ -12,15 +12,18 @@ Built: `agent-service/` runs every job on a mock runtime by default (no model ca
 4. Check the model IDs in `MODEL_ROUTINE`, `MODEL_PLANNING` and `MODEL_STRATEGY` are the ones you want to pay for.
 5. Start one worker, queue a test job from the app (Grow → Write post), and check the run in LOG shows a real cost.
 
-## 2. Deploy the Edge Functions (chat and enqueue)
+## 2. Production: database, Edge Functions and hosting
 
-Built: `supabase/functions/chat` and `supabase/functions/enqueue-job`. Chat streams demo replies until a key is set.
+Built: everything runs on the local stack (`npx supabase start`); nothing has been deployed (AUTONOMOUS-RUN hard limit). Do this before any other item.
 
-1. Link the CLI to the project: `npx supabase link --project-ref <ref>`.
-2. Set secrets: `npx supabase secrets set ANTHROPIC_API_KEY=... ALLOWED_ORIGIN=https://<your app domain>` (optionally `MODEL_ROUTINE`, `MODEL_PLANNING`).
-3. Deploy: `npx supabase functions deploy chat enqueue-job`.
-4. In the app, send Sol a message and check the run in LOG shows a real cost.
-
+1. Create the production Supabase project in a UK or EU region (e.g. London, `eu-west-2`), and link the CLI: `npx supabase link --project-ref <ref>`.
+2. Apply the migrations: `npx supabase db push`. The seed (`supabase/seed.sql`) is demo data for local use only; don't load it in production.
+3. In Authentication → URL configuration, set the site URL and redirect URLs to the app's domain (magic links come back to `/hq` on the app domain).
+4. Set the shared secrets: `npx supabase secrets set ALLOWED_ORIGIN=https://<app domain> APP_URL=https://<app domain>`, plus the ones each later item lists.
+5. Deploy the functions: `npx supabase functions deploy chat enqueue-job billing-checkout billing-portal stripe-webhook link resend-inbound unsubscribe calendar-connect call-webhook`. `supabase/config.toml` marks which are public (`verify_jwt = false`); each checks its own signature or caller. The flagged ones (`calendar-connect`, `call-webhook`) answer 404 until their switches are set. Chat streams demo replies until `ANTHROPIC_API_KEY` is set (item 1).
+6. Host the app (Lovable, Netlify or Vercel) with only `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` set (the public values). Never put the service-role key in the frontend.
+7. Run the agent service (item 1) with the project's URL and service-role key, even on the mock runtime, so jobs, approvals and the scheduler run.
+8. Sign in, create a company, and check Settings → Platform health shows the worker reporting.
 
 ## 3. Turn on real transcription (Speechmatics, EU region)
 
