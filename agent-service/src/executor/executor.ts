@@ -32,6 +32,8 @@ export interface ExecutorDeps {
   limits?: ExecutorLimits;
   maxAttempts?: number;
   log?: (msg: string) => void;
+  /** Phase 19: launching paid ads (defaults to ADS_ENABLED=1). */
+  adsEnabled?: boolean;
 }
 
 export type ExecutionOutcome = "done" | "blocked" | "retry" | "failed";
@@ -79,6 +81,7 @@ const PILLAR: Record<Approval["action_type"], "grow" | "run" | "build" | "legal"
   update_memory: "run",
   approve_campaign: "grow",
   reply_public: "grow",
+  launch_ad: "grow",
 };
 
 function label(a: Approval): string {
@@ -102,6 +105,8 @@ function label(a: Approval): string {
       return `campaign plan: ${String(p["name"])}`;
     case "reply_public":
       return `reply to a ${String(p["platform"])} ${p["kind"] === "review" ? "review" : "comment"}`;
+    case "launch_ad":
+      return `${String(p["platform"]) === "meta" ? "Meta" : "Google"} ad at £${String(p["daily_budget"])} a day`;
   }
 }
 
@@ -352,6 +357,32 @@ async function perform(
           .eq("id", p["inbox_item_id"]);
       return { provider: providers.name, external_id: r.externalId };
     }
+    case "launch_ad": {
+      const id = String(p["ad_campaign_id"]);
+      const { data: ad } = await db
+        .from("ad_campaigns")
+        .select("id, status, platform, name, creative, daily_budget, tracked_links(code)")
+        .eq("id", id)
+        .single();
+      if (!ad || ad.status !== "pending") throw new Error("the ad isn't waiting to launch");
+      const code = (ad.tracked_links as { code: string } | null)?.code;
+      const r = await providers.ads.launch({
+        companyId: a.company_id,
+        approvalId: a.id,
+        platform: ad.platform as "meta" | "google",
+        name: ad.name,
+        creative: ad.creative,
+        dailyBudget: Number(ad.daily_budget),
+        url: code
+          ? `${process.env["SHORT_LINK_BASE"] ?? `${process.env["SUPABASE_URL"] ?? "http://127.0.0.1:54321"}/functions/v1/link`}/${code}`
+          : null,
+      });
+      await db
+        .from("ad_campaigns")
+        .update({ status: "active", external_id: r.externalId })
+        .eq("id", id);
+      return { provider: providers.name, external_id: r.externalId };
+    }
     case "ad_spend": {
       const daily = Number(p["daily_budget"] ?? p["amount_gbp"]);
       const cap = Number(p["hard_cap"] ?? daily);
@@ -596,6 +627,14 @@ export async function executeApproval(deps: ExecutorDeps, a: Approval): Promise<
       );
   if (!rule.ok && auto) return holdForFounder(db, a, rule.reason);
   if (!rule.ok) return block(db, a, rule.reason, rule.needsFounder);
+  // Paid ads spend real money: only when the platform has switched them on (Phase 19).
+  if (a.action_type === "launch_ad" && !(deps.adsEnabled ?? process.env["ADS_ENABLED"] === "1")) {
+    await db
+      .from("ad_campaigns")
+      .update({ status: "declined", paused_reason: "Paid ads aren't switched on yet" })
+      .eq("id", String((a.payload as Record<string, unknown>)["ad_campaign_id"]));
+    return block(db, a, "paid ads aren't switched on for Gumption yet.", false);
+  }
   if (
     a.action_type === "send_email" &&
     (a.payload as Record<string, unknown>)["outreach"] &&
@@ -730,6 +769,7 @@ export async function executeApproval(deps: ExecutorDeps, a: Approval): Promise<
     update_memory: "Remembered",
     approve_campaign: "Approved",
     reply_public: "Posted",
+    launch_ad: "Launched",
   }[a.action_type];
   await event(db, a.company_id, PILLAR[a.action_type], `${verb} ${label(a)}`, run.id);
   log(`approval ${a.id}: done (${charged} credits)`);

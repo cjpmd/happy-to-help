@@ -11,6 +11,7 @@ import { mockProviders } from "./executor/providers.js";
 import { runtimeFor } from "./runtime/index.js";
 import { transcriptionFromEnv } from "./capture/transcription.js";
 import { notetakerFromEnv, runNotetaker } from "./capture/notetaker.js";
+import { syncAds } from "./ads.js";
 import { purgeExpiredAudio } from "./capture/prepare.js";
 import { runScheduler } from "./scheduler.js";
 import { reportError } from "./errors.js";
@@ -109,6 +110,11 @@ async function main() {
         if (n) console.log(`Synced analytics for ${n} post(s)`);
         const heard = await syncListening(db, keys);
         if (heard) console.log(`${heard} new comment(s) and review(s) in the inbox`);
+        if (process.env["ADS_ENABLED"] === "1") {
+          const ads = await syncAds(db, (companyId) => providersFor(db, keys, companyId));
+          if (ads.capped)
+            console.log(`Paused ads for ${ads.capped} company(ies) at their monthly cap`);
+        }
       }
       if (Date.now() - lastMetricsSync > 6 * 60 * 60_000) {
         lastMetricsSync = Date.now();

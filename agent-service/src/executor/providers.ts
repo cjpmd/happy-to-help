@@ -25,6 +25,22 @@ export interface SetBudgetInput {
   dailyBudget: number;
   hardCap: number;
 }
+export interface LaunchAdInput {
+  companyId: string;
+  approvalId: string;
+  platform: "meta" | "google";
+  name: string;
+  creative: string;
+  dailyBudget: number;
+  /** Where clicks go: the ad's tracked link. */
+  url: string | null;
+}
+export interface AdDay {
+  day: string;
+  spendGbp: number;
+  clicks: number;
+  impressions: number;
+}
 export interface PublishSiteInput {
   companyId: string;
   approvalId: string;
@@ -57,7 +73,13 @@ export interface Providers {
     ): Promise<{ externalId: string; url?: string; status: "published" | "scheduled" }>;
   };
   email: { send(i: SendEmailInput): Promise<{ messageIds: string[] }> };
-  ads: { setDailyBudget(i: SetBudgetInput): Promise<{ reference: string }> };
+  ads: {
+    setDailyBudget(i: SetBudgetInput): Promise<{ reference: string }>;
+    /** Phase 19: launch, pause and read spend. */
+    launch(i: LaunchAdInput): Promise<{ externalId: string }>;
+    pause(platform: string, externalId: string): Promise<void>;
+    spend(platform: string, externalId: string, since: string, until: string): Promise<AdDay[]>;
+  };
   site: { publish(i: PublishSiteInput): Promise<{ version: string; previewUrl: string }> };
   documents: { file(i: FileDocumentInput): Promise<{ reference: string }> };
   replies: { reply(i: PublicReplyInput): Promise<{ externalId: string }> };
@@ -93,6 +115,24 @@ export function mockProviders(): Providers {
     ads: {
       async setDailyBudget(i) {
         return { reference: ref("ads", i.approvalId) };
+      },
+      async launch(i) {
+        fail(i.creative);
+        return { externalId: `${ref("ad", i.approvalId)}_${i.dailyBudget}` };
+      },
+      async pause() {},
+      // Nothing is spent: the mock reports 80% of the daily budget for each day since launch.
+      async spend(_platform, externalId, since, until) {
+        const budget = Number(externalId.split("_").pop() ?? 0);
+        const days: AdDay[] = [];
+        for (let d = Date.parse(since); d <= Date.parse(until); d += 86_400_000)
+          days.push({
+            day: new Date(d).toISOString().slice(0, 10),
+            spendGbp: Math.round(budget * 0.8 * 100) / 100,
+            clicks: Math.round(budget * 2),
+            impressions: Math.round(budget * 120),
+          });
+        return days;
       },
     },
     site: {
