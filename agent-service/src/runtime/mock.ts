@@ -211,7 +211,9 @@ export const mockRuntime: AgentRuntime = {
         }).map((it) => {
           // Link back to the moment in the recording it came from.
           const seg = segments.find((sg) => it.quote?.includes(sg.text));
-          return seg ? { ...it, at_seconds: Math.floor(seg.start) } : it;
+          return seg && Number.isFinite(seg.start)
+            ? { ...it, at_seconds: Math.floor(seg.start) }
+            : it;
         });
         const saved = await step("propose_extraction", { capture_id: id, items });
         if (saved.isError) return { ...done(saved.text), status: "error", error: saved.text };

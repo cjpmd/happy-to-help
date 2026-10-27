@@ -220,6 +220,17 @@ begin
       select c, key, name, trigger, steps from public.bot_templates where key = 'weekly_summary';
     insert into public.bot_runs (bot_id, company_id, step, due_at)
       select id, c, 0, now() from public.bots where company_id = c;
+    insert into public.calendar_connections (company_id, user_id, provider)
+      select c, user_id, 'mock' from public.company_members where company_id = c and role = 'founder' limit 1;
+    insert into public.calendar_events (company_id, connection_id, external_id, series_id, title, starts_at, ends_at, meeting_url)
+      select c, id, 'ev1', 'series1', 'Stand-up', now() + interval '1 day', now() + interval '1 day 30 minutes', 'https://meet.example/x'
+      from public.calendar_connections where company_id = c;
+    insert into public.notetaker_series (connection_id, series_id, company_id)
+      select id, 'series0', c from public.calendar_connections where company_id = c;
+    insert into public.phone_numbers (company_id, number, provider)
+      values (c, case when c = pg_temp.id('company_a') then '+447700900101' else '+447700900102' end, 'mock');
+    insert into public.call_sessions (company_id, external_id, from_number, to_number)
+      values (c, 'CA-' || c::text, '+447700900201', '+447700900101');
   end loop;
 end;
 $$;

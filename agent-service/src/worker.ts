@@ -10,6 +10,7 @@ import { claimApproval, executeApproval } from "./executor/executor.js";
 import { mockProviders } from "./executor/providers.js";
 import { runtimeFor } from "./runtime/index.js";
 import { transcriptionFromEnv } from "./capture/transcription.js";
+import { notetakerFromEnv, runNotetaker } from "./capture/notetaker.js";
 import { purgeExpiredAudio } from "./capture/prepare.js";
 import { runScheduler } from "./scheduler.js";
 import { reportError } from "./errors.js";
@@ -60,6 +61,7 @@ async function main() {
   // Phase 7 picks real providers per company; until then everything goes to the mocks.
   const providers = mockProviders();
   const transcription = transcriptionFromEnv();
+  const notetaker = notetakerFromEnv(db);
   const keys = platformKeys();
   const unsubscribeSecret = process.env["UNSUBSCRIBE_SECRET"];
   const unsubscribe = unsubscribeSecret
@@ -88,6 +90,12 @@ async function main() {
         if (data) console.log(`Recovered ${data} stale run(s)`);
         const purged = await purgeExpiredAudio(db);
         if (purged) console.log(`Deleted ${purged} recording(s) past their keep period`);
+        // The meeting notetaker (Phase 18), when switched on for the platform.
+        if (notetaker.enabled) {
+          const n = await runNotetaker({ db, ...notetaker });
+          if (n.scheduled || n.recorded)
+            console.log(`Notetaker: ${n.scheduled} bot(s) sent, ${n.recorded} meeting(s) recorded`);
+        }
         const s = await runScheduler(db);
         if (s.routines || s.nightly || s.voice || s.autoSteps)
           console.log(

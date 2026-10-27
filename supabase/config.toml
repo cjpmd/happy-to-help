@@ -428,3 +428,11 @@ verify_jwt = false
 
 [functions.resend-inbound]
 verify_jwt = false
+
+# Twilio calls this; its signature is checked in the function (Phase 18, off by default).
+[functions.call-webhook]
+verify_jwt = false
+
+# The calendar provider redirects here (Phase 18, off by default); the POST checks the caller.
+[functions.calendar-connect]
+verify_jwt = false
