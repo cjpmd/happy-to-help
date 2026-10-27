@@ -11,6 +11,8 @@ import { ITEM_KINDS, commitmentsDue, matchContact, matchTask } from "../../src/l
 import { localTime } from "../../src/lib/schedule.js";
 import type { BriefFacts } from "../../src/lib/brief.js";
 import { missingDeadlines, ukDeadlines } from "../../src/lib/skills.js";
+import { decideMode, type Triage } from "../../src/lib/inbox.js";
+import type { ResponseMode } from "../../src/lib/voicePolicy.js";
 
 export interface ToolContext {
   db: Db;
@@ -940,6 +942,230 @@ TOOLS.push(
       );
       if (error) return { isError: true, text: `Not saved: ${error.message}` };
       return { text: `Added ${assumptions.length} assumptions to test.` };
+    },
+  }),
+);
+
+// The inbox pipeline (Phase 14): triage, the policy decision, and the reply.
+async function inboxItem(ctx: ToolContext, itemId: string) {
+  const { data: item } = await ctx.db
+    .from("inbox_items")
+    .select(
+      "id, thread_id, message_id, contact_id, status, category, mode, email_threads(subject, contact_name, address)",
+    )
+    .eq("id", itemId)
+    .eq("company_id", ctx.companyId)
+    .maybeSingle();
+  return item;
+}
+
+TOOLS.push(
+  def({
+    name: "get_inbox_item",
+    description:
+      "One message waiting in the inbox, with the conversation so far, who sent it, what we know about them, and the company's name and sign-off.",
+    shape: { item_id: z.string().uuid() },
+    readOnly: true,
+    handler: async (ctx, { item_id }) => {
+      const item = await inboxItem(ctx, item_id);
+      if (!item) return { isError: true, text: "Message not found." };
+      const thread = item.email_threads as {
+        subject: string;
+        contact_name: string;
+        address: string;
+      } | null;
+      const [messages, contact, company, voice] = await Promise.all([
+        ctx.db
+          .from("email_messages")
+          .select("id, direction, body, created_at")
+          .eq("thread_id", item.thread_id)
+          .order("created_at"),
+        item.contact_id
+          ? ctx.db
+              .from("contacts")
+              .select("name, kind, value, source")
+              .eq("id", item.contact_id)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
+        ctx.db.from("companies").select("name").eq("id", ctx.companyId).single(),
+        ctx.db
+          .from("voice_profiles")
+          .select("sign_off")
+          .eq("company_id", ctx.companyId)
+          .eq("status", "approved")
+          .maybeSingle(),
+      ]);
+      const msgs = messages.data ?? [];
+      return {
+        text: json({
+          item_id,
+          subject: thread?.subject,
+          from: { name: thread?.contact_name, address: thread?.address },
+          message: msgs.find((m) => m.id === item.message_id)?.body,
+          earlier: msgs.filter((m) => m.id !== item.message_id).slice(-6),
+          contact: contact.data,
+          company: company.data?.name,
+          sign_off: voice.data?.sign_off ?? null,
+          mode: item.mode,
+        }),
+      };
+    },
+  }),
+  def({
+    name: "save_triage",
+    description:
+      "Records the triage (category, sentiment, urgency, language, flags) and applies the response policy and its hard rules. Returns what happens next: escalate to the founder, or draft a reply (sent automatically only where the policy allows).",
+    shape: {
+      item_id: z.string().uuid(),
+      category: z.enum([
+        "general_enquiry",
+        "pricing_question",
+        "complaint",
+        "refund_request",
+        "booking",
+        "review_positive",
+        "review_negative",
+        "legal_threat",
+        "press",
+        "spam",
+      ]),
+      sentiment: z.enum(["positive", "neutral", "negative"]),
+      urgency: z.enum(["low", "normal", "high"]),
+      language: z.string().min(2).max(10),
+      flags: z
+        .object({
+          money: z.boolean().optional(),
+          legal: z.boolean().optional(),
+          safety: z.boolean().optional(),
+          vulnerable: z.boolean().optional(),
+          data_request: z.boolean().optional(),
+          unverified_claim: z.boolean().optional(),
+          spam: z.boolean().optional(),
+        })
+        .default({}),
+    },
+    readOnly: false,
+    handler: async (ctx, t) => {
+      const item = await inboxItem(ctx, t.item_id);
+      if (!item) return { isError: true, text: "Message not found." };
+      const { data: policy } = await ctx.db
+        .from("response_policies")
+        .select("mode")
+        .eq("company_id", ctx.companyId)
+        .eq("category", t.category)
+        .maybeSingle();
+      const flags = Object.fromEntries(Object.entries(t.flags).filter(([, v]) => v === true));
+      const d = decideMode(
+        { category: t.category, flags } as Pick<Triage, "category" | "flags">,
+        (policy?.mode ?? "draft") as ResponseMode,
+      );
+      const escalate = d.mode === "escalate";
+      await ctx.db
+        .from("inbox_items")
+        .update({
+          category: t.category,
+          sentiment: t.sentiment,
+          urgency: t.urgency,
+          language: t.language,
+          flags,
+          mode: d.mode,
+          reason: d.reason,
+          status: t.category === "spam" ? "spam" : escalate ? "escalated" : "drafting",
+          ...(escalate ? { processed_at: new Date().toISOString() } : {}),
+        })
+        .eq("id", t.item_id);
+      const thread = item.email_threads as { contact_name: string; subject: string } | null;
+      if (escalate && t.category !== "spam") {
+        await ctx.db.from("chat_messages").insert({
+          company_id: ctx.companyId,
+          sender: "sol",
+          content: `A message from ${thread?.contact_name || "a customer"} ("${thread?.subject ?? ""}") needs you: ${d.reason}. I haven't replied.`,
+        });
+        await ctx.db.from("activity_events").insert({
+          company_id: ctx.companyId,
+          type: "escalation",
+          summary: `Escalated: ${thread?.subject ?? "a message"} (${d.reason})`,
+        });
+      }
+      if (!escalate)
+        await ctx.db.from("agent_jobs").insert({
+          company_id: ctx.companyId,
+          job_type: "inbox_draft",
+          payload: { item_id: t.item_id, title: `Reply: ${thread?.subject ?? "a message"}` },
+          estimated_credits: 15,
+        });
+      return {
+        text: escalate
+          ? `Escalated to the founder: ${d.reason}.`
+          : `Policy: ${d.mode} (${d.reason}). A reply will be drafted.`,
+      };
+    },
+  }),
+  def({
+    name: "propose_reply",
+    description:
+      "Proposes the reply to an inbox message. It's checked for claims; then it's sent automatically if the policy allows (and the executor's hard rules agree), otherwise it waits for the founder's GO.",
+    shape: { item_id: z.string().uuid(), body: z.string().min(1).max(5000) },
+    readOnly: false,
+    handler: async (ctx, { item_id, body }) => {
+      const item = await inboxItem(ctx, item_id);
+      if (!item) return { isError: true, text: "Message not found." };
+      const flags = await claims(ctx, body);
+      if (flags.length)
+        return {
+          isError: true,
+          text: `Not proposed: the claims check flagged "${flags[0]!.phrase}". Rewrite it.`,
+        };
+      const thread = item.email_threads as { subject: string; address: string } | null;
+      const { data: full } = await ctx.db
+        .from("inbox_items")
+        .select("category, flags, mode")
+        .eq("id", item_id)
+        .single();
+      const auto = full?.mode === "auto_send";
+      const subject = /^re:/i.test(thread?.subject ?? "")
+        ? thread!.subject
+        : `Re: ${thread?.subject ?? ""}`;
+      const now = new Date().toISOString();
+      const { data: approval, error } = await ctx.db
+        .from("approvals")
+        .insert({
+          company_id: ctx.companyId,
+          run_id: ctx.runId,
+          action_type: "send_email",
+          payload: {
+            to: thread?.address ?? "",
+            subject,
+            body,
+            thread_id: item.thread_id,
+            inbox_item_id: item_id,
+            reason: auto
+              ? "Your policy lets me answer this kind of message myself."
+              : "A reply to a customer, in your voice.",
+            triage: {
+              category: full?.category,
+              ...((full?.flags as Record<string, boolean>) ?? {}),
+            },
+            ...(auto ? { auto_send: true } : {}),
+          },
+          estimated_credits: ACTION_CREDITS.send_email,
+          ...(auto
+            ? { status: "approved" as const, decided_at: now, execution_status: "queued" as const }
+            : {}),
+        })
+        .select("id")
+        .single();
+      if (error || !approval) throw new Error(`propose reply: ${error?.message ?? "no row"}`);
+      await ctx.db
+        .from("inbox_items")
+        .update({ status: "awaiting_approval", approval_id: approval.id })
+        .eq("id", item_id);
+      return {
+        approvalId: approval.id,
+        text: auto
+          ? "Queued to send automatically (the executor checks the hard rules first)."
+          : "Waiting for the founder's GO.",
+      };
     },
   }),
 );

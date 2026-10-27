@@ -61,10 +61,18 @@ export interface SchedulerResult {
   voice: number;
   expired: boolean;
   autoSteps: number;
+  inbox: number;
 }
 
 export async function runScheduler(db: Db, now = new Date()): Promise<SchedulerResult> {
-  const out: SchedulerResult = { routines: 0, nightly: 0, voice: 0, expired: false, autoSteps: 0 };
+  const out: SchedulerResult = {
+    routines: 0,
+    nightly: 0,
+    voice: 0,
+    expired: false,
+    autoSteps: 0,
+    inbox: 0,
+  };
   const t = localTime(now);
 
   // Routines the team switched on.
@@ -168,6 +176,7 @@ export async function runScheduler(db: Db, now = new Date()): Promise<SchedulerR
     await importAnthropicUsage(db, adminKey, from, to);
   }
 
+  out.inbox = await processInbox(db, now);
   out.autoSteps = await advanceAutoMode(db, now);
   return out;
 }
@@ -233,4 +242,64 @@ export async function advanceAutoMode(db: Db, now = new Date()) {
     started++;
   }
   return started;
+}
+
+/** Credits a message costs to triage and draft, set aside against the daily budget. */
+const INBOX_ITEM_CREDITS = 20;
+
+/**
+ * The inbox (Phase 14): new messages are triaged within each company's daily budget, oldest
+ * first. Past the budget they wait for tomorrow, and the founder is told once a day.
+ */
+export async function processInbox(db: Db, now = new Date()) {
+  const t = localTime(now);
+  const dayStart = `${t.date}T00:00:00Z`;
+  const { data: settings } = await db
+    .from("response_settings")
+    .select("company_id, inbox_daily_cap")
+    .gt("inbox_daily_cap", 0);
+  let queued = 0;
+  for (const s of settings ?? []) {
+    const { data: items } = await db
+      .from("inbox_items")
+      .select("id, status")
+      .eq("company_id", s.company_id)
+      .in("status", ["new", "waiting_for_budget"])
+      .order("created_at")
+      .limit(50);
+    if (!items?.length) continue;
+    const { data: today } = await db
+      .from("agent_jobs")
+      .select("estimated_credits")
+      .eq("company_id", s.company_id)
+      .in("job_type", ["inbox_triage", "inbox_draft"])
+      .gte("created_at", dayStart);
+    let spent = (today ?? []).reduce((n, j) => n + j.estimated_credits, 0);
+    let waiting = 0;
+    for (const item of items) {
+      if (spent + INBOX_ITEM_CREDITS > s.inbox_daily_cap) {
+        waiting++;
+        if (item.status === "new")
+          await db.from("inbox_items").update({ status: "waiting_for_budget" }).eq("id", item.id);
+        continue;
+      }
+      await queue(
+        db,
+        s.company_id,
+        "inbox_triage",
+        { item_id: item.id, title: "Triage a message" },
+        5,
+      );
+      await db.from("inbox_items").update({ status: "triaging" }).eq("id", item.id);
+      spent += INBOX_ITEM_CREDITS;
+      queued++;
+    }
+    if (waiting && (await claim(db, "inbox_budget_notice", s.company_id, null, t.date)))
+      await db.from("chat_messages").insert({
+        company_id: s.company_id,
+        sender: "sol",
+        content: `Today's inbox budget (${s.inbox_daily_cap} credits) is used up, so ${waiting} ${waiting === 1 ? "message is" : "messages are"} waiting until tomorrow. You can raise the budget in Customers → Voice & policy, or answer them yourself.`,
+      });
+  }
+  return queued;
 }

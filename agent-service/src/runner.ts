@@ -67,8 +67,8 @@ function jobInput(job: Job, chatText: string | undefined) {
     ...(str(p["title"]) ? { title: str(p["title"])! } : {}),
     ...(chatText ? { message: chatText } : {}),
     // Capture and follow-up jobs carry the row they're about.
-    ...(str(p["target"] ?? p["capture_id"] ?? p["commitment_id"])
-      ? { target: str(p["target"] ?? p["capture_id"] ?? p["commitment_id"])! }
+    ...(str(p["target"] ?? p["capture_id"] ?? p["commitment_id"] ?? p["item_id"])
+      ? { target: str(p["target"] ?? p["capture_id"] ?? p["commitment_id"] ?? p["item_id"])! }
       : {}),
   };
 }

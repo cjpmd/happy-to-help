@@ -539,3 +539,9 @@ from public.contacts c, (select id from public.forms where company_id = 'c000000
   (values ('service', 'granted', 'legitimate_interests', 'Replies to your enquiry'),
           ('marketing', 'granted', 'consent', 'Send me occasional news and offers by email. I can unsubscribe at any time.')) as p (purpose, status, basis, wording)
 where c.company_id = 'c0000000-0000-4000-8000-000000000005' and c.email = 'fiona.reid@example.com';
+
+-- Messages already answered aren't waiting in the inbox (Phase 14).
+update public.inbox_items i set status = 'closed'
+where exists (
+  select 1 from public.email_messages s join public.email_messages m on m.id = i.message_id
+  where s.thread_id = i.thread_id and s.direction = 'sent' and s.created_at > m.created_at);

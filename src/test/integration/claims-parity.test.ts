@@ -16,6 +16,8 @@ const FIXTURES = [
   "Number one, world-leading, most effective",
   "Approved by teachers",
   "Nothing to see here 😀",
+  "See you soon.\n\nBest wishes\nRory",
+  "All the best, and the best cake in town",
 ];
 
 describe("claims check parity (TypeScript vs SQL)", () => {
