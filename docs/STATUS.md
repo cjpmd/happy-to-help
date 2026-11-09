@@ -60,6 +60,24 @@ Every phase in `docs/PHASES.md` (0–19) is built, merged into `develop` with `-
 4. Leave HANDOFF 12 (paid ads) until there are real customers, as PHASES says.
 5. **Crew (added 9 Nov 2026, awaiting review, nothing built):** `docs/CREW-PHASES.md` plans Phases 20–24 from `docs/CREW.md` (agent records, crew roster, morning briefing, autonomy ladder, plan unlocks); decisions D89–D104. **Approved 9 Nov 2026**; building them next, alongside HANDOFF 2 and 1, with Phase 23 landing before any real sending provider (HANDOFF 6) is switched on.
 
+## Crew phases (20–24, started 9 Nov 2026)
+
+Plan: `docs/CREW-PHASES.md` (approved 9 Nov 2026). Decisions D89–D108. Review stops: after Phase 20's migrations are written (before applying), after the Phase 21 roster screen, after Phase 23.
+
+| # | Phase | Branch | Status |
+|---|---|---|---|
+| 20 | Agent records | `phase-20-agent-records` | **Migrations written, not applied: waiting for review** |
+| 21 | Crew roster and cards | `phase-21-crew-roster` | To do |
+| 22 | Morning briefing | `phase-22-morning-briefing` | To do |
+| 23 | Autonomy ladder and simulation | `phase-23-autonomy` | To do |
+| 24 | Plan unlocks | `phase-24-plan-unlocks` | To do |
+
+### Phase 20 (in progress)
+
+- **Written:** `20261110100000_crew_enums.sql` (`crew_pillar`, `agent_status`) and `20261110100100_agents.sql` (action types with ceilings, the full catalogue of 46, `job_types.default_agent` / `fallback_agent`, `agents`, `agent_autonomy` with the ceiling trigger, insert-only `agent_autonomy_events`, `agent_runs.agent_id` and `agent_jobs.agent_id`, `seed_crew` on every new company, `agent_for_job`, `attribute_runs`, the backfill with a check that no run is left without an agent, RLS). `supabase/seed.sql` attributes the seeded runs.
+- **Not yet run:** neither migration has been applied anywhere, including locally (review stop). No Docker in this sandbox; after review the plan is `scripts/db/test-local.sh` on plain Postgres 16.
+- **Next after review:** apply locally, regenerate types, pgTAP (`24_agents.test.sql`, read-access matrix), then the agent-service changes (`crew.ts`, agent on each run, per-run and monthly caps, paused agents refused, crew identity in the workspace), the chat function and executor recording `agent_id`, the demo store's crew, and Starter prompts in `agent-service/prompts/`.
+
 ## Autonomous run (started 26 Oct 2026)
 
 Working from `docs/AUTONOMOUS-RUN.md`. Decisions are in `docs/DECISIONS.md`; anything that needs the owner (accounts, keys, money, production) is in `docs/HANDOFF.md`.
