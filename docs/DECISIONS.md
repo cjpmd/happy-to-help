@@ -313,3 +313,55 @@ Non-trivial decisions made during the autonomous build run (`docs/AUTONOMOUS-RUN
 
 ## D88. Ad spend lives on the ad's tracked link
 - **Chosen:** spend synced from the platform is written to the tracked link the ad uses (`tracked_links.spend_gbp`), so the existing attribution (Phase 13) shows cost per lead and per customer for ads without a separate report.
+
+# Crew planning (9 Nov 2026)
+
+Decisions taken while writing `docs/CREW-PHASES.md` from `docs/CREW.md`. Nothing is built yet; these are proposals for review, in the same format.
+
+## D89. Crew members are job owners, not SDK subagents
+- **Question:** CREW.md describes "Sol's pillar subagents", but the worker runs one agent per job and `agent_runs.pillar` is only a label.
+- **Chosen:** each job is run by one crew member (`agent_runs.agent_id`), whose identity, style, skills and caps shape that run's workspace. No Agent SDK subagents.
+- **Why:** keeps one run = one reservation = one settlement (CLAUDE.md rule 3) and the existing gate and audit hooks unchanged. Pillar leads (Growth) can use subagents later.
+- **Change it:** add subagent definitions to the runtime in `agent-service/src/runtime/claude.ts`; the data model doesn't change.
+
+## D90. A separate enum for crew grouping
+- **Question:** the `pillar` enum has no Customers, Sol (HQ) or the meta crew, and is used by tasks, job types and capture routing.
+- **Chosen:** a new `crew_pillar` enum (`hq`, `build`, `grow`, `customers`, `run`, `legal`, `raise`, `meta`) for agents only; `pillar` is untouched.
+- **Why:** adding `customers` to `pillar` would change department routing for tasks and extracted items, which is outside this work.
+- **Change it:** add `customers` to `pillar` later and map; the crew enum can stay.
+
+## D91. How existing runs are attributed
+- **Chosen:** backfill `agent_runs.agent_id` from the job's type through `job_types.default_agent`; if the company doesn't have that agent, a named fallback (e.g. campaigns → Nova), else Sol. Executor charging runs go to the agent that proposed the approval. History isn't re-attributed when a plan later unlocks the "right" agent.
+- **Why:** every run gets an owner without inventing work for agents the company never had; Sol did that work before the crew existed.
+- **Change it:** the mapping table in CREW-PHASES Phase 20; re-running the backfill is a one-line update per job type.
+
+## D92. A global catalogue and a per-company copy
+- **Chosen:** `agent_catalogue` (global, like `bot_templates`) holds the built-in crew; `agents` holds each company's copy, which the founder can adjust within the catalogue's limits.
+- **Why:** the same pattern as bots (Phase 17); custom agents and plan changes are rows, not code.
+
+## D93. Agents with no engine say so
+- **Chosen:** catalogue agents whose work doesn't exist yet (e.g. Penn without accounting software) have status `standing_by` and show what they need. They show no outcome numbers and do no runs.
+- **Why:** CREW.md's first rule is "outcome, not activity"; a card with invented numbers would break the trust the crew is meant to build.
+
+## D94. Outcomes are counted from activity events
+- **Chosen:** `activity_events` gains `agent_id` and `outcome`; the code that causes an outcome (the executor, tools, `submit_lead`, voice adoption) writes the event, and `crew_stats` counts them. Outcome keys are a fixed list, so no metric definition runs dynamic SQL.
+- **Why:** one audited source for the card, the briefing and the equivalent-cost estimate, and outcomes that happen without a run (a lead form) still count.
+
+## D95. Briefing headline and equivalent hiring cost
+- **Chosen:** the headline uses the current gate's headline metric, the countdown and the 90-day goal text (the goal isn't numeric today). Spend comes from `credit_ledger`. The equivalent hiring cost is outcomes × `minutes_per_outcome` (catalogue) × `crew_config.hiring_rate_gbp_per_hour` (default £15.00, a placeholder), shown as an estimate with its workings, founder-only.
+- **Change it:** the rate in `crew_config`; minutes per outcome in the catalogue, from pilot measurements.
+
+## D96. Start levels
+- **Question:** CREW.md says new agents start in draft mode, but its tables give many agents L2 or L3; SPEC G says auto-send is off until the founder turns it on.
+- **Chosen:** a new agent's level per action type is the lowest of CREW.md's start level, the action type's ceiling, and L2 for any external action. L3 at the start only for internal actions (scoring, tagging, flagging). On migration, existing companies keep today's behaviour: external actions at L2, and reply categories the founder already set to auto-send at L3.
+- **Why:** nothing that works today changes; nothing external becomes automatic without the founder; L0 stays available as a choice rather than slowing every new company's first week.
+- **Change it:** the seeding rule in `private.seed_crew` and `sync_crew`.
+
+## D97. A changed prompt or skill drops L3 to L2
+- **Chosen:** when an agent's style ref or skills change, any action type at L3 drops to L2 and Sol proposes promotion again under the normal thresholds. CREW.md suggests simulation (L0) instead.
+- **Why:** L0 would stop that work for a week; L2 keeps it flowing with every item reviewed.
+- **Change it:** the demotion target in `agent-service/src/autonomy.ts`.
+
+## D98. Mentor holds can only be lifted by a mentor
+- **Chosen:** a cohort mentor can hold an agent (one action type or all) at L2 or below; the founder can't promote above it or lift it; a mentor of that cohort or an admin can.
+- **Why:** a hold the founder can undo isn't oversight. Open question 3 in CREW-PHASES asks you to confirm.
