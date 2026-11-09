@@ -4,11 +4,18 @@ import { demoLinkData } from "./demoLinks";
 import { demoInboxItems } from "./demoInbox";
 import { demoFeedback, harbourHeard } from "./demoListening";
 import { DEMO_BOT_TEMPLATES } from "./demoBots";
+import { attributeRuns, seedAgents } from "./crew";
+import { ACTION_TYPES, CREW_CATALOGUE, STARTER_CREW } from "./crewCatalogue";
 import { defaultPolicies, defaultSettings, defaultVoice } from "./voicePolicy";
 import { businessDefaults, isLayout, workspaceSeed, type LayoutItem } from "./workspace";
 
 /** The demo store's starting data, from src/lib/seed.ts. */
 export function demoDb(): DB {
+  // Every company starts with Sol and the Starter crew, as in the database (Phase 20).
+  const crew = seed.companies.map((c) =>
+    seedAgents(c.id, STARTER_CREW, CREW_CATALOGUE, ACTION_TYPES),
+  );
+  const agents = crew.flatMap((x) => x.agents);
   return {
     ...withHarbour(workspaceSeed(seed.companies, seed.tasks)),
     profiles: seed.profiles,
@@ -18,7 +25,7 @@ export function demoDb(): DB {
       channels: businessDefaults(c.customer_type),
     })),
     approvals: seed.approvals,
-    agent_runs: seed.agent_runs,
+    agent_runs: attributeRuns(seed.agent_runs, agents),
     activity_events: seed.activity_events,
     credit_ledger: seed.credit_ledger,
     chat_messages: seed.chat_messages,
@@ -63,6 +70,10 @@ export function demoDb(): DB {
     bot_templates: DEMO_BOT_TEMPLATES,
     bots: [],
     bot_runs: [],
+    agent_catalogue: CREW_CATALOGUE,
+    autonomy_action_types: ACTION_TYPES,
+    agents,
+    agent_autonomy: crew.flatMap((x) => x.autonomy),
     calendar_connections: [],
     calendar_events: [],
     phone_numbers: [],

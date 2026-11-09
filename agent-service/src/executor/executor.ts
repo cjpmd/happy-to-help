@@ -648,12 +648,15 @@ export async function executeApproval(deps: ExecutorDeps, a: Approval): Promise<
       false,
     );
 
-  // 2. Credits: reserve the action's price on its own run.
+  // 2. Credits: reserve the action's price on its own run, which belongs to the crew member
+  //    that proposed the action (Phase 20, D91).
+  const { data: agentId } = await db.rpc("agent_for_approval", { p_approval: a.id });
   const run = must(
     await db
       .from("agent_runs")
       .insert({
         company_id: a.company_id,
+        agent_id: (agentId as string | null) ?? null,
         task: `Carry out ${label(a)}`,
         pillar: PILLAR[a.action_type],
         model: `executor (${providers.name})`,

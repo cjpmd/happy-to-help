@@ -3,6 +3,7 @@
 // src/test/liveMappers.test.ts.
 import type { Database, Tables } from "@/integrations/supabase/types";
 import type * as T from "../types";
+import type * as C from "../crew";
 import type {
   AdAccount,
   CompanyDocument,
@@ -109,6 +110,7 @@ export function mapRun(r: Row<"agent_runs">): T.AgentRun {
   return {
     id: r.id,
     company_id: r.company_id,
+    agent_id: r.agent_id,
     task_id: r.task_id,
     task: r.task,
     pillar: r.pillar,
@@ -580,5 +582,60 @@ export function mapLead(l: Row<"leads">): L.Lead {
     message: l.message,
     status: l.status as L.Lead["status"],
     created_at: l.created_at,
+  };
+}
+
+// Crew (Phase 20). jsonb columns are written by migrations in these shapes.
+export function mapCatalogueEntry(c: Row<"agent_catalogue">): C.CatalogueEntry {
+  return {
+    key: c.key,
+    name: c.name,
+    role: c.role,
+    crew_pillar: c.crew_pillar,
+    summary: c.summary,
+    outcome_metric: c.outcome_metric as unknown as C.OutcomeMetric,
+    model_tier: c.model_tier as C.ModelTier,
+    job_types: c.job_types,
+    budget_per_run_credits: c.budget_per_run_credits,
+    budget_per_month_credits: c.budget_per_month_credits,
+    start_autonomy: c.start_autonomy as unknown as Record<string, number>,
+    entry_paths: c.entry_paths,
+    from_stage: c.from_stage,
+    min_plan: c.min_plan,
+    minutes_per_outcome: Number(c.minutes_per_outcome),
+    engine: c.engine,
+    needs: c.needs as unknown as C.AgentNeeds | null,
+    sort: c.sort,
+  };
+}
+
+export function mapAgent(a: Row<"agents">): C.CrewAgent {
+  return {
+    id: a.id,
+    company_id: a.company_id,
+    catalogue_key: a.catalogue_key,
+    name: a.name,
+    role: a.role,
+    crew_pillar: a.crew_pillar,
+    outcome_metric: a.outcome_metric as unknown as C.OutcomeMetric,
+    model_tier: a.model_tier as C.ModelTier,
+    budget_per_run_credits: a.budget_per_run_credits,
+    budget_per_month_credits: a.budget_per_month_credits,
+    prompt_version: a.prompt_version,
+    skills_version: a.skills_version,
+    status: a.status,
+  };
+}
+
+export function mapAutonomy(a: Row<"agent_autonomy">): C.AgentAutonomy {
+  return {
+    agent_id: a.agent_id,
+    company_id: a.company_id,
+    action_type: a.action_type,
+    level: a.level,
+    mentor_hold_level: a.mentor_hold_level,
+    hold_reason: a.hold_reason,
+    held_at: a.held_at,
+    release_requested_at: a.release_requested_at,
   };
 }

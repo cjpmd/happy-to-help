@@ -8,6 +8,7 @@ import { RoutinesPage } from "@/components/mission/WorkspacePages";
 import { AutoModeDialog } from "@/components/mission/AutoModeDialog";
 import { Button } from "@/components/ui/button";
 import { pageHead } from "@/lib/seo";
+import { runAgentName } from "@/lib/crew";
 import { duration, fmtDateTime, num } from "@/lib/format";
 import { ProofOfDone, Why } from "@/components/mission/WorkControls";
 import { cn } from "@/lib/utils";
@@ -101,6 +102,7 @@ function PastRuns() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{r.task}</p>
                   <p className="text-xs text-muted-foreground">
+                    {runAgentName(r, db.agents) && <>{runAgentName(r, db.agents)} · </>}
                     <span className="capitalize">{r.pillar}</span> ·{" "}
                     {r.started_at && fmtDateTime(r.started_at)} ·{" "}
                     {duration(r.started_at, r.finished_at)}

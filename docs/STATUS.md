@@ -62,21 +62,24 @@ Every phase in `docs/PHASES.md` (0–19) is built, merged into `develop` with `-
 
 ## Crew phases (20–24, started 9 Nov 2026)
 
-Plan: `docs/CREW-PHASES.md` (approved 9 Nov 2026). Decisions D89–D108. Review stops: after Phase 20's migrations are written (before applying), after the Phase 21 roster screen, after Phase 23.
+Plan: `docs/CREW-PHASES.md` (approved 9 Nov 2026). Decisions D89–D110. Review stops: after Phase 20's migrations are written (before applying), after the Phase 21 roster screen, after Phase 23.
 
 | # | Phase | Branch | Status |
 |---|---|---|---|
-| 20 | Agent records | `phase-20-agent-records` | **Migrations written, not applied: waiting for review** |
-| 21 | Crew roster and cards | `phase-21-crew-roster` | To do |
+| 20 | Agent records | `phase-20-agent-records` | Done |
+| 21 | Crew roster and cards | `phase-21-crew-roster` | In progress |
 | 22 | Morning briefing | `phase-22-morning-briefing` | To do |
 | 23 | Autonomy ladder and simulation | `phase-23-autonomy` | To do |
 | 24 | Plan unlocks | `phase-24-plan-unlocks` | To do |
 
-### Phase 20 (in progress)
+### Phase 20 (finished 9 Nov 2026)
 
-- **Written:** `20261110100000_crew_enums.sql` (`crew_pillar`, `agent_status`) and `20261110100100_agents.sql` (action types with ceilings, the full catalogue of 46, `job_types.default_agent` / `fallback_agent`, `agents`, `agent_autonomy` with the ceiling trigger, insert-only `agent_autonomy_events`, `agent_runs.agent_id` and `agent_jobs.agent_id`, `seed_crew` on every new company, `agent_for_job`, `attribute_runs`, the backfill with a check that no run is left without an agent, RLS). `supabase/seed.sql` attributes the seeded runs.
-- **Not yet run:** neither migration has been applied anywhere, including locally (review stop). No Docker in this sandbox; after review the plan is `scripts/db/test-local.sh` on plain Postgres 16.
-- **Next after review:** apply locally, regenerate types, pgTAP (`24_agents.test.sql`, read-access matrix), then the agent-service changes (`crew.ts`, agent on each run, per-run and monthly caps, paused agents refused, crew identity in the workspace), the chat function and executor recording `agent_id`, the demo store's crew, and Starter prompts in `agent-service/prompts/`.
+- **Migrations:** `20261110100000_crew_enums.sql`; `20261110100100_agents.sql` (action types with ceilings; the 46-agent catalogue; `job_types.default_agent` / `fallback_agent`; per-company `agents`; `agent_autonomy` with a ceiling trigger; `agent_autonomy_events`, insert-only by privileges (D106); `agent_runs.agent_id` and `agent_jobs.agent_id`; Sol and the Starter crew seeded for every existing company, then by trigger for new ones; `agent_for_job`, `agent_for_approval`, `attribute_runs`; Tilly's grandfathered L3 where a company already auto-sent (D96 one-time exception); the backfill with a no-gaps check; RLS; Realtime); `20261110100200_agent_runs_agent_required.sql` (NOT NULL with a safety-net trigger, D109).
+- **Agent service:** `src/crew.ts` (agent for a job, paused or locked agents refused with no charge, per-run and monthly caps, tools narrowed to the agent's, skills added, the agent's prompt file); `runner.ts` records the agent on the run and job and caps the reservation; `memory.ts` opens with the crew member's identity and role; the executor's runs belong to the proposer (`agent_for_approval`); `prompts/` for the Starter crew. Chat runs record Sol (`supabase/functions/chat`).
+- **App:** crew types (`src/lib/crew.ts`), the generated demo catalogue (`src/lib/crewCatalogue.ts`), the crew in both stores (demo seeding mirrors the SQL rules; live loads `agent_catalogue`, `autonomy_action_types`, `agents`, `agent_autonomy` and refreshes on change), the agent's name on LOG rows. Types for the new tables added with `scripts/db/gen-table-types.py` (D110).
+- **Tests:** `24_agents.test.sql` (76 checks: catalogue, seeding and idempotence, start levels, ceilings, who runs each job, the backfill as it ran, the safety-net trigger, history protected by privileges, deleting a company with history, no direct writes by app users); the read-access matrix covers the three new company tables automatically. `agent-service/test/crew.test.ts` (caps, availability, tools, prompts, memory), `src/test/crew.test.ts`. All 2,157 pgTAP checks, 237 app tests, 30 runnable agent-service tests, both typechecks, lint (22 old warnings) and the build pass.
+- **Not run here (D110):** `agent-service/test/crewRuns.test.ts` and the rest of the agent-service suite need the local Supabase API (Docker), which this sandbox doesn't have.
+- **⚠ Before applying to the London project:** re-run the RLS pgTAP tests and the agent-service suite on a Supabase dev branch (or `supabase start`), and regenerate types with `npm run db:types`. The plain-Postgres stand-in stubs `auth.uid()` and the Supabase roles faithfully, but it isn't Supabase.
 
 ## Autonomous run (started 26 Oct 2026)
 

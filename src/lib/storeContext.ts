@@ -10,6 +10,7 @@ import type * as K from "./capture";
 import type * as L from "./links";
 import type { Metric } from "./campaigns";
 import type * as B from "./bots";
+import type * as C from "./crew";
 
 /**
  * The app's data, shaped like the Supabase tables. Two providers fill it: the demo store
@@ -75,6 +76,11 @@ export type DB = WorkspaceDB & {
   /** Phase 17: process bots, their templates and what they did. */
   bot_templates: BotTemplate[];
   bots: Bot[];
+  /** Phase 20: the crew. The catalogue and action types are the same for every company. */
+  agent_catalogue: C.CatalogueEntry[];
+  autonomy_action_types: C.ActionType[];
+  agents: C.CrewAgent[];
+  agent_autonomy: C.AgentAutonomy[];
   bot_runs: BotRun[];
   /** Phase 18: calendars, meetings the notetaker may join, the phone number and calls. */
   calendar_connections: CalendarConnection[];

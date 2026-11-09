@@ -105,6 +105,8 @@ export interface RunStep {
 export interface AgentRun {
   id: string;
   company_id: string;
+  /** The crew member who did it (Phase 20). Always set in the database; demo data fills it. */
+  agent_id?: string | null;
   task_id: string | null;
   task: string;
   pillar: Pillar;

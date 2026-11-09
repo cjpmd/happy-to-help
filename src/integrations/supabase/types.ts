@@ -271,8 +271,248 @@ export type Database = {
           },
         ];
       };
+      agent_autonomy: {
+        Row: {
+          action_type: string;
+          agent_id: string;
+          company_id: string;
+          held_at: string | null;
+          held_by: string | null;
+          hold_reason: string | null;
+          level: number;
+          mentor_hold_level: number | null;
+          release_requested_at: string | null;
+          simulating_until: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          action_type: string;
+          agent_id: string;
+          company_id: string;
+          held_at?: string | null;
+          held_by?: string | null;
+          hold_reason?: string | null;
+          level: number;
+          mentor_hold_level?: number | null;
+          release_requested_at?: string | null;
+          simulating_until?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          action_type?: string;
+          agent_id?: string;
+          company_id?: string;
+          held_at?: string | null;
+          held_by?: string | null;
+          hold_reason?: string | null;
+          level?: number;
+          mentor_hold_level?: number | null;
+          release_requested_at?: string | null;
+          simulating_until?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_autonomy_action_type_fkey";
+            columns: ["action_type"];
+            isOneToOne: false;
+            referencedRelation: "autonomy_action_types";
+            referencedColumns: ["key"];
+          },
+          {
+            foreignKeyName: "agent_autonomy_agent_id_company_id_fkey";
+            columns: ["agent_id", "company_id"];
+            isOneToOne: false;
+            referencedRelation: "agents";
+            referencedColumns: ["id", "company_id"];
+          },
+          {
+            foreignKeyName: "agent_autonomy_held_by_fkey";
+            columns: ["held_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      agent_autonomy_events: {
+        Row: {
+          action_type: string;
+          agent_id: string;
+          approval_id: string | null;
+          company_id: string;
+          created_at: string;
+          decided_by: string | null;
+          evidence: NonNullable<Json>;
+          from_level: number | null;
+          id: string;
+          kind: string;
+          proposed_by_agent: string | null;
+          reason: string;
+          to_level: number | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          action_type: string;
+          agent_id: string;
+          approval_id?: string | null;
+          company_id: string;
+          created_at?: string;
+          decided_by?: string | null;
+          evidence?: NonNullable<Json>;
+          from_level?: number | null;
+          id?: string;
+          kind: string;
+          proposed_by_agent?: string | null;
+          reason: string;
+          to_level?: number | null;
+        };
+        Update: {
+          action_type?: string;
+          agent_id?: string;
+          approval_id?: string | null;
+          company_id?: string;
+          created_at?: string;
+          decided_by?: string | null;
+          evidence?: NonNullable<Json>;
+          from_level?: number | null;
+          id?: string;
+          kind?: string;
+          proposed_by_agent?: string | null;
+          reason?: string;
+          to_level?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_autonomy_events_action_type_fkey";
+            columns: ["action_type"];
+            isOneToOne: false;
+            referencedRelation: "autonomy_action_types";
+            referencedColumns: ["key"];
+          },
+          {
+            foreignKeyName: "agent_autonomy_events_agent_id_fkey";
+            columns: ["agent_id"];
+            isOneToOne: false;
+            referencedRelation: "agents";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agent_autonomy_events_approval_id_fkey";
+            columns: ["approval_id"];
+            isOneToOne: false;
+            referencedRelation: "approvals";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agent_autonomy_events_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agent_autonomy_events_decided_by_fkey";
+            columns: ["decided_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agent_autonomy_events_proposed_by_agent_fkey";
+            columns: ["proposed_by_agent"];
+            isOneToOne: false;
+            referencedRelation: "agents";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      agent_catalogue: {
+        Row: {
+          budget_per_month_credits: number | null;
+          budget_per_run_credits: number;
+          crew_pillar: Database["public"]["Enums"]["crew_pillar"];
+          engine: boolean;
+          entry_paths: Database["public"]["Enums"]["entry_path"][];
+          from_stage: Database["public"]["Enums"]["stage"];
+          job_types: string[];
+          key: string;
+          min_plan: Database["public"]["Enums"]["company_plan"];
+          minutes_per_outcome: number;
+          model_tier: string;
+          name: string;
+          needs: Json | null;
+          outcome_metric: NonNullable<Json>;
+          prompt_version: number;
+          role: string;
+          skills: string[];
+          skills_version: number;
+          sort: number;
+          start_autonomy: NonNullable<Json>;
+          style_ref: string;
+          summary: string;
+          tools: string[];
+          triggers: NonNullable<Json>;
+        };
+        ComputedFields: never;
+        Insert: {
+          budget_per_month_credits?: number | null;
+          budget_per_run_credits: number;
+          crew_pillar: Database["public"]["Enums"]["crew_pillar"];
+          engine: boolean;
+          entry_paths?: Database["public"]["Enums"]["entry_path"][];
+          from_stage?: Database["public"]["Enums"]["stage"];
+          job_types?: string[];
+          key: string;
+          min_plan: Database["public"]["Enums"]["company_plan"];
+          minutes_per_outcome?: number;
+          model_tier: string;
+          name: string;
+          needs?: Json | null;
+          outcome_metric: NonNullable<Json>;
+          prompt_version?: number;
+          role: string;
+          skills?: string[];
+          skills_version?: number;
+          sort: number;
+          start_autonomy?: NonNullable<Json>;
+          style_ref: string;
+          summary: string;
+          tools?: string[];
+          triggers?: NonNullable<Json>;
+        };
+        Update: {
+          budget_per_month_credits?: number | null;
+          budget_per_run_credits?: number;
+          crew_pillar?: Database["public"]["Enums"]["crew_pillar"];
+          engine?: boolean;
+          entry_paths?: Database["public"]["Enums"]["entry_path"][];
+          from_stage?: Database["public"]["Enums"]["stage"];
+          job_types?: string[];
+          key?: string;
+          min_plan?: Database["public"]["Enums"]["company_plan"];
+          minutes_per_outcome?: number;
+          model_tier?: string;
+          name?: string;
+          needs?: Json | null;
+          outcome_metric?: NonNullable<Json>;
+          prompt_version?: number;
+          role?: string;
+          skills?: string[];
+          skills_version?: number;
+          sort?: number;
+          start_autonomy?: NonNullable<Json>;
+          style_ref?: string;
+          summary?: string;
+          tools?: string[];
+          triggers?: NonNullable<Json>;
+        };
+        Relationships: [];
+      };
       agent_jobs: {
         Row: {
+          agent_id: string | null;
           attempts: number;
           company_id: string;
           created_at: string;
@@ -294,6 +534,7 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          agent_id?: string | null;
           attempts?: number;
           company_id: string;
           created_at?: string;
@@ -314,6 +555,7 @@ export type Database = {
           task_id?: string | null;
         };
         Update: {
+          agent_id?: string | null;
           attempts?: number;
           company_id?: string;
           created_at?: string;
@@ -334,6 +576,13 @@ export type Database = {
           task_id?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "agent_jobs_agent_id_fkey";
+            columns: ["agent_id"];
+            isOneToOne: false;
+            referencedRelation: "agents";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "agent_jobs_company_id_fkey";
             columns: ["company_id"];
@@ -366,6 +615,7 @@ export type Database = {
       };
       agent_runs: {
         Row: {
+          agent_id: string | null;
           company_id: string;
           cost_usd: number;
           created_at: string;
@@ -384,6 +634,7 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          agent_id?: string | null;
           company_id: string;
           cost_usd?: number;
           created_at?: string;
@@ -401,6 +652,7 @@ export type Database = {
           usage?: NonNullable<Json>;
         };
         Update: {
+          agent_id?: string | null;
           company_id?: string;
           cost_usd?: number;
           created_at?: string;
@@ -418,6 +670,13 @@ export type Database = {
           usage?: NonNullable<Json>;
         };
         Relationships: [
+          {
+            foreignKeyName: "agent_runs_agent_id_fkey";
+            columns: ["agent_id"];
+            isOneToOne: false;
+            referencedRelation: "agents";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "agent_runs_company_id_fkey";
             columns: ["company_id"];
@@ -437,6 +696,91 @@ export type Database = {
             columns: ["task_id"];
             isOneToOne: false;
             referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      agents: {
+        Row: {
+          budget_per_month_credits: number | null;
+          budget_per_run_credits: number;
+          catalogue_key: string | null;
+          company_id: string;
+          created_at: string;
+          crew_pillar: Database["public"]["Enums"]["crew_pillar"];
+          handoffs: NonNullable<Json>;
+          id: string;
+          model_tier: string;
+          name: string;
+          outcome_metric: NonNullable<Json>;
+          prompt_version: number;
+          role: string;
+          skills: string[];
+          skills_version: number;
+          status: Database["public"]["Enums"]["agent_status"];
+          style_ref: string;
+          tools: string[];
+          triggers: NonNullable<Json>;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          budget_per_month_credits?: number | null;
+          budget_per_run_credits: number;
+          catalogue_key?: string | null;
+          company_id: string;
+          created_at?: string;
+          crew_pillar: Database["public"]["Enums"]["crew_pillar"];
+          handoffs?: NonNullable<Json>;
+          id?: string;
+          model_tier: string;
+          name: string;
+          outcome_metric: NonNullable<Json>;
+          prompt_version?: number;
+          role: string;
+          skills?: string[];
+          skills_version?: number;
+          status?: Database["public"]["Enums"]["agent_status"];
+          style_ref: string;
+          tools?: string[];
+          triggers?: NonNullable<Json>;
+          updated_at?: string;
+        };
+        Update: {
+          budget_per_month_credits?: number | null;
+          budget_per_run_credits?: number;
+          catalogue_key?: string | null;
+          company_id?: string;
+          created_at?: string;
+          crew_pillar?: Database["public"]["Enums"]["crew_pillar"];
+          handoffs?: NonNullable<Json>;
+          id?: string;
+          model_tier?: string;
+          name?: string;
+          outcome_metric?: NonNullable<Json>;
+          prompt_version?: number;
+          role?: string;
+          skills?: string[];
+          skills_version?: number;
+          status?: Database["public"]["Enums"]["agent_status"];
+          style_ref?: string;
+          tools?: string[];
+          triggers?: NonNullable<Json>;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agents_catalogue_key_fkey";
+            columns: ["catalogue_key"];
+            isOneToOne: false;
+            referencedRelation: "agent_catalogue";
+            referencedColumns: ["key"];
+          },
+          {
+            foreignKeyName: "agents_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
             referencedColumns: ["id"];
           },
         ];
@@ -639,6 +983,40 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      autonomy_action_types: {
+        Row: {
+          customer_facing: boolean;
+          external: boolean;
+          key: string;
+          label: string;
+          legal: boolean;
+          max_level: number;
+          money: boolean;
+          public_statement: boolean;
+        };
+        ComputedFields: never;
+        Insert: {
+          customer_facing?: boolean;
+          external: boolean;
+          key: string;
+          label: string;
+          legal?: boolean;
+          max_level: number;
+          money?: boolean;
+          public_statement?: boolean;
+        };
+        Update: {
+          customer_facing?: boolean;
+          external?: boolean;
+          key?: string;
+          label?: string;
+          legal?: boolean;
+          max_level?: number;
+          money?: boolean;
+          public_statement?: boolean;
+        };
+        Relationships: [];
       };
       billing_products: {
         Row: {
@@ -3212,7 +3590,9 @@ export type Database = {
       job_types: {
         Row: {
           cap_credits: number;
+          default_agent: string | null;
           estimate_credits: number;
+          fallback_agent: string | null;
           job_type: string;
           label: string;
           pillar: Database["public"]["Enums"]["pillar"];
@@ -3222,7 +3602,9 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           cap_credits: number;
+          default_agent?: string | null;
           estimate_credits: number;
+          fallback_agent?: string | null;
           job_type: string;
           label: string;
           pillar: Database["public"]["Enums"]["pillar"];
@@ -3231,14 +3613,31 @@ export type Database = {
         };
         Update: {
           cap_credits?: number;
+          default_agent?: string | null;
           estimate_credits?: number;
+          fallback_agent?: string | null;
           job_type?: string;
           label?: string;
           pillar?: Database["public"]["Enums"]["pillar"];
           tier?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "job_types_default_agent_fkey";
+            columns: ["default_agent"];
+            isOneToOne: false;
+            referencedRelation: "agent_catalogue";
+            referencedColumns: ["key"];
+          },
+          {
+            foreignKeyName: "job_types_fallback_agent_fkey";
+            columns: ["fallback_agent"];
+            isOneToOne: false;
+            referencedRelation: "agent_catalogue";
+            referencedColumns: ["key"];
+          },
+        ];
       };
       leads: {
         Row: {
@@ -4864,6 +5263,11 @@ export type Database = {
         Args: { p_approved_by: string; p_profile: string };
         Returns: undefined;
       };
+      agent_for_approval: { Args: { p_approval: string }; Returns: string };
+      agent_for_job: {
+        Args: { p_company: string; p_job_type: string; p_payload?: Json };
+        Returns: string;
+      };
       append_run_step: { Args: { p_run: string; p_step: Json }; Returns: undefined };
       apply_billing_event: {
         Args: { p_actions: Json; p_event_id: string; p_type: string };
@@ -5312,6 +5716,7 @@ export type Database = {
       usd_for_credits: { Args: { p_credits: number }; Returns: number };
     };
     Enums: {
+      agent_status: "active" | "standing_by" | "paused" | "locked";
       approval_action:
         | "publish_post"
         | "send_email"
@@ -5330,6 +5735,7 @@ export type Database = {
       compliance_status: "done" | "in_progress" | "upcoming" | "overdue";
       contact_kind: "customer" | "lead";
       credit_bucket: "plan" | "cohort" | "topup";
+      crew_pillar: "hq" | "build" | "grow" | "customers" | "run" | "legal" | "raise" | "meta";
       customer_type: "B2B" | "B2C";
       email_direction: "received" | "sent" | "draft";
       email_mode: "support" | "outreach";
@@ -5469,6 +5875,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      agent_status: ["active", "standing_by", "paused", "locked"],
       approval_action: [
         "publish_post",
         "send_email",
@@ -5488,6 +5895,7 @@ export const Constants = {
       compliance_status: ["done", "in_progress", "upcoming", "overdue"],
       contact_kind: ["customer", "lead"],
       credit_bucket: ["plan", "cohort", "topup"],
+      crew_pillar: ["hq", "build", "grow", "customers", "run", "legal", "raise", "meta"],
       customer_type: ["B2B", "B2C"],
       email_direction: ["received", "sent", "draft"],
       email_mode: ["support", "outreach"],
