@@ -362,6 +362,20 @@ export const loaders = {
       call_sessions: must(calls, "calls") as unknown as DB["call_sessions"],
     };
   },
+  crew: async (sb) => {
+    const [catalogue, types, agents, autonomy] = await Promise.all([
+      sb.from("agent_catalogue").select("*").order("sort"),
+      sb.from("autonomy_action_types").select("*").order("key"),
+      sb.from("agents").select("*").order("created_at"),
+      sb.from("agent_autonomy").select("*"),
+    ]);
+    return {
+      agent_catalogue: must(catalogue, "crew catalogue").map(M.mapCatalogueEntry),
+      autonomy_action_types: must(types, "action types"),
+      agents: must(agents, "crew").map(M.mapAgent),
+      agent_autonomy: must(autonomy, "crew autonomy").map(M.mapAutonomy),
+    };
+  },
   bots: async (sb) => {
     const [templates, bots, runs] = await Promise.all([
       sb.from("bot_templates").select("*").order("sort"),
@@ -468,6 +482,8 @@ export const TABLE_GROUPS: Partial<Record<keyof Database["public"]["Tables"], Gr
   listening_settings: "listening",
   feedback: "listening",
   bots: "bots",
+  agents: "crew",
+  agent_autonomy: "crew",
   calendar_events: "capture2",
   ad_campaigns: "campaigns",
   call_sessions: "capture2",
@@ -535,6 +551,10 @@ export function emptyDb(): DB {
     feedback_requests: [],
     bot_templates: [],
     bots: [],
+    agent_catalogue: [],
+    autonomy_action_types: [],
+    agents: [],
+    agent_autonomy: [],
     bot_runs: [],
     calendar_connections: [],
     calendar_events: [],

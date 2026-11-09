@@ -545,3 +545,7 @@ update public.inbox_items i set status = 'closed'
 where exists (
   select 1 from public.email_messages s join public.email_messages m on m.id = i.message_id
   where s.thread_id = i.thread_id and s.direction = 'sent' and s.created_at > m.created_at);
+
+-- Crew (Phase 20): every company got its Starter crew when it was inserted; the seeded runs
+-- above have no agent yet, so attribute them the same way the migration backfilled real ones.
+do $$ begin perform private.attribute_runs(); end $$;
