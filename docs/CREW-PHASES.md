@@ -1,6 +1,8 @@
 # Crew phases (20–24)
 
-Plan for `docs/CREW.md`, written 9 Nov 2026 for review. Nothing here is built yet. CREW.md is treated as a spec addition; its proposals and open questions are treated as assumptions and marked **Assumption** below. Decisions taken while writing this are D89–D98 in `docs/DECISIONS.md`.
+Plan for `docs/CREW.md`, written 9 Nov 2026 and **approved 9 Nov 2026** with the answers in "Owner's answers" at the end, which this text now follows. CREW.md is treated as a spec addition; its proposals and open questions are treated as assumptions and marked **Assumption** below. Decisions are D89–D104 in `docs/DECISIONS.md`.
+
+Review stops: after Phase 20's migrations and backfill are written (before they are applied), after the Phase 21 crew roster screen, and after Phase 23. Phases 22 and 24 run through.
 
 The AUTONOMOUS-RUN hard limits apply to every phase: no real messages, no real money, no production deploys, and mock providers for every external service. Each phase runs on its own `phase-N-short-name` branch, starts with a plan for review, and ends with `docs/STATUS.md` updated.
 
@@ -41,7 +43,7 @@ Read against the code on `main` at `146e315` (Phases 0–19 merged).
 | `approvals` | `agent_id`, `recommendation` (Sol's GO / EDIT / NO-GO with a reason), `autonomy_level`, a `simulated` status | 22, 23 |
 | Response policy | Becomes the company-wide ceiling for reply actions; the ladder sits under it per agent and action type | 23 |
 | `checkAutoSend` / executor | Generalised into `effectiveLevel()`: the existing automatic-reply path becomes L3 | 23 |
-| `company_automation` | `crew_paused` (the kill switch) and `crisis_hold` | 23 |
+| `company_automation` | `crew_paused` (the kill switch) and `crisis_hold` (with who set it and when) | 23 |
 | Billing events | Changing plan re-syncs which crew is unlocked | 24 |
 
 ### New
@@ -60,7 +62,7 @@ Read against the code on `main` at `146e315` (Phases 0–19 merged).
 3. **Most of the catalogue has no engine.** Of the Starter crew, Sol, Iris, Nova, Echo, Eve, Penny, Tilly, Clara and Mo map to work that exists today; Shield partly (document updates); Dex can be computed from `error_events` and failed runs; **Penn has nothing to do until an accounting integration exists**. Agents without an engine show "Standing by" with what they need, never invented numbers (D93).
 4. **No numeric 90-day goal.** Onboarding stores the goal as text. The briefing headline uses the current gate's headline metric and countdown, plus the goal text (D95). CREW.md's `goals` table is out of scope here.
 5. **Credit example.** "A $0.10 run charges about 24 credits": with the config values it's 0.10 × 0.75 × 3 ÷ 0.01 = 22.5, so 23 credits. No change needed; the config is right.
-6. **"New agents start in draft mode"** conflicts with the start levels in the agent tables (many L2, some L3). Resolved in D96.
+6. **"New agents start in draft mode"** conflicts with the start levels in the agent tables (many L2, some L3). Resolved in D96: customer-facing and other external actions start at L2; CREW.md now says so.
 
 ---
 
@@ -77,10 +79,10 @@ Branch `phase-20-agent-records`.
 - `create type public.agent_status as enum ('active', 'standing_by', 'paused', 'locked')` (`locked` is used from Phase 24; adding it now avoids a second enum migration).
 
 `20261110100100_agents.sql`:
-- **`agent_catalogue`** (global, like `bot_templates`): `key` (pk, e.g. `nova`), `name`, `role`, `crew_pillar`, `summary`, `outcome_metric` jsonb (`{ key, label }`, key from a fixed list, see Phase 21), `style_ref` (prompt file under `agent-service/prompts/`), `tools` text[] (short names from `tools.ts`), `skills` text[], `model_tier` (the existing tier names), `triggers` jsonb, `job_types` text[] (the jobs it runs), `budget_per_run_credits`, `budget_per_month_credits`, `start_autonomy` jsonb (`{ action_type: level }`), `entry_paths`, `stages`, `min_plan` (data now, enforced in Phase 24), `minutes_per_outcome` (for Phase 22), `needs` (text shown when standing by, e.g. "Connect accounting software"), `sort`. Seeded with the full catalogue from CREW.md (Sol plus 45 agents). Readable by signed-in users; written only by the service role.
-- **`agents`** (per company): `id`, `company_id`, `catalogue_key` (nullable for custom agents later; unique per company), and the company's own copy of identity, style ref, tools, skills, model tier, triggers, budget caps and `handoffs`, plus `status`, `created_at`, `updated_at`. Copied from the catalogue, so the founder can change caps without touching other companies.
+- **`agent_catalogue`** (global, like `bot_templates`): `key` (pk, e.g. `nova`), `name`, `role`, `crew_pillar`, `summary`, `outcome_metric` jsonb (`{ key, label }`, key from a fixed list, see Phase 21), `style_ref` (prompt file under `agent-service/prompts/`), `tools` text[] (short names from `tools.ts`), `skills` text[], `model_tier` (the existing tier names), `triggers` jsonb, `job_types` text[] (the jobs it runs), `budget_per_run_credits`, `budget_per_month_credits`, `start_autonomy` jsonb (`{ action_type: level }`), `entry_paths`, `stages`, `min_plan` (data now, enforced in Phase 24), `minutes_per_outcome` (for Phase 22; conservative first guesses), `needs` jsonb (`{ label, action, route }` for standing-by agents, e.g. "Connect your accounting software" → Settings → Integrations; a clear call to action, never placeholder numbers), `prompt_version` and `skills_version` (for Phase 23's L0 rule), `sort`. Seeded with the full catalogue from CREW.md (Sol plus 45 agents). Readable by signed-in users; written only by the service role.
+- **`agents`** (per company): `id`, `company_id`, `catalogue_key` (nullable for custom agents later; unique per company), and the company's own copy of identity, style ref, tools, skills, model tier, triggers, budget caps, `handoffs`, `prompt_version` and `skills_version`, plus `status`, `created_at`, `updated_at`. Copied from the catalogue, so the founder can change caps without touching other companies.
 - **`autonomy_action_types`**: `key` (`publish_post`, `send_email`, `reply_inbox`, `reply_public`, `ad_spend`, `launch_ad`, `publish_site`, `file_document`, `update_memory`, `update_voice`, `send_proposal`, `payment_chaser`, `internal_update`), `label`, `external` boolean, `max_level` (2 for money and legal), `public_statement` boolean (capped during a crisis hold). Seeded; service role writes.
-- **`agent_autonomy`**: primary key (`agent_id`, `action_type`), `company_id`, `level` smallint 0–3, `mentor_hold_level` (null or 0–2), `held_by`, `held_at`, `updated_at`; check `level <= max_level` via trigger. Seeded from `start_autonomy` using the rule in D96. Phase 23 adds the behaviour; Phase 20 only stores it.
+- **`agent_autonomy`**: primary key (`agent_id`, `action_type`), `company_id`, `level` smallint 0–3, `mentor_hold_level` (null or 0–2), `held_by`, `held_at`, `hold_reason`, `release_requested_at`, `simulating_until` (Phase 23), `updated_at`; check `level <= max_level` via trigger. Seeded from `start_autonomy` using the rule in D96. Phase 23 adds the behaviour; Phase 20 only stores it.
 - **`agent_autonomy_events`**: insert-only (`id`, `agent_id`, `action_type`, `from_level`, `to_level`, `kind` in promote / demote / hold / release / seed, `reason`, `evidence` jsonb, `proposed_by_agent`, `decided_by`, `approval_id`, `created_at`). No update or delete grants for anyone, and a trigger refusing both, as with the ledger.
 - `agent_runs.agent_id`, `agent_jobs.agent_id` (FK `on delete set null`, indexed), `job_types.default_agent`.
 - `private.seed_crew(company)`: Sol plus the Starter crew (Sol, Iris, Nova, Echo, Eve, Penny, Tilly, Clara, Shield, Penn, Dex, Mo), idempotent. Called by an `after insert` trigger on `companies`, so both onboarding paths and `create_company` get it, and once for every existing company.
@@ -141,9 +143,9 @@ Branch `phase-21-crew-roster`.
 
 - **`/crew`**: the roster grouped by pillar in the sidebar's order (Build, Grow, Customers, Run, Stay legal, Raise), then "Mission support" for the meta crew. Added to the main nav after GO / NO-GO.
 - **Department pages** (`build`, `grow`, `customers`, `run`, `legal`, `raise`) show that pillar's crew as a strip at the top.
-- **Crew card** (`--surface` card, console tile on `--soft`): monogram avatar, NAME · ROLE (Barlow uppercase), the outcome as a big number (Barlow Semi Condensed, tabular) with its label ("26 deals scored"), level badge (L0–L3, outlined; amber when waiting for you), status dot (green working, muted idle, amber waiting), last run ("2 h ago"), credits this month against the cap as a thin bar. Standing-by agents say what they need instead of numbers. No new colours: green only for done or verified, amber only for "needs you".
+- **Crew card** (`--surface` card, console tile on `--soft`): monogram avatar, NAME · ROLE (Barlow uppercase), the outcome as a big number (Barlow Semi Condensed, tabular) with its label ("26 deals scored"), level badge (L0–L3, outlined; amber when waiting for you), status dot (green working, muted idle, amber waiting), last run ("2 h ago"), credits this month against the cap as a thin bar. Standing-by agents show what to connect and a button to connect it, instead of any numbers. No new colours: green only for done or verified, amber only for "needs you".
 - **Agent sheet** (click a card): recent runs and actions, each with its "Why?" (from the run's steps and the existing `Why` component); autonomy per action type, read-only until Phase 23; the founder's caps and pause.
-- **Sol as flight director on HQ**: the mission header's Sol line reads "SOL · FLIGHT DIRECTOR" with the crew on console ("3 of 12 crew working · 2 waiting for you") linking to `/crew`. A compact **Crew** card is added to the HQ card choices but not to the default six, so `npm run check:fit` still passes at 1440×900 (**Assumption**: Overnight burn stays the default until Phase 22 replaces it).
+- **Sol as flight director on HQ**: the mission header's Sol line reads "SOL · FLIGHT DIRECTOR" with the crew on console ("3 of 12 crew working · 2 waiting for you") linking to `/crew`. A compact **Crew** card replaces the **Overnight burn** card in the HQ grid (D102); saved layouts that include Overnight burn get Crew in its place. Overnight spend moves into the Phase 22 briefing; until then the Crew card shows credits this month. The low-balance banner stays. `npm run check:fit` must still pass at 1440×900.
 - **Mentors** see the roster read-only on `cohort.$companyId`.
 - Demo mode has the same roster from the demo store.
 
@@ -156,7 +158,7 @@ Branch `phase-21-crew-roster`.
 - `/crew` lists every unlocked crew member for the company, grouped by pillar, with numbers matching `crew_stats`.
 - Approving a post in the demo and in live mode increases Echo's "posts published" by one once the executor has carried it out (e2e).
 - Every action in the agent sheet has a "Why?".
-- Standing-by agents show their `needs` text and no figures.
+- Standing-by agents show a clear call to action (what to connect, with a button to where to connect it) and no figures, not even zeros.
 - Founders can change caps (never above the catalogue's) and pause; mentors and viewers can't (pgTAP).
 - Keyboard reachable, readable by screen reader (cards are list items with a text summary), one column below 700px, light and dark themes.
 - `npm run check:fit` passes; lint adds no warnings.
@@ -172,20 +174,20 @@ Branch `phase-22-morning-briefing`.
 ### Migrations
 
 `20261112100000_briefing.sql`:
-- **`crew_config`** (one row, like `credit_config`; service role writes, signed-in users read): `hiring_rate_gbp_per_hour` (default **£15.00**, an **Assumption** for the owner to confirm), `hiring_role_label` (default "an assistant"), `brief_window_start` (default 19:00 UK). Per-agent `minutes_per_outcome` stays in the catalogue (first guesses, to be replaced with pilot measurements).
+- **`crew_config`** (one row, like `credit_config`; service role writes, signed-in users read): `hiring_rates` jsonb with one hourly rate per crew pillar (**all £15.00 for now**, D99), `brief_window_start` (default 19:00 UK). Per-agent `minutes_per_outcome` stays in the catalogue, kept conservative (the low end of a plausible range), to be replaced with pilot measurements.
 - `approvals.agent_id`, `approvals.recommendation` (`go` / `edit` / `no_go`) and `approvals.recommendation_reason` (≤ 280 characters), written when an agent proposes.
 - `get_brief_facts` returns version 2 (`facts.version = 2`):
   1. **Headline**: stage, the current gate's headline metric and target, days to the gate, the 90-day goal text, days since start.
   2. **Done overnight**: per crew member, the outcomes and runs since the window start (19:00 the previous day, or the last brief if later), with credits.
   3. **Needs you**: pending approvals oldest first, each with its agent, recommendation and reason (simulated items from Phase 23 are listed separately).
   4. **Watch**: deterministic rules, each with a reason: statutory compliance items overdue or due within 14 days; balance under 20%; an agent at 80% of its month cap; failed runs overnight; a post well below the company's 7-day median engagement; negative reviews or a sentiment drop (Phase 16 themes); MRR down week on week; promises due today (Phase 12). Cash is limited to credits and MRR until there is an accounting integration.
-  5. **Spend**: credits used overnight and month to date (from `credit_ledger`, the source of truth, not `agent_runs`), forecast to month end (month to date + the daily average of the last 7 days × days left, plus enabled routines' estimates), shown in credits and £ at the company's plan price per credit; and the **equivalent hiring cost**: Σ (outcomes this month × `minutes_per_outcome`) ÷ 60 × `hiring_rate_gbp_per_hour`, as "≈ 14 hours of an assistant's time (≈ £210)".
+  5. **Spend**: credits used overnight and month to date (from `credit_ledger`, the source of truth, not `agent_runs`), forecast to month end (month to date + the daily average of the last 7 days × days left, plus enabled routines' estimates), shown in credits and £ at the company's plan price per credit; and the **equivalent hiring cost**: for each pillar, Σ (outcomes this month × `minutes_per_outcome`) ÷ 60 × that pillar's rate, summed, shown as "≈ 14 hours of work (≈ £210) · ESTIMATE". Spend lives here now that the Crew card has replaced Overnight burn on HQ.
 - `save_brief` stores the structured facts and the text.
 
 ### App and agent service
 
-- `BriefCard.tsx` rebuilt as **Morning briefing**, the hero card at the top of HQ until dismissed; after dismissal the grid's Overnight burn card shows the "Done overnight" lines by crew member. Each section has an empty state ("Nothing overnight: the crew was off").
-- The equivalent cost line has a "How we work this out" popover with the rate and minutes used, and says it is an estimate. It's for the founder only, never public-facing text.
+- `BriefCard.tsx` rebuilt as **Morning briefing**, the hero card at the top of HQ until dismissed; after dismissal the Crew card links back to it. The low-balance banner is unchanged. Each section has an empty state ("Nothing overnight: the crew was off").
+- The equivalent cost line is labelled ESTIMATE in the UI and has a "How we work this out" popover with the rates and minutes used. It's for the founder only, never public-facing text.
 - `morning-brief` skill and `briefText()` follow the five parts; the brief in chat is the same text.
 - Propose tools take an optional recommendation; the mock runtime writes a rule-based one (claims flagged → EDIT, otherwise GO).
 
@@ -197,7 +199,7 @@ Branch `phase-22-morning-briefing`.
 
 - The 07:00 brief stores version-2 facts with all five parts in order; the HQ card and the chat message show them.
 - Spend figures reconcile with `credit_ledger` for the same window (test with a seeded ledger, including a refund).
-- The forecast and equivalent-cost formulas have unit tests; changing `hiring_rate_gbp_per_hour` in `crew_config` changes the figure without a deploy.
+- The forecast and equivalent-cost formulas have unit tests; changing a pillar's rate in `crew_config` changes the figure without a deploy; the figure is labelled ESTIMATE wherever it appears.
 - A Starter company's "Done overnight" lists only its own crew; standing-by agents are omitted.
 - Every "Needs you" item shows its agent and recommendation; GO / EDIT / WHY work from the card.
 - Watch rules each have a test that triggers and one that doesn't.
@@ -222,20 +224,22 @@ Branch `phase-23-autonomy`.
 
 **Agents still only propose; the executor acts** (CLAUDE.md rule 4). L3 is the executor acting on a standing permission, not the agent calling an external API.
 
-**Effective level** = the lowest of: the agent's level for that action type; the action type's `max_level`; the mentor hold; for customer replies, the response policy for the category (`auto_send` → up to L3, `draft` → up to L2, `escalate` → nothing is drafted); and L2 for public statements while a crisis hold is on. Existing hard rules stay in force at every level: refunds, legal threats, triage escalation flags, unverified claims, consent and caps (D30, D37, D55, D70, D75, D87).
+**Effective level** = the lowest of: the agent's level for that action type; the action type's `max_level`; the mentor hold; for customer replies, the response policy for the category (`auto_send` → up to L3, `draft` → up to L2, `escalate` → nothing is drafted); and, while a crisis hold is on, L1 for replies (inbox and public) and no publishing of posts. While a crisis hold is on, replies are capped at L1 (drafts) and scheduled public posts pause. Existing hard rules stay in force at every level: refunds, legal threats, triage escalation flags, unverified claims, consent and caps (D30, D37, D55, D70, D75, D87).
 
-**Ceilings.** Money (`ad_spend`, `launch_ad`, `payment_chaser`, `send_proposal`), legal (`file_document`) and `reply_public` during a crisis hold are capped at L2 permanently, by a constraint on `agent_autonomy` and again in the executor. **Assumption:** "crisis" is a company `crisis_hold` switch the founder can turn on at once and Sol can propose (an approval) when complaints, negative reviews or a legal threat spike; CREW.md doesn't define it.
+**Ceilings.** Money (`ad_spend`, `launch_ad`, `payment_chaser`, `send_proposal`) and legal (`file_document`) actions, and public replies (`reply_public`, which always wait for a GO under D75), are capped at L2 permanently, by a constraint on `agent_autonomy` and again in the executor.
+
+**Crisis hold** (D100). A founder switch, `company_automation.crisis_hold`. Sol can propose it as a `crisis_hold` approval when there's a spike in negative mentions, reviews or complaints, or a legal threat arrives; only a founder's GO (or the founder's own switch) turns it on. While it is on: scheduled public posts pause (they stay scheduled, nothing is published); every reply, inbox and public, drops to an L1 draft; the founder gets a reminder in the briefing and chat every day it stays on. It never expires by itself; only a founder turns it off.
 
 **Promotions.** A daily deterministic check in the scheduler (no model call) proposes a `promote_agent` approval when the thresholds in `crew_config` are met:
 - L0 → L1: at least 7 days at L0 and 5 simulated items reviewed, none marked Wrong in the last 7 days.
 - L1 → L2: 20 drafts approved, fewer than 15% materially edited (from `voice_edit_events`).
-- L2 → L3: 50 approvals with no declines in 30 days, and only where `max_level` is 3.
+- L2 → L3: 50 approvals with no declines in 30 days, only where `max_level` is 3, **and** 7 days of L0 simulation for that action type passed without a "Wrong" (D101). The first proposal therefore starts a 7-day simulation: the agent keeps working at L2 while a shadow L0 item is recorded alongside each real one, and the promotion is offered when the week is clean.
 
-Only a founder can GO a promotion (not a mentor; extends D72). A founder can demote at any time with no approval. A NO-GO, a "Wrong", or an executor block on an L3 action drops that action type to L2 automatically. When an agent's prompt or skills change, any L3 action type drops to L2 and Sol proposes the promotion again (D97). Every change is an `agent_autonomy_events` row.
+Only a founder can GO a promotion (not a mentor; extends D72). A founder can demote at any time with no approval. A NO-GO, a "Wrong", or an executor block on an L3 action drops that action type to L2 automatically. When an agent's prompt or skill version changes, every action type at L1 or above runs in L0 simulation for 7 days alongside its normal level (L3 drops to L2 for that week), so the new version is seen before it acts unsupervised; Sol then proposes restoring the previous level (D97, revised). Every change is an `agent_autonomy_events` row.
 
-**Mentor holds.** A cohort mentor can hold an agent (one action type or all) at L2 or below, with a reason. The founder sees a padlock ("HELD AT L2 BY YOUR MENTOR") and can't promote above it; only a mentor of that cohort (or an admin) lifts it (D98).
+**Mentor holds** (D98). A cohort mentor can hold an agent (one action type or all) at L2 or below, with a required reason. The founder sees a padlock ("HELD AT L2 BY YOUR MENTOR"), the reason, and a "Request release" action that notifies the cohort's mentors; the founder can't promote above the hold or lift it. A mentor of that cohort (or an admin) lifts it, and holds end automatically when the company leaves the cohort.
 
-**Kill switch** (from CREW.md's "added for small businesses"; drop it if you'd rather keep this phase narrow): `company_automation.crew_paused` stops the scheduler and claiming for every agent and leaves L3 items pending. One tap on HQ, founders only, no approval needed (reducing activity, like pausing an ad in D87).
+**Kill switch:** `company_automation.crew_paused` stops the scheduler and claiming for every agent, cancels nothing but leaves queued jobs and L3 items unexecuted until resumed. One tap on HQ, founders only, no approval needed (reducing activity, like pausing an ad in D87).
 
 ### Migrations
 
@@ -244,7 +248,7 @@ Only a founder can GO a promotion (not a mentor; extends D72). A founder can dem
 `20261113100100_autonomy.sql`:
 - `approvals.autonomy_level` and `approvals.mode` (`simulated` / `draft` / `approve` / `auto`); the pending/decided constraint updated so simulated rows have no decision time; a check that simulated rows never leave `execution_status = 'not_started'`; `decide_approval` refuses simulated rows.
 - `review_simulated(p_approval, p_verdict, p_edited_payload)` (looks right / would change / wrong; an edit is stored as a voice edit event) and `send_simulated_for_real(p_approval)` (creates a pending L2 approval).
-- `set_agent_level` (founder; downward always, upward only through an approved `promote_agent`), `hold_agent` and `release_agent_hold` (cohort mentors), `set_crew_paused`, `set_crisis_hold` (founders).
+- `set_agent_level` (founder; downward always, upward only through an approved `promote_agent`), `hold_agent` and `release_agent_hold` (cohort mentors), `request_hold_release` (founders), `set_crew_paused`, `set_crisis_hold` (founders); a trigger on `cohort_companies` ends holds when a company leaves a cohort.
 - `crew_config` gains the promotion thresholds.
 - Seeding rule for new agents per D96.
 
@@ -271,6 +275,14 @@ GO / NO-GO gains a "Would have sent" tab; the agent sheet's autonomy table becom
 - A mentor hold stops promotion above L2; the founder can't lift it; the mentor can.
 - `crew_paused` stops new runs and leaves L3 items pending; un-pausing resumes them.
 - Existing companies keep today's behaviour after the migration: external actions at L2, the inbox's existing auto-send categories at L3 (D96).
+- **Required tests (owner's list):**
+  - no L3 action is carried out without an activity log entry naming the agent, the level and the reason (executor test across every action type, plus a pgTAP check that an auto approval without its event is refused);
+  - the kill switch stops queued jobs, scheduled firings (routines, nightly, Auto Mode, bots) and queued L3 executions, and nothing runs until it's off;
+  - every hard rule (always-escalate categories and flags, claims check, consent, caps, money and legal ceilings, public replies needing a GO) is enforced at L0, L1, L2 and L3 alike (one parameterised test per rule and level);
+  - nothing executes at L0, including a simulated row forced to `approved` in the database;
+  - crisis hold pauses scheduled posts, drops replies to L1, sends the daily reminder, and doesn't expire;
+  - mentor holds: reason shown, release requested, lifted only by a mentor, ended when the company leaves the cohort;
+  - the 7-day L0 period on a prompt or skill version change and before a first L3.
 
 ---
 
@@ -333,11 +345,14 @@ There is **no autonomous run in progress**: the run finished on 27 Oct 2026 with
 
 ---
 
-## Open questions for you
+## Owner's answers (9 Nov 2026)
 
-1. Hourly rate for the equivalent hiring cost: £15.00 is a placeholder. One rate, or one per role (marketing assistant, bookkeeper, SDR)?
-2. Crisis hold: is a founder switch, with Sol able to propose it, the right reading of "public statements in a crisis"?
-3. Mentor holds: should a founder be able to lift a mentor's hold (D98 says no)?
-4. Start levels for new companies (D96): keep everything external at L2, or start customer-facing actions at L0 for the first week?
-5. Should Overnight burn stay a separate grid card once the briefing exists, or be replaced by a Crew card?
-6. CREW.md's open question stands: does a full Growth crew fit in 12,000 credits a month? Phase 24 keeps the mapping in data so it can change after the pilot.
+1. **Hiring rate:** per-pillar rates in `crew_config`, all £15.00 for now, labelled "estimate" in the UI; hours per action kept conservative (D99).
+2. **Crisis hold:** a founder switch Sol can propose (e.g. a spike in negative mentions). While on, scheduled public posts pause, replies drop to L1 drafts, and the founder gets a daily reminder. It doesn't auto-expire (D100).
+3. **Mentor holds:** founders can't lift them (D98 stands). Holds carry a reason the founder can see, a "request release" action, and end when the company leaves the cohort.
+4. **Start levels:** new companies start customer-facing actions at L2. L0 simulation is required whenever an agent's prompt or skill version changes, and for 7 days before any first promotion to L3 (D96, D97, D101).
+5. **HQ:** the Crew card replaces Overnight burn; spend moves into the briefing; the low-balance banner stays (D102).
+
+Also asked: CREW.md corrected (22.5 credits for a $0.10 run; the D96 start-level rule); standing-by agents get a clear call to action, never placeholder numbers; Phase 23's required tests are listed in its acceptance criteria; these docs merged to `main` by PR before Phase 20 starts.
+
+Still open from CREW.md: does a full Growth crew fit in 12,000 credits a month? Phase 24 keeps the mapping in data so it can change after the pilot.

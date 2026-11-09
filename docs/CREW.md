@@ -57,7 +57,7 @@ We take monday.com's packaging and governance almost wholesale, and change the c
 
 1. **Outcome, not activity.** Each agent has one measurable result (leads booked, invoices chased, posts published), shown on its card.
 2. **Recommend, then act.** Every agent can explain what it plans to do and why before doing it.
-3. **Earn autonomy.** New agents start in draft mode and move up autonomy levels as the founder approves their work (see Trust and governance).
+3. **Earn autonomy.** New agents start no higher than L2 for anything external or customer-facing, and move up autonomy levels as the founder approves their work (see Trust and governance).
 
 ## Sol, flight director
 
@@ -249,6 +249,8 @@ A founder only gets unicorn-level leverage if they trust agents to act unsupervi
 | L2 Approve | Acts after one-tap approval in Approvals (Approve, Decline, Ask why) | 50 approvals with no rejections in 30 days |
 | L3 Act and report | Acts, then reports in the briefing | Founder chooses; can drop back anytime |
 
+**Start levels.** A new agent's level for each action type is the lowest of its start autonomy in the tables above, that action type's ceiling, and L2 for anything external or customer-facing (publishing, sending, replying, spending, filing). L3 from the start is only for internal actions such as scoring, tagging or flagging. The start autonomy figures above are therefore upper bounds for external actions. L0 simulation runs for 7 days whenever an agent's prompt or skill version changes, and for 7 days before any first promotion to L3.
+
 Sol proposes each promotion and the founder confirms. In a cohort, mentors can see each agent's level, and can hold an agent at L2 or below. Anything touching money, legal commitments or public statements in a crisis stays at L2 or below permanently. This matches the existing rule that everything external needs approval at the start.
 
 **Controls borrowed from monday.com**
@@ -266,7 +268,7 @@ Sol proposes each promotion and the founder confirms. In a cohort, mentors can s
 
 Prices and credits come from the existing financial model. Customers pay first, so the platform never fronts Claude costs. What's new here is which crew each plan unlocks; that mapping is a proposal to test.
 
-**Credit rule:** 1 credit = 1p, with a 3× markup, so a $0.10 run charges about 24 credits. Each run is estimated, reserved, capped and then settled at actual cost. The per-run figures in the agent tables are first guesses; replace them with measured averages from `agent_runs` after the pilot.
+**Credit rule:** 1 credit = 1p, with a 3× markup at £0.75 to the dollar, so a $0.10 run charges 22.5 credits (0.10 × 0.75 × 3 ÷ 0.01), rounded up to 23 when settled. Each run is estimated, reserved, capped and then settled at actual cost. The per-run figures in the agent tables are first guesses; replace them with measured averages from `agent_runs` after the pilot.
 
 | Product | Price | Credits | Crew unlocked (proposed) |
 | --- | --- | --- | --- |
