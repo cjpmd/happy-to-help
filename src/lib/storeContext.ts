@@ -491,6 +491,15 @@ export interface Ctx {
     },
   ) => Promise<boolean>;
   deleteBot: (id: string) => Promise<boolean>;
+  /** The crew (Phase 21): founders set a member's caps, or pause and resume them. */
+  updateAgentSettings: (
+    agentId: string,
+    changes: {
+      budget_per_run_credits?: number;
+      budget_per_month_credits?: number | null;
+      paused?: boolean;
+    },
+  ) => Promise<boolean>;
   /** The notetaker (Phase 18): calendars, and which meetings Sol joins. */
   connectCalendar: (
     companyId: string,
