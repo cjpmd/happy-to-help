@@ -20,6 +20,7 @@ const mainNav = [
   { to: "/hq", label: "Home" },
   { to: "/flight-plan", label: "Flight plan" },
   { to: "/approvals", label: "GO / NO-GO", count: true },
+  { to: "/crew", label: "Crew" },
   { to: "/telemetry", label: "Telemetry" },
   { to: "/activity", label: "Log" },
   { to: "/meetings", label: "Meetings" },

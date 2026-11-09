@@ -62,7 +62,7 @@ Every phase in `docs/PHASES.md` (0–19) is built, merged into `develop` with `-
 
 ## Crew phases (20–24, started 9 Nov 2026)
 
-Plan: `docs/CREW-PHASES.md` (approved 9 Nov 2026). Decisions D89–D110. Review stops: after Phase 20's migrations are written (before applying), after the Phase 21 roster screen, after Phase 23.
+Plan: `docs/CREW-PHASES.md` (approved 9 Nov 2026). Decisions D89–D114. Review stops: after Phase 20's migrations are written (before applying), after the Phase 21 roster screen, after Phase 23.
 
 | # | Phase | Branch | Status |
 |---|---|---|---|
@@ -80,6 +80,12 @@ Plan: `docs/CREW-PHASES.md` (approved 9 Nov 2026). Decisions D89–D110. Review 
 - **Tests:** `24_agents.test.sql` (76 checks: catalogue, seeding and idempotence, start levels, ceilings, who runs each job, the backfill as it ran, the safety-net trigger, history protected by privileges, deleting a company with history, no direct writes by app users); the read-access matrix covers the three new company tables automatically. `agent-service/test/crew.test.ts` (caps, availability, tools, prompts, memory), `src/test/crew.test.ts`. All 2,157 pgTAP checks, 237 app tests, 30 runnable agent-service tests, both typechecks, lint (22 old warnings) and the build pass.
 - **Not run here (D110):** `agent-service/test/crewRuns.test.ts` and the rest of the agent-service suite need the local Supabase API (Docker), which this sandbox doesn't have.
 - **⚠ Before applying to the London project:** re-run the RLS pgTAP tests and the agent-service suite on a Supabase dev branch (or `supabase start`), and regenerate types with `npm run db:types`. The plain-Postgres stand-in stubs `auth.uid()` and the Supabase roles faithfully, but it isn't Supabase.
+
+### Phase 21 (in progress: roster screen ready for review)
+
+- **Built:** `20261111100000_crew_stats.sql` (`private.agent_outcomes`, `crew_stats`, founder-only `update_agent_settings`); `/crew` with Sol as flight director, the crew on duty by pillar, and a collapsed "Joining your crew" list with each agent's call to action; crew cards (name, role, outcome count, level, status, last run, credits this month against any monthly cap); the agent sheet (recent work with "Why?", autonomy per action type, founder caps and pause); Crew in the main nav; demo and live (`useCrew`, `updateAgentSettings` in both stores). Decisions D111–D114.
+- **Tests:** `25_crew_stats.test.sql` (33 checks); `src/test/crew.test.ts` extended. 2,190 pgTAP checks, 241 app tests, typecheck, lint (22 old warnings), build and `check:fit` pass. Screenshots checked at 1440×900 (light and dark) and 390×844 with no horizontal scroll and no console errors.
+- **Next after review:** the HQ Crew card replacing Overnight burn (D102), the mission header's flight-director line, crew strips on the department pages, the read-only roster for mentors on the cohort view, and an e2e check. Then Phases 22–23, stopping after 23.
 
 ## Autonomous run (started 26 Oct 2026)
 

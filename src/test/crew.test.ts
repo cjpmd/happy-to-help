@@ -114,3 +114,58 @@ describe("attributing runs", () => {
     expect(db.agents.filter((a) => a.company_id === db.companies[0]!.id)).toHaveLength(12);
   });
 });
+
+describe("the roster", () => {
+  it("badges an agent by its external actions first", async () => {
+    const { topLevel } = await import("@/lib/crew");
+    const { agents, autonomy } = seedAgents("c9", STARTER_CREW, CREW_CATALOGUE, ACTION_TYPES);
+    const tilly = agents.find((a) => a.catalogue_key === "tilly")!;
+    const clara = agents.find((a) => a.catalogue_key === "clara")!;
+    expect(topLevel(tilly.id, autonomy, ACTION_TYPES)).toBe(2);
+    expect(topLevel(clara.id, autonomy, ACTION_TYPES)).toBe(3);
+  });
+
+  it("groups the demo crew: Sol, on duty by pillar, and Penn joining", async () => {
+    const { demoCrewStats, roster } = await import("@/lib/crew");
+    const db = demoDb();
+    const c = db.companies[0]!.id;
+    const now = new Date("2026-11-09T12:00:00Z");
+    const r = roster(db.agents, demoCrewStats(db, c, now), db.agent_catalogue, c);
+    expect(r.sol?.agent.name).toBe("Sol");
+    expect(r.joining.map((e) => e.agent.name)).toEqual(["Penn"]);
+    expect(r.pillars.map((p) => p.pillar)).toEqual(["grow", "customers", "run", "legal", "meta"]);
+    expect(r.joining[0]!.stat?.outcome_total).toBeNull();
+  });
+
+  it("counts this month from the 1st in UK time", async () => {
+    const { ukMonthStart } = await import("@/lib/crew");
+    expect(ukMonthStart(new Date("2026-11-09T12:00:00Z")).toISOString()).toBe(
+      "2026-11-01T00:00:00.000Z",
+    );
+    expect(ukMonthStart(new Date("2026-07-15T12:00:00Z")).toISOString()).toBe(
+      "2026-06-30T23:00:00.000Z",
+    );
+  });
+
+  it("applies founder settings with the database's limits", async () => {
+    const { applyAgentSettings } = await import("@/lib/crew");
+    const db = demoDb();
+    const nova = db.agents.find((a) => a.catalogue_key === "nova")!;
+    const ok = applyAgentSettings(db.agents, db.agent_catalogue, nova.id, {
+      budget_per_month_credits: 900,
+      paused: true,
+    });
+    expect("agents" in ok && ok.agents.find((a) => a.id === nova.id)).toMatchObject({
+      budget_per_month_credits: 900,
+      status: "paused",
+    });
+    expect(
+      applyAgentSettings(db.agents, db.agent_catalogue, nova.id, { budget_per_run_credits: 99999 }),
+    ).toHaveProperty("error");
+    const penn = db.agents.find((a) => a.catalogue_key === "penn")!;
+    const resumed = applyAgentSettings(db.agents, db.agent_catalogue, penn.id, { paused: false });
+    expect("agents" in resumed && resumed.agents.find((a) => a.id === penn.id)!.status).toBe(
+      "standing_by",
+    );
+  });
+});

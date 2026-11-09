@@ -573,6 +573,18 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       )) !== false,
     [sb, call],
   );
+  const updateAgentSettings = useCallback<Ctx["updateAgentSettings"]>(
+    async (agentId, changes) =>
+      (await call(
+        () =>
+          sb.rpc("update_agent_settings", {
+            p_agent: agentId,
+            p_changes: changes as unknown as Json,
+          }),
+        ["crew"],
+      )) !== false,
+    [sb, call],
+  );
   const deleteBot = useCallback<Ctx["deleteBot"]>(
     async (id) => (await call(() => sb.rpc("delete_bot", { p_bot: id }), ["bots"])) !== false,
     [sb, call],
@@ -1141,6 +1153,7 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       createBot,
       updateBot,
       deleteBot,
+      updateAgentSettings,
       connectCalendar,
       disconnectCalendar,
       setMeetingRecording,
@@ -1227,6 +1240,7 @@ export function LiveStoreProvider({ children }: { children: ReactNode }) {
       createBot,
       updateBot,
       deleteBot,
+      updateAgentSettings,
       connectCalendar,
       disconnectCalendar,
       setMeetingRecording,

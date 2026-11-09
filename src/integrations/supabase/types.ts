@@ -5380,6 +5380,18 @@ export type Database = {
           runs: number;
         }[];
       };
+      crew_stats: {
+        Args: { p_company: string };
+        Returns: {
+          activity: string;
+          agent_id: string;
+          credits_month: number;
+          last_run_at: string;
+          outcome_month: number;
+          outcome_total: number;
+          waiting: number;
+        }[];
+      };
       create_bot: { Args: { p_company: string; p_template: string }; Returns: string };
       create_capture: {
         Args: {
@@ -5661,6 +5673,10 @@ export type Database = {
       };
       unsubscribe_contact: { Args: { p_contact: string }; Returns: boolean };
       update_ads_monthly_cap: { Args: { p_cap: number; p_company: string }; Returns: undefined };
+      update_agent_settings: {
+        Args: { p_agent: string; p_changes: Json };
+        Returns: undefined;
+      };
       update_automation: {
         Args: {
           p_company: string;

@@ -33,6 +33,7 @@ import { demoSubmitLead } from "./demoLinks";
 import { demoImport, demoProcess } from "./demoInbox";
 import { demoCampaignDecided, demoCancelCampaign, demoPlanCampaign } from "./demoCampaigns";
 import { demoCreateBot, demoDeleteBot, demoUpdateBot } from "./demoBots";
+import { applyAgentSettings } from "./crew";
 import { demoAdDecided, demoPauseAd, demoProposeAdLaunch } from "./demoAds";
 import {
   demoAddPhoneNumber,
@@ -909,6 +910,23 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
     },
     [db, isFounder, user],
   );
+  const updateAgentSettings = useCallback<Ctx["updateAgentSettings"]>(
+    async (agentId, changes) => {
+      const a = db.agents.find((x) => x.id === agentId);
+      if (!a || !isFounder(a.company_id)) {
+        toast.error("Only a founder can change the crew");
+        return false;
+      }
+      const r = applyAgentSettings(db.agents, db.agent_catalogue, agentId, changes);
+      if ("error" in r) {
+        toast.error(r.error);
+        return false;
+      }
+      setDb((d) => ({ ...d, agents: r.agents }));
+      return true;
+    },
+    [db, isFounder],
+  );
   const deleteBot = useCallback<Ctx["deleteBot"]>(
     async (id) => {
       const b = db.bots.find((x) => x.id === id);
@@ -1526,6 +1544,7 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       createBot,
       updateBot,
       deleteBot,
+      updateAgentSettings,
       connectCalendar,
       disconnectCalendar,
       setMeetingRecording,
@@ -1606,6 +1625,7 @@ function DemoStoreProvider({ children }: { children: ReactNode }) {
       createBot,
       updateBot,
       deleteBot,
+      updateAgentSettings,
       connectCalendar,
       disconnectCalendar,
       setMeetingRecording,

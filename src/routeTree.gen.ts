@@ -18,6 +18,7 @@ import { Route as AppApprovalsRouteImport } from './routes/_app/approvals'
 import { Route as AppBillingRouteImport } from './routes/_app/billing'
 import { Route as AppBuildRouteImport } from './routes/_app/build'
 import { Route as AppCohortRouteImport } from './routes/_app/cohort'
+import { Route as AppCrewRouteImport } from './routes/_app/crew'
 import { Route as AppCustomersRouteImport } from './routes/_app/customers'
 import { Route as AppDebriefRouteImport } from './routes/_app/debrief'
 import { Route as AppDocumentsRouteImport } from './routes/_app/documents'
@@ -86,6 +87,11 @@ const AppBuildRoute = AppBuildRouteImport.update({
 const AppCohortRoute = AppCohortRouteImport.update({
   id: '/cohort',
   path: '/cohort',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCrewRoute = AppCrewRouteImport.update({
+  id: '/crew',
+  path: '/crew',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCustomersRoute = AppCustomersRouteImport.update({
@@ -223,6 +229,7 @@ export interface FileRoutesByFullPath {
   '/billing': typeof AppBillingRoute
   '/build': typeof AppBuildRoute
   '/cohort': typeof AppCohortRouteWithChildren
+  '/crew': typeof AppCrewRoute
   '/customers': typeof AppCustomersRoute
   '/debrief': typeof AppDebriefRoute
   '/documents': typeof AppDocumentsRoute
@@ -258,6 +265,7 @@ export interface FileRoutesByTo {
   '/billing': typeof AppBillingRoute
   '/build': typeof AppBuildRoute
   '/cohort': typeof AppCohortRouteWithChildren
+  '/crew': typeof AppCrewRoute
   '/customers': typeof AppCustomersRoute
   '/debrief': typeof AppDebriefRoute
   '/documents': typeof AppDocumentsRoute
@@ -295,6 +303,7 @@ export interface FileRoutesById {
   '/_app/billing': typeof AppBillingRoute
   '/_app/build': typeof AppBuildRoute
   '/_app/cohort': typeof AppCohortRouteWithChildren
+  '/_app/crew': typeof AppCrewRoute
   '/_app/customers': typeof AppCustomersRoute
   '/_app/debrief': typeof AppDebriefRoute
   '/_app/documents': typeof AppDocumentsRoute
@@ -332,6 +341,7 @@ export interface FileRouteTypes {
     | '/billing'
     | '/build'
     | '/cohort'
+    | '/crew'
     | '/customers'
     | '/debrief'
     | '/documents'
@@ -367,6 +377,7 @@ export interface FileRouteTypes {
     | '/billing'
     | '/build'
     | '/cohort'
+    | '/crew'
     | '/customers'
     | '/debrief'
     | '/documents'
@@ -403,6 +414,7 @@ export interface FileRouteTypes {
     | '/_app/billing'
     | '/_app/build'
     | '/_app/cohort'
+    | '/_app/crew'
     | '/_app/customers'
     | '/_app/debrief'
     | '/_app/documents'
@@ -505,6 +517,13 @@ declare module '@tanstack/react-router' {
       path: '/cohort'
       fullPath: '/cohort'
       preLoaderRoute: typeof AppCohortRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/crew': {
+      id: '/_app/crew'
+      path: '/crew'
+      fullPath: '/crew'
+      preLoaderRoute: typeof AppCrewRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/customers': {
@@ -704,6 +723,7 @@ interface AppRouteChildren {
   AppBillingRoute: typeof AppBillingRoute
   AppBuildRoute: typeof AppBuildRoute
   AppCohortRoute: typeof AppCohortRouteWithChildren
+  AppCrewRoute: typeof AppCrewRoute
   AppCustomersRoute: typeof AppCustomersRoute
   AppDebriefRoute: typeof AppDebriefRoute
   AppDocumentsRoute: typeof AppDocumentsRoute
@@ -731,6 +751,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppBillingRoute: AppBillingRoute,
   AppBuildRoute: AppBuildRoute,
   AppCohortRoute: AppCohortRouteWithChildren,
+  AppCrewRoute: AppCrewRoute,
   AppCustomersRoute: AppCustomersRoute,
   AppDebriefRoute: AppDebriefRoute,
   AppDocumentsRoute: AppDocumentsRoute,
