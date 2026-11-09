@@ -58,7 +58,7 @@ Every phase in `docs/PHASES.md` (0–19) is built, merged into `develop` with `-
 2. HANDOFF 6 and 5: email, social and analytics, then Stripe in test mode; run the end-to-end flows with a real founder.
 3. HANDOFF 3, 4, 7 and 8 as needed. Then 10 and 11 (notetaker and calls) once the core is in use.
 4. Leave HANDOFF 12 (paid ads) until there are real customers, as PHASES says.
-5. **Crew (added 9 Nov 2026, awaiting review, nothing built):** `docs/CREW-PHASES.md` plans Phases 20–24 from `docs/CREW.md` (agent records, crew roster, morning briefing, autonomy ladder, plan unlocks); decisions D89–D98. Recommended: build them next, alongside HANDOFF 2 and 1, with Phase 23 landing before any real sending provider (HANDOFF 6) is switched on.
+5. **Crew (added 9 Nov 2026, awaiting review, nothing built):** `docs/CREW-PHASES.md` plans Phases 20–24 from `docs/CREW.md` (agent records, crew roster, morning briefing, autonomy ladder, plan unlocks); decisions D89–D104. **Approved 9 Nov 2026**; building them next, alongside HANDOFF 2 and 1, with Phase 23 landing before any real sending provider (HANDOFF 6) is switched on.
 
 ## Autonomous run (started 26 Oct 2026)
 

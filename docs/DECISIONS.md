@@ -316,7 +316,7 @@ Non-trivial decisions made during the autonomous build run (`docs/AUTONOMOUS-RUN
 
 # Crew planning (9 Nov 2026)
 
-Decisions taken while writing `docs/CREW-PHASES.md` from `docs/CREW.md`. Nothing is built yet; these are proposals for review, in the same format.
+Decisions taken while writing `docs/CREW-PHASES.md` from `docs/CREW.md`. Approved by the owner on 9 Nov 2026 with the answers recorded in CREW-PHASES ("Owner's answers"); D95–D98 are revised below to match and D99–D104 are new.
 
 ## D89. Crew members are job owners, not SDK subagents
 - **Question:** CREW.md describes "Sol's pillar subagents", but the worker runs one agent per job and `agent_runs.pillar` is only a label.
@@ -354,14 +354,35 @@ Decisions taken while writing `docs/CREW-PHASES.md` from `docs/CREW.md`. Nothing
 ## D96. Start levels
 - **Question:** CREW.md says new agents start in draft mode, but its tables give many agents L2 or L3; SPEC G says auto-send is off until the founder turns it on.
 - **Chosen:** a new agent's level per action type is the lowest of CREW.md's start level, the action type's ceiling, and L2 for any external action. L3 at the start only for internal actions (scoring, tagging, flagging). On migration, existing companies keep today's behaviour: external actions at L2, and reply categories the founder already set to auto-send at L3.
-- **Why:** nothing that works today changes; nothing external becomes automatic without the founder; L0 stays available as a choice rather than slowing every new company's first week.
+- **Why:** nothing that works today changes; nothing external becomes automatic without the founder; L0 stays available as a choice rather than slowing every new company's first week. Confirmed by the owner (customer-facing actions start at L2); CREW.md now states the rule.
 - **Change it:** the seeding rule in `private.seed_crew` and `sync_crew`.
 
-## D97. A changed prompt or skill drops L3 to L2
-- **Chosen:** when an agent's style ref or skills change, any action type at L3 drops to L2 and Sol proposes promotion again under the normal thresholds. CREW.md suggests simulation (L0) instead.
-- **Why:** L0 would stop that work for a week; L2 keeps it flowing with every item reviewed.
-- **Change it:** the demotion target in `agent-service/src/autonomy.ts`.
+## D97. A changed prompt or skill version means 7 days of L0 simulation (revised)
+- **Chosen (owner's answer):** when an agent's `prompt_version` or `skills_version` changes, each of its action types at L1 or above runs a 7-day L0 simulation. To keep the work flowing, simulation runs *alongside* the normal path: L3 drops to L2 for the week, and each real proposal gets a shadow simulated item showing what the new version would have done unsupervised. After a clean week Sol proposes restoring the previous level.
+- **Why:** the owner wants L0 whenever the prompt or skill changes; running it in shadow means a week of review without a week of nothing happening. The original proposal (drop to L2 only) is superseded.
+- **Change it:** `SIMULATION_DAYS` in `crew_config` and the logic in `agent-service/src/autonomy.ts`.
 
 ## D98. Mentor holds can only be lifted by a mentor
 - **Chosen:** a cohort mentor can hold an agent (one action type or all) at L2 or below; the founder can't promote above it or lift it; a mentor of that cohort or an admin can.
-- **Why:** a hold the founder can undo isn't oversight. Open question 3 in CREW-PHASES asks you to confirm.
+- **Why:** a hold the founder can undo isn't oversight. Confirmed by the owner, who added: every hold carries a reason the founder can see; the founder has a "Request release" action that notifies the cohort's mentors; and holds end automatically when the company leaves the cohort (a trigger on `cohort_companies`).
+
+## D99. Per-pillar hiring rates, all £15.00, labelled estimate
+- **Chosen (owner's answer):** `crew_config.hiring_rates` holds an hourly rate per crew pillar, all £15.00 for now. The equivalent hiring cost sums each pillar's outcomes × `minutes_per_outcome` × its rate and is labelled ESTIMATE wherever it appears. `minutes_per_outcome` uses the low end of a plausible range, so the figure understates rather than flatters.
+- **Change it:** the rates in `crew_config`; minutes in `agent_catalogue`, replaced with pilot measurements.
+
+## D100. Crisis hold
+- **Chosen (owner's answer):** `company_automation.crisis_hold`, a founder switch. Sol can propose it (a `crisis_hold` approval) on a spike in negative mentions, reviews or complaints, or a legal threat. While on: scheduled public posts pause (still scheduled, not published), every reply drops to an L1 draft, and the founder gets a reminder in the briefing and chat each day. It never expires; only a founder turns it off.
+- **Why:** CREW.md caps public statements in a crisis but didn't define one; a switch the founder owns is simple and auditable.
+
+## D101. 7 days of L0 before a first L3
+- **Chosen (owner's answer):** an action type can only be promoted to L3 for the first time after 7 days of L0 simulation without a "Wrong". When the L2 → L3 thresholds are met, the shadow simulation starts; the promotion is offered when the week is clean. Later promotions back to L3 (after a demotion) follow D97 if the version changed, otherwise the normal thresholds.
+
+## D102. The Crew card replaces Overnight burn on HQ
+- **Chosen (owner's answer):** the HQ grid's Overnight burn card is replaced by a Crew card (Phase 21); saved layouts get Crew in its place; overnight and month-to-date spend move into the morning briefing (Phase 22). The low-balance banner stays.
+
+## D103. Standing-by agents show a call to action
+- **Chosen (owner's answer):** `agent_catalogue.needs` is structured (`label`, `action`, `route`) so a standing-by card says what to connect and has a button to where it's connected. It never shows numbers, not even zeros.
+
+## D104. Branches for the crew phases
+- **Question:** CLAUDE.md asks for `phase-N-short-name` branches; this session may only push to `claude/stoic-ptolemy-j5zxw1`, and PR #4 (the first plan) is already merged into `main`.
+- **Chosen:** as in D1, phase branches exist locally and the designated branch is restarted from `main` for each piece of work that goes up as its own PR. The revised plan goes to `main` by PR before Phase 20 starts.
