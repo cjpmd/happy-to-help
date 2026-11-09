@@ -13,6 +13,15 @@ import { loadMemoryInput, prepareWorkspace } from "./workspace.js";
 import { failCapture, prepareCapture } from "./capture/prepare.js";
 import { reportError } from "./errors.js";
 import { mockTranscription, type TranscriptionProvider } from "./capture/transcription.js";
+import {
+  agentForJob,
+  agentLimit,
+  creditsThisMonth,
+  effectiveSkills,
+  effectiveTools,
+  loadStylePrompt,
+  unavailableReason,
+} from "./crew.js";
 
 export type Job = Tables<"agent_jobs">;
 
@@ -112,6 +121,17 @@ export async function processJob(deps: RunnerDeps, job: Job): Promise<JobResult>
   const input = jobInput(job, chatText);
   const title = input.title ?? spec.label;
 
+  // The crew member this job runs as (Phase 20). A paused or locked agent doesn't run, and
+  // nothing is charged.
+  const agent = await agentForJob(db, job);
+  const unavailable = agent ? unavailableReason(agent) : null;
+  if (unavailable) {
+    await finishJob(db, job, "failed", unavailable);
+    await event(db, job.company_id, "escalation", `${title} didn't run: ${unavailable}`);
+    await say(db, job.company_id, `I couldn't start "${title}". ${unavailable}`);
+    return { outcome: "failed" };
+  }
+
   // Estimate and check the balance (plus any cohort pool) before creating anything. The
   // job_types table is the source of estimates and caps; the spec's are the fallback.
   const { data: jt } = await db
@@ -126,7 +146,18 @@ export async function processJob(deps: RunnerDeps, job: Job): Promise<JobResult>
     ceiling,
     job.estimated_credits > 0 ? job.estimated_credits : (jt?.estimate_credits ?? spec.estimate),
   );
-  const cap = Math.min(ceiling, Math.max(estimate, jt?.cap_credits ?? spec.cap));
+  let cap = Math.min(ceiling, Math.max(estimate, jt?.cap_credits ?? spec.cap));
+  // The agent's own caps (D105): per run, and what's left of its month, if it has a monthly cap.
+  if (agent) {
+    const { limit, blocked } = agentLimit(agent, await creditsThisMonth(db, agent.id), estimate);
+    if (blocked) {
+      await finishJob(db, job, "failed", blocked);
+      await event(db, job.company_id, "escalation", `${title} is over ${agent.name}'s cap`);
+      await say(db, job.company_id, `I couldn't start "${title}". ${blocked}`);
+      return { outcome: "failed" };
+    }
+    cap = Math.min(cap, limit);
+  }
   const summary = must(
     await db.rpc("credit_summary", { p_company: job.company_id }),
     "credit summary",
@@ -165,6 +196,7 @@ export async function processJob(deps: RunnerDeps, job: Job): Promise<JobResult>
         company_id: job.company_id,
         job_id: job.id,
         task_id: job.task_id,
+        agent_id: agent?.id ?? null,
         task: title,
         pillar: spec.pillar,
         model: config.runtime === "mock" ? `${model} (mock)` : model,
@@ -174,7 +206,10 @@ export async function processJob(deps: RunnerDeps, job: Job): Promise<JobResult>
       .single(),
     "create run",
   );
-  await db.from("agent_jobs").update({ run_id: run.id }).eq("id", job.id);
+  await db
+    .from("agent_jobs")
+    .update({ run_id: run.id, ...(agent ? { agent_id: agent.id } : {}) })
+    .eq("id", job.id);
 
   try {
     must(
@@ -222,12 +257,17 @@ export async function processJob(deps: RunnerDeps, job: Job): Promise<JobResult>
   const heartbeat = setInterval(() => {
     void db.rpc("heartbeat_agent_job", { p_job: job.id, p_worker: config.workerId });
   }, 60_000);
-  const ws = await prepareWorkspace(
-    config.workspaceRoot,
-    run.id,
-    await loadMemoryInput(db, job.company_id),
-    spec.skills,
-  );
+  const skills = effectiveSkills(spec.skills, agent?.skills ?? []);
+  const tools = effectiveTools(spec.tools, agent?.tools ?? []);
+  const memory = await loadMemoryInput(db, job.company_id);
+  if (agent)
+    memory.crew = {
+      name: agent.name,
+      role: agent.role,
+      isSol: agent.catalogue_key === "sol",
+      prompt: await loadStylePrompt(agent.style_ref),
+    };
+  const ws = await prepareWorkspace(config.workspaceRoot, run.id, memory, skills);
   let outcome: RunOutcome;
   // Transcription (for uploaded recordings) runs first and is charged with the run.
   let preUsd = 0;
@@ -240,8 +280,8 @@ export async function processJob(deps: RunnerDeps, job: Job): Promise<JobResult>
       prompt: spec.prompt(input),
       model,
       cwd: ws.dir,
-      skills: spec.skills,
-      tools: spec.tools,
+      skills,
+      tools,
       maxBudgetUsd: Math.max(0, maxBudgetUsd - preUsd),
       estimateUsd,
       maxTurns: spec.maxTurns,

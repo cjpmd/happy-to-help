@@ -141,7 +141,7 @@ Branch `phase-21-crew-roster`.
 
 ### App
 
-- **`/crew`**: the roster grouped by pillar in the sidebar's order (Build, Grow, Customers, Run, Stay legal, Raise), then "Mission support" for the meta crew. Added to the main nav after GO / NO-GO.
+- **`/crew`**: the roster grouped by pillar in the sidebar's order (Build, Grow, Customers, Run, Stay legal, Raise), then "Mission support" for the meta crew. Added to the main nav after GO / NO-GO. **Active crew is prominent; standing-by and (from Phase 24) locked agents sit in a collapsed "Joining your crew" section** below, each with its call to action (owner, 9 Nov 2026).
 - **Department pages** (`build`, `grow`, `customers`, `run`, `legal`, `raise`) show that pillar's crew as a strip at the top.
 - **Crew card** (`--surface` card, console tile on `--soft`): monogram avatar, NAME · ROLE (Barlow uppercase), the outcome as a big number (Barlow Semi Condensed, tabular) with its label ("26 deals scored"), level badge (L0–L3, outlined; amber when waiting for you), status dot (green working, muted idle, amber waiting), last run ("2 h ago"), credits this month against the cap as a thin bar. Standing-by agents show what to connect and a button to connect it, instead of any numbers. No new colours: green only for done or verified, amber only for "needs you".
 - **Agent sheet** (click a card): recent runs and actions, each with its "Why?" (from the run's steps and the existing `Why` component); autonomy per action type, read-only until Phase 23; the founder's caps and pause.
@@ -164,6 +164,24 @@ Branch `phase-21-crew-roster`.
 - `npm run check:fit` passes; lint adds no warnings.
 
 ---
+
+## Phase 21a (proposed, not scheduled): Web research
+
+Plan only, added 9 Nov 2026 at the owner's request. Not to be built until approved.
+
+**Goal.** Give the crew a safe way to research the web, so the six agents whose standing-by reason today is "needs web research" can work: Scout (competitors), Hunter (lead lists), Nia (suppliers), Gus (grants), Quill (press and awards) and Opal (opportunities).
+
+**Approach.** Use Claude's server-side web search tool (`web_search`, run by the Anthropic API, not by our worker) rather than fetching pages ourselves. It returns results with citations, needs no scraping code or extra provider account, and its cost arrives in the run's own usage, so it fits the existing estimate → reserve → settle flow. The Agent SDK's general `WebSearch`/`WebFetch` stay denied by `gate.ts`.
+
+- **Where it's allowed:** a `web_research` capability per job type, not per company. Only research jobs (new job types `competitor_scan`, `lead_search`, `supplier_search`, `grant_search`, `press_search`, `opportunity_scan`) get the tool, with `max_uses` per run (default 5) and an allowed or blocked domain list in config.
+- **Cost:** search requests are billed per use on top of tokens. The run's `cost_usd` includes them; each job type's estimate and cap allow for `max_uses` searches. Pricing and per-use cost are checked against the current Anthropic pricing before the job estimates are set. No new provider, no new keys.
+- **What agents may do with results:** read and summarise only. Results become internal records (competitor changes, candidate leads marked "found on the web, not contacted", grant opportunities with deadlines) with source links. Anything outward (outreach to a found lead, a pitch, an application) is still a proposal for approval, at the agent's level.
+- **Data protection:** lead search may surface personal data about individuals. Hunter only records business contact details from business sources, records the source and lawful basis (legitimate interests, with a balancing note), never marks such contacts as having marketing consent, and outreach to them follows PECR (B2B corporate subscribers only, no sole traders without consent). A Stay legal task explains this the first time Hunter runs.
+- **Claims:** facts from search that end up in public-facing text go through the claims check with their source attached.
+- **Mock first:** the mock runtime returns canned search results so the flow is tested without spending; real search turns on only with `AGENT_RUNTIME=claude` and a company switch (`integration_settings`, like D54).
+- **Unlocks:** the six agents' `engine` becomes true and their `needs` is cleared once their job type exists; their plan gating (Phase 24) is unchanged.
+- **Open questions:** which domains to block by default (social networks, for terms reasons); whether Hunter waits for the Customers crew phase; the default `max_uses` per job.
+- **Files likely to change:** a migration (job types, catalogue updates), `agent-service/src/{jobs,gate,config}.ts`, `agent-service/src/runtime/{claude,mock}.ts`, new skills under `agent-service/skills/`, `src/lib/crewCatalogue.ts` (regenerated), tests in `agent-service/test/` and `supabase/tests/database/`.
 
 ## Phase 22: Morning briefing
 
@@ -305,7 +323,7 @@ Branch `phase-24-plan-unlocks`.
 
 `20261114100000_plan_unlocks.sql`:
 - `agent_catalogue.min_plan` is now enforced; `unlock_via` (`launch_pack`, `cohort`) and `limits` jsonb (e.g. `{ "social_channels": 1 }` for Echo on Starter).
-- `private.sync_crew(company)`: creates newly unlocked agents (with D96 start levels) and sets `locked` on agents the plan no longer covers, keeping their history. Called from `apply_billing_event` when the plan changes, from `join_cohort`, when a Launch Pack is granted or used up, and once for every company.
+- `private.sync_crew(company)`: creates newly unlocked agents (with D96 start levels, through `private.seed_agents`, which is idempotent) and sets `locked` on agents the plan no longer covers, keeping their history. **Phase 20 only seeds the Starter crew; Phase 24 must seed additional agents whenever the plan changes or a Launch Pack is bought** (owner, 9 Nov 2026). Called from `apply_billing_event` when the plan changes, from `join_cohort`, when a Launch Pack is granted or used up, and once for every company.
 - `enqueue_job` and `claim_agent_job` refuse work for locked agents with a clear reason.
 - `crew_catalogue(p_company)`: unlocked and locked agents together, with the plan that unlocks each.
 

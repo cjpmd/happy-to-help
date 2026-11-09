@@ -548,4 +548,4 @@ where exists (
 
 -- Crew (Phase 20): every company got its Starter crew when it was inserted; the seeded runs
 -- above have no agent yet, so attribute them the same way the migration backfilled real ones.
-select private.attribute_runs();
+do $$ begin perform private.attribute_runs(); end $$;

@@ -74,8 +74,8 @@ create table public.agent_catalogue (
   -- Never below the cap of any job type it runs, so attaching a job to an agent can't shrink a
   -- reservation (D105).
   budget_per_run_credits integer not null check (budget_per_run_credits > 0),
-  -- Null: no monthly cap of its own (the balance still limits it). Set only where CREW.md gives
-  -- one; founders set the rest (D105).
+  -- Null: no monthly cap of its own (the balance still limits it). Every agent starts with none;
+  -- founders set them (D105).
   budget_per_month_credits integer check (budget_per_month_credits is null or budget_per_month_credits > 0),
   -- Starting level per action type, from CREW.md. An upper bound: seeding applies D96.
   start_autonomy jsonb not null default '{}' check (jsonb_typeof(start_autonomy) = 'object'),
@@ -221,7 +221,7 @@ insert into public.agent_catalogue (
 ('zara', 'Zara', 'Deal scorer', 'customers',
  'Scores open deals on fit, intent and engagement.',
  '{"key": "deals_scored", "label": "deals scored"}', 'prompts/zara.md', 'routine',
- '[{"type": "schedule", "on": "daily"}]', '{}', '{}', '{}', 20, 2000,
+ '[{"type": "schedule", "on": "daily"}]', '{}', '{}', '{}', 20, null,
  '{"internal_update": 3}', '{keep_going}', 'launch', 'growth', 3, false,
  '{"label": "Zara needs deals in a pipeline, which isn''t built yet.", "action": null, "route": null}', 33),
 ('dev', 'Dev', 'Proposal writer', 'customers',
@@ -562,27 +562,15 @@ create index agent_autonomy_events_proposed_by_agent_idx on public.agent_autonom
 create index agent_autonomy_events_decided_by_idx on public.agent_autonomy_events (decided_by);
 create index agent_autonomy_events_approval_id_idx on public.agent_autonomy_events (approval_id);
 
--- No one may change a history row, the service role included (as for credit_ledger). Direct
--- deletes are refused by grants: no role has DELETE. Unlike the ledger, deleting a whole company
--- still cascades here (D106), because every company has seed events from day one and a
--- `restrict` would make every company undeletable.
-create function private.refuse_autonomy_event_change()
-returns trigger
-language plpgsql
-set search_path = ''
-as $$
-begin
-  raise exception 'agent_autonomy_events is insert-only: % is not allowed', tg_op
-    using errcode = 'insufficient_privilege';
-end;
-$$;
-create trigger agent_autonomy_events_no_update before update on public.agent_autonomy_events
-  for each row execute function private.refuse_autonomy_event_change();
-create trigger agent_autonomy_events_no_truncate before truncate on public.agent_autonomy_events
-  for each statement execute function private.refuse_autonomy_event_change();
+-- No one may update, delete or truncate a history row, the service role included. This is done
+-- with privileges, not a trigger (D106): nobody is granted UPDATE, DELETE or TRUNCATE (see
+-- Access below), so direct changes are refused, while the foreign-key cascade when a whole
+-- company is deleted still works (cascades don't check the caller's privileges).
 
 -- Runs and jobs say who did them -----------------------------------------------------------
 
+-- Nullable for now: the agent service, the chat function and the executor start recording it in
+-- this phase, and a later migration makes it NOT NULL once every writer does (D109).
 alter table public.agent_runs
   add column agent_id uuid references public.agents (id) on delete set null;
 create index agent_runs_agent_id_idx on public.agent_runs (agent_id, started_at desc);
@@ -740,6 +728,35 @@ begin
 end;
 $$;
 
+-- Who an approval's executor run belongs to: the agent whose run proposed it; for approvals a
+-- founder made themselves, by action type; else Sol (D91). Used by the executor and the backfill.
+create function public.agent_for_approval(p_approval uuid)
+returns uuid
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce(
+    proposer.agent_id,
+    private.crew_agent(a.company_id, case a.action_type::text
+      when 'publish_post' then 'echo'
+      when 'reply_public' then 'echo'
+      when 'send_email' then 'tilly'
+      when 'update_voice' then 'iris'
+      when 'update_memory' then 'mo'
+      when 'file_document' then 'shield'
+      when 'ad_spend' then 'nova'
+      when 'launch_ad' then 'nova'
+      when 'approve_campaign' then 'nova'
+      else 'sol' end),
+    private.crew_agent(a.company_id, 'sol')
+  )
+  from public.approvals a
+  left join public.agent_runs proposer on proposer.id = a.run_id
+  where a.id = p_approval;
+$$;
+
 -- Attributes runs that have no agent yet (the backfill, and seed data). Safe to run again.
 -- Order matters: job runs first, so executor runs can take their proposer's agent.
 create function private.attribute_runs(p_company uuid default null)
@@ -784,26 +801,10 @@ begin
     and (p_company is null or r.company_id = p_company);
   get diagnostics n = row_count; total := total + n;
 
-  -- 4. Executor runs: the agent whose run proposed the approval; founder-made approvals by
-  --    action type.
+  -- 4. Executor runs: see public.agent_for_approval.
   update public.agent_runs r
-  set agent_id = coalesce(
-    proposer.agent_id,
-    private.crew_agent(r.company_id, case a.action_type::text
-      when 'publish_post' then 'echo'
-      when 'reply_public' then 'echo'
-      when 'send_email' then 'tilly'
-      when 'update_voice' then 'iris'
-      when 'update_memory' then 'mo'
-      when 'file_document' then 'shield'
-      when 'ad_spend' then 'nova'
-      when 'launch_ad' then 'nova'
-      when 'approve_campaign' then 'nova'
-      else 'sol' end),
-    private.crew_agent(r.company_id, 'sol')
-  )
+  set agent_id = public.agent_for_approval(a.id)
   from public.approvals a
-  left join public.agent_runs proposer on proposer.id = a.run_id
   where a.execution_run_id = r.id and r.agent_id is null
     and (p_company is null or r.company_id = p_company);
   get diagnostics n = row_count; total := total + n;
@@ -827,26 +828,46 @@ $$;
 
 -- Backfill ---------------------------------------------------------------------------------
 
+-- 1. Every EXISTING company gets Sol and the Starter crew here, explicitly. The insert trigger
+--    above only covers companies created from now on. This must run before the run backfill,
+--    which looks agents up by company.
 select private.seed_crew(id) from public.companies;
 
--- Existing companies keep today's behaviour (D96): where a founder already set a reply category
--- to auto-send, Tilly's replies stay automatic (L3) rather than dropping to drafts in Phase 23.
-with kept as (
-  update public.agent_autonomy aa
-  set level = 3
-  from public.agents ag
-  where ag.id = aa.agent_id and ag.catalogue_key = 'tilly' and aa.action_type = 'reply_inbox'
-    and exists (
-      select 1 from public.response_policies p
-      where p.company_id = aa.company_id and p.mode = 'auto_send'
-    )
-  returning aa.agent_id, aa.company_id
-)
-insert into public.agent_autonomy_events (company_id, agent_id, action_type, kind, from_level, to_level, reason)
-select company_id, agent_id, 'reply_inbox', 'seed', 2, 3,
-  'Kept automatic replies the founder had already switched on'
-from kept;
+-- 2. Existing companies keep today's behaviour (D96): where a founder already set a reply
+--    category to auto-send, Tilly's replies stay automatic (L3) rather than dropping to drafts in
+--    Phase 23. A one-time exception to the 7-day L0 rule before a first L3 (D101), logged.
+create function private.keep_auto_replies()
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  n integer;
+begin
+  with kept as (
+    update public.agent_autonomy aa
+    set level = 3
+    from public.agents ag
+    where ag.id = aa.agent_id and ag.catalogue_key = 'tilly' and aa.action_type = 'reply_inbox'
+      and aa.level < 3
+      and exists (
+        select 1 from public.response_policies p
+        where p.company_id = aa.company_id and p.mode = 'auto_send'
+      )
+    returning aa.agent_id, aa.company_id, aa.level
+  )
+  insert into public.agent_autonomy_events (company_id, agent_id, action_type, kind, from_level, to_level, reason)
+  select company_id, agent_id, 'reply_inbox', 'seed', 2, 3,
+    'Kept automatic replies the founder had already switched on (one-time exception to the 7-day simulation rule, D96)'
+  from kept;
+  get diagnostics n = row_count;
+  return n;
+end;
+$$;
+select private.keep_auto_replies();
 
+-- 3. Attribute every existing run and job.
 select private.attribute_runs();
 
 do $$
@@ -877,6 +898,7 @@ create policy "Everyone signed in can read the crew catalogue" on public.agent_c
 
 grant select on public.agents, public.agent_autonomy, public.agent_autonomy_events to authenticated;
 grant select, insert, update on public.agents, public.agent_autonomy to service_role;
+-- History: insert and read only. No UPDATE, DELETE or TRUNCATE for anyone (D106).
 grant select, insert on public.agent_autonomy_events to service_role;
 create policy "Read the crew of companies you can read" on public.agents
   for select to authenticated using (private.can_read_company(company_id));
@@ -888,7 +910,12 @@ create policy "Read crew autonomy history of companies you can read" on public.a
 revoke all on function private.starter_crew(), private.start_level(smallint, text),
   private.seed_agents(uuid, text[]), private.seed_crew(uuid), private.crew_agent(uuid, text),
   private.attribute_runs(uuid), private.seed_crew_for_new_company(),
-  private.check_autonomy_ceiling(), private.refuse_autonomy_event_change()
+  private.check_autonomy_ceiling(), private.keep_auto_replies()
   from public;
 revoke all on function public.agent_for_job(uuid, text, jsonb) from public, anon, authenticated;
 grant execute on function public.agent_for_job(uuid, text, jsonb) to service_role;
+revoke all on function public.agent_for_approval(uuid) from public, anon, authenticated;
+grant execute on function public.agent_for_approval(uuid) to service_role;
+
+-- The app refreshes the crew when it changes.
+alter publication supabase_realtime add table public.agents, public.agent_autonomy;

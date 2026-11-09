@@ -66,10 +66,16 @@ Deno.serve(async (req) => {
     return json({ error: "Not enough credits", code: "insufficient_credits" }, 402);
   }
 
+  // Chat is Sol's (Phase 20): the run records the crew member that did it.
+  const { data: solId } = await svc.rpc("agent_for_job", {
+    p_company: companyId,
+    p_job_type: "chat",
+  });
   const { data: run, error: runError } = await svc
     .from("agent_runs")
     .insert({
       company_id: companyId,
+      agent_id: solId ?? null,
       task: "Chat with Sol",
       pillar: "run",
       model: mock ? `${model} (mock)` : model,

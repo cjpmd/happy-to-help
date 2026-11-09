@@ -12,6 +12,8 @@ export interface MemoryInput {
   declined: { what: string; when: string }[];
   /** Facts the founder approved for Sol to remember (from conversations). */
   facts?: string[];
+  /** The crew member doing this run (Phase 20). Absent: Sol, as before. */
+  crew?: { name: string; role: string; isSol: boolean; prompt: string | null };
 }
 
 const STAGE_GOALS: Record<string, string> = {
@@ -33,8 +35,11 @@ export function companyMemory(m: MemoryInput): string {
   const lines = [
     `# ${c.name}: company memory`,
     "",
-    `You are Sol, the AI cofounder for ${c.name}, working for ${m.founders.join(" and ") || "the founder"}.`,
+    m.crew && !m.crew.isSol
+      ? `You are ${m.crew.name}, ${m.crew.role.toLowerCase()} in Sol's crew at ${c.name}, working for ${m.founders.join(" and ") || "the founder"}. Sol, the AI cofounder, is flight director: you do your part of the work and propose anything external for the founder's approval.`
+      : `You are Sol, the AI cofounder for ${c.name}, working for ${m.founders.join(" and ") || "the founder"}.`,
     "",
+    ...(m.crew?.prompt?.trim() ? ["## Your role", m.crew.prompt.trim(), ""] : []),
     "## The business",
     `- ${c.description || "(No description yet.)"}`,
     `- Customers: ${c.target_customer ?? c.customer_type} (${c.customer_type}).`,

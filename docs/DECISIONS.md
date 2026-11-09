@@ -355,6 +355,7 @@ Decisions taken while writing `docs/CREW-PHASES.md` from `docs/CREW.md`. Approve
 - **Question:** CREW.md says new agents start in draft mode, but its tables give many agents L2 or L3; SPEC G says auto-send is off until the founder turns it on.
 - **Chosen:** a new agent's level per action type is the lowest of CREW.md's start level, the action type's ceiling, and L2 for any external action. L3 at the start only for internal actions (scoring, tagging, flagging). On migration, existing companies keep today's behaviour: external actions at L2, and reply categories the founder already set to auto-send at L3.
 - **Why:** nothing that works today changes; nothing external becomes automatic without the founder; L0 stays available as a choice rather than slowing every new company's first week. Confirmed by the owner (customer-facing actions start at L2); CREW.md now states the rule.
+- **One-time exception (owner, 9 Nov 2026):** existing companies that had already switched a reply category to auto-send keep Tilly's `reply_inbox` at L3 without the 7-day L0 period D101 otherwise requires before a first L3. It's done once by the Phase 20 migration (`private.keep_auto_replies`) and logged in `agent_autonomy_events` with the reason "one-time exception to the 7-day simulation rule". New companies never get it.
 - **Change it:** the seeding rule in `private.seed_crew` and `sync_crew`.
 
 ## D97. A changed prompt or skill version means 7 days of L0 simulation (revised)
@@ -389,13 +390,13 @@ Decisions taken while writing `docs/CREW-PHASES.md` from `docs/CREW.md`. Approve
 
 ## D105. Agent budget caps never shrink existing work
 - **Question:** CREW.md's credits per run are lower than some job caps already in use (Nova 50 against `social_post`'s 120; Sol runs Auto Mode at 1,200), and it gives a monthly cap for only one agent.
-- **Chosen:** an agent's per-run cap is the higher of CREW.md's upper figure and the largest cap of any job type it runs, so attaching jobs to agents can't lower a reservation. Monthly caps are null (no agent cap; the balance still limits spending) except where CREW.md gives one (Zara 2,000); founders set them from Phase 21. Caps are enforced in the worker: a run reserves at most `min(job cap, agent per-run cap, agent month cap − credits this month)`.
+- **Chosen:** an agent's per-run cap is the higher of CREW.md's upper figure and the largest cap of any job type it runs, so attaching jobs to agents can't lower a reservation. Monthly caps start empty for every agent (no agent cap; the balance still limits spending); founders set them from Phase 21. CREW.md's Zara example (2,000 a month) was illustrative and isn't used (owner, 9 Nov 2026). Caps are enforced in the worker: a run reserves at most `min(job cap, agent per-run cap, agent month cap − credits this month)`.
 - **Why:** an invented monthly cap could quietly stop a busy company's inbox or content; leaving it to the founder keeps behaviour unchanged until they choose.
 - **Change it:** `budget_per_month_credits` in `agent_catalogue` (new companies) or `agents` (one company).
 
-## D106. Autonomy history is insert-only, but cascades with its company
-- **Chosen:** `agent_autonomy_events` refuses update and truncate by trigger and has no DELETE grant for any role, as the credit ledger does. Unlike the ledger (`on delete restrict`), it cascades when a whole company is deleted.
-- **Why:** every company gets seed events on creation, so `restrict` would make every company undeletable, including in tests.
+## D106. Autonomy history is insert-only by privileges, and cascades with its company
+- **Chosen (revised with the owner):** `agent_autonomy_events` is protected by privileges, not a trigger: no role (service role included) is granted UPDATE, DELETE or TRUNCATE; the service role may only SELECT and INSERT. A foreign-key cascade doesn't check the caller's privileges, so deleting a whole company still removes its history. Tested both ways in `24_agents.test.sql`.
+- **Why:** a trigger would also fire on the cascade and block deleting a company, and every company has seed history from day one. The credit ledger keeps its trigger and `on delete restrict`, because money history must outlive a deleted company.
 
 ## D107. Shield runs updates to policy documents
 - **Chosen:** `document_update` jobs go to Sol, except when the target document's title mentions privacy, terms or cookies, which go to Shield (`public.agent_for_job`). Shield is therefore an active Starter agent rather than standing by.
@@ -404,3 +405,13 @@ Decisions taken while writing `docs/CREW-PHASES.md` from `docs/CREW.md`. Approve
 ## D108. Which agents are "active" today
 - **Chosen:** `agent_catalogue.engine` is true only where the platform already does the agent's work: Sol, Iris, Eve, Nova, Echo (the executor publishing approved posts), Penny (lead forms), Tilly, Clara, Shield, Mira, Lumen, Rhea, Dex (from failed runs and errors, Phase 21) and Mo (approved memory facts). Everyone else is `standing_by` with a `needs` call to action.
 - **Open:** for many standing-by agents there is nothing the founder can connect yet (accounting, GitHub, web research, a deals pipeline). Their `needs` says so plainly with no button; where a manual alternative exists (Settings integrations, Routines, Raise) the button goes there.
+
+## D109. agent_runs.agent_id: nullable while writers changed, then required
+- **Chosen:** the Phase 20 migration adds the column nullable and backfills it. Once the agent service, the chat function and the executor record it (all three in Phase 20), `20261110100200_agent_runs_agent_required.sql` makes it NOT NULL. A before-insert trigger fills it for any writer that still leaves it out (an older worker during a rollout, seed data, tests) by the backfill's own rules, and refuses an agent from another company. The foreign key becomes NO ACTION (checked at the end of the statement), so deleting a company, which removes its runs and its agents together, still works.
+- **Deploy order:** apply all three Phase 20 migrations, then deploy the chat function and the worker. The trigger covers the gap.
+- **Change it:** drop the trigger once every writer has been live for a while; NOT NULL then catches any new writer that forgets.
+
+## D110. Local testing without Docker
+- **Question:** this build sandbox has no Docker, so `supabase start`, `supabase gen types` and the agent service's integration tests (which talk to the local Supabase API) can't run.
+- **Chosen:** the database is tested on plain Postgres 16 with `scripts/db/test-local.sh`, which already stubs Supabase's `auth` schema (`auth.uid()`, `auth.jwt()`, `auth.role()` from `request.jwt.claims`) and the `anon`, `authenticated` and `service_role` roles with Supabase's default grants, so the RLS tests act as real users. Types for new tables are written by `scripts/db/gen-table-types.py` from that database in the generated format (checked byte-for-byte against existing blocks). The demo catalogue is generated by `scripts/db/gen-crew-catalogue.sh`. Agent-service logic that needs no database is unit-tested here; the database-backed tests (`agent-service/test/crewRuns.test.ts` and the existing suite) are written but **not run in this sandbox**.
+- **Before production:** re-run every RLS and agent-service test on a Supabase dev branch (or `supabase start` locally), and regenerate types with `npm run db:types`, before applying to the London project.
