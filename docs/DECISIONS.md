@@ -386,3 +386,21 @@ Decisions taken while writing `docs/CREW-PHASES.md` from `docs/CREW.md`. Approve
 ## D104. Branches for the crew phases
 - **Question:** CLAUDE.md asks for `phase-N-short-name` branches; this session may only push to `claude/stoic-ptolemy-j5zxw1`, and PR #4 (the first plan) is already merged into `main`.
 - **Chosen:** as in D1, phase branches exist locally and the designated branch is restarted from `main` for each piece of work that goes up as its own PR. The revised plan goes to `main` by PR before Phase 20 starts.
+
+## D105. Agent budget caps never shrink existing work
+- **Question:** CREW.md's credits per run are lower than some job caps already in use (Nova 50 against `social_post`'s 120; Sol runs Auto Mode at 1,200), and it gives a monthly cap for only one agent.
+- **Chosen:** an agent's per-run cap is the higher of CREW.md's upper figure and the largest cap of any job type it runs, so attaching jobs to agents can't lower a reservation. Monthly caps are null (no agent cap; the balance still limits spending) except where CREW.md gives one (Zara 2,000); founders set them from Phase 21. Caps are enforced in the worker: a run reserves at most `min(job cap, agent per-run cap, agent month cap − credits this month)`.
+- **Why:** an invented monthly cap could quietly stop a busy company's inbox or content; leaving it to the founder keeps behaviour unchanged until they choose.
+- **Change it:** `budget_per_month_credits` in `agent_catalogue` (new companies) or `agents` (one company).
+
+## D106. Autonomy history is insert-only, but cascades with its company
+- **Chosen:** `agent_autonomy_events` refuses update and truncate by trigger and has no DELETE grant for any role, as the credit ledger does. Unlike the ledger (`on delete restrict`), it cascades when a whole company is deleted.
+- **Why:** every company gets seed events on creation, so `restrict` would make every company undeletable, including in tests.
+
+## D107. Shield runs updates to policy documents
+- **Chosen:** `document_update` jobs go to Sol, except when the target document's title mentions privacy, terms or cookies, which go to Shield (`public.agent_for_job`). Shield is therefore an active Starter agent rather than standing by.
+- **Change it:** the pattern in `agent_for_job`.
+
+## D108. Which agents are "active" today
+- **Chosen:** `agent_catalogue.engine` is true only where the platform already does the agent's work: Sol, Iris, Eve, Nova, Echo (the executor publishing approved posts), Penny (lead forms), Tilly, Clara, Shield, Mira, Lumen, Rhea, Dex (from failed runs and errors, Phase 21) and Mo (approved memory facts). Everyone else is `standing_by` with a `needs` call to action.
+- **Open:** for many standing-by agents there is nothing the founder can connect yet (accounting, GitHub, web research, a deals pipeline). Their `needs` says so plainly with no button; where a manual alternative exists (Settings integrations, Routines, Raise) the button goes there.
